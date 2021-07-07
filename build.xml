@@ -259,7 +259,7 @@ See also com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.SYSP_* variables fo
     </condition>
 
     <!-- The JDK used to compile the code. -->
-    <property name="com.tencent.tdsql.mysql.cj.build.jdk" value="/usr/bin/java" />
+    <property name="com.tencent.tdsql.mysql.cj.build.jdk" value="/root/OpenSources/jdk1.8.0_281" />
 
     <!-- Generate debugging info in compiled code. -->
     <property name="com.tencent.tdsql.mysql.cj.build.addDebugInfo" value="yes" />
