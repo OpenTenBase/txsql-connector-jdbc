@@ -205,7 +205,7 @@ See also com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.SYSP_* variables fo
 
     <property name="com.tencent.tdsql.mysql.cj.build.driver.version.major" value="8" />
     <property name="com.tencent.tdsql.mysql.cj.build.driver.version.minor" value="0" />
-    <property name="com.tencent.tdsql.mysql.cj.build.driver.version.subminor" value="25" />
+    <property name="com.tencent.tdsql.mysql.cj.build.driver.version.subminor" value="0" />
     <property name="com.tencent.tdsql.mysql.cj.build.driver.version.status" value="" />
 
     <property name="com.tencent.tdsql.mysql.cj.build.driver.version.series" value="${com.tencent.tdsql.mysql.cj.build.driver.version.major}.${com.tencent.tdsql.mysql.cj.build.driver.version.minor}" />
@@ -213,12 +213,12 @@ See also com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.SYSP_* variables fo
               value="${com.tencent.tdsql.mysql.cj.build.driver.version.series}.${com.tencent.tdsql.mysql.cj.build.driver.version.subminor}" />
     <property name="com.tencent.tdsql.mysql.cj.build.driver.version" value="${com.tencent.tdsql.mysql.cj.build.driver.version.numeric}${com.tencent.tdsql.mysql.cj.build.driver.version.status}" />
     <property name="com.tencent.tdsql.mysql.cj.build.driver.version.extra" value="" />
-    <property name="com.tencent.tdsql.mysql.cj.build.driver.version.snapshot" value="-SNAPSHOT" />
+    <property name="com.tencent.tdsql.mysql.cj.build.driver.version.snapshot" value="" />
     <property name="com.tencent.tdsql.mysql.cj.build.driver.version.full"
               value="${com.tencent.tdsql.mysql.cj.build.driver.version}${com.tencent.tdsql.mysql.cj.build.driver.version.extra}${com.tencent.tdsql.mysql.cj.build.driver.version.snapshot}" />
 
-    <property name="com.tencent.tdsql.mysql.cj.build.driver.displayName" value="MySQL Connector/J" />
-    <property name="com.tencent.tdsql.mysql.cj.build.driver.name" value="mysql-connector-java" />
+    <property name="com.tencent.tdsql.mysql.cj.build.driver.displayName" value="TDSQL-MySQL Connector/JAVA8" />
+    <property name="com.tencent.tdsql.mysql.cj.build.driver.name" value="tdsql-mysql-connector-java" />
     <property name="com.tencent.tdsql.mysql.cj.build.driver.extraName" value="" />
     <property name="com.tencent.tdsql.mysql.cj.build.driver.extendedName" value="${com.tencent.tdsql.mysql.cj.build.driver.name}${com.tencent.tdsql.mysql.cj.build.driver.extraName}" />
     <property name="com.tencent.tdsql.mysql.cj.build.driver.fullName" value="${com.tencent.tdsql.mysql.cj.build.driver.extendedName}-${com.tencent.tdsql.mysql.cj.build.driver.version.full}" />
@@ -259,13 +259,13 @@ See also com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.SYSP_* variables fo
     </condition>
 
     <!-- The JDK used to compile the code. -->
-    <property name="com.tencent.tdsql.mysql.cj.build.jdk" value="/usr/lib/jvm/jdk1.8" />
+    <property name="com.tencent.tdsql.mysql.cj.build.jdk" value="/usr/bin/java" />
 
     <!-- Generate debugging info in compiled code. -->
     <property name="com.tencent.tdsql.mysql.cj.build.addDebugInfo" value="yes" />
 
     <!-- Location of third-party libraries we don't distribute and extra source files. -->
-    <property name="com.tencent.tdsql.mysql.cj.extra.libs" value="lib" />
+    <property name="com.tencent.tdsql.mysql.cj.extra.libs" value="libs" />
 
     <!-- JVM used to execute the tests. -->
     <property name="com.tencent.tdsql.mysql.cj.testsuite.jvm" value="${com.tencent.tdsql.mysql.cj.build.jdk}" />
