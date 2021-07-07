@@ -1283,7 +1283,7 @@
             </and>
         </condition>
 
-        <junitlauncher haltOnFailure="true" printSummary="true" failureProperty="com.tencent.tdsql.mysql.cj.testsuite.junit.fail">
+        <junitlauncher haltOnFailure="false" printSummary="true" failureProperty="com.tencent.tdsql.mysql.cj.testsuite.junit.fail">
             <classpath refid="com.tencent.tdsql.mysql.cj.testsuite.build.classpath" />
 
             <test if="${com.tencent.tdsql.mysql.cj.testsuite.test.methods.enabled}"
