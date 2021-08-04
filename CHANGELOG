@@ -1,6 +1,6 @@
 # Changelog
 
-Version 1.0.0
+## Version 1.0.0
 
   - 增加了单独编译打包配置，简化编译打包流程；
 
