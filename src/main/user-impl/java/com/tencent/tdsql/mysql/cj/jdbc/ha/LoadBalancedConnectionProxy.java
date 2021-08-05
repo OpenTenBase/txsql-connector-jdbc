@@ -29,8 +29,6 @@
 
 package com.tencent.tdsql.mysql.cj.jdbc.ha;
 
-import static com.tencent.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
-
 import com.tencent.tdsql.mysql.cj.Messages;
 import com.tencent.tdsql.mysql.cj.PingTarget;
 import com.tencent.tdsql.mysql.cj.conf.ConnectionUrl;
@@ -49,6 +47,7 @@ import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencent.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencent.tdsql.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
 import com.tencent.tdsql.mysql.cj.util.Util;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -63,24 +62,25 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
+
+import static com.tencent.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
 
 /**
  * A proxy for a dynamic com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection implementation that load balances requests
  * across a series of MySQL JDBC connections, where the
  * balancing
  * takes place at transaction commit.
- *
+ * <p>
  * Therefore, for this to work (at all), you must use transactions, even if only reading data.
- *
+ * <p>
  * This implementation will invalidate connections that it detects have had communication errors when processing a
  * request. Problematic hosts will be added to a
  * global blocklist for loadBalanceBlocklistTimeout ms, after which they will be removed from the blocklist and made
  * eligible once again to be selected for new
  * connections.
- *
+ * <p>
  * This implementation is thread-safe, but it's questionable whether sharing a connection instance amongst threads is a
  * good idea, given that transactions are
  * scoped to connections in JDBC.
@@ -369,11 +369,7 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
             return;
         }
 
-        if (isSedActived) {
-            return;
-        }
-
-        if (this.currentConnection.isClosed()) {
+        if (!isSedActived || this.currentConnection.isClosed()) {
             invalidateCurrentConnection();
         }
 
@@ -481,7 +477,6 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
      */
     private synchronized void closeAllConnections() {
         GlobalConnectionScheduler scheduler = GlobalConnectionScheduler.getInstance();
-        scheduler.getLock().lock();
         try {
             // close all underlying connections
             for (Entry<String, ConnectionImpl> entry : this.liveConnections.entrySet()) {
@@ -490,8 +485,6 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            scheduler.getLock().unlock();
         }
 
         if (!this.isClosed) {
@@ -707,7 +700,7 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
     /**
      * Adds a host to the blocklist with the given timeout.
      *
-     * @param host The host to be blocklisted.
+     * @param host    The host to be blocklisted.
      * @param timeout The blocklist timeout for this entry.
      */
     public void addToGlobalBlocklist(String host, long timeout) {
@@ -745,7 +738,7 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
     /**
      * Use {@link #addToGlobalBlocklist(String, long)} instead.
      *
-     * @param host The host to be blocklisted.
+     * @param host    The host to be blocklisted.
      * @param timeout The blocklist timeout for this entry.
      * @deprecated
      */

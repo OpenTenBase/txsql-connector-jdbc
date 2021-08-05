@@ -2,6 +2,10 @@ package tdsql;
 
 import com.tencent.tdsql.mysql.cj.jdbc.ha.GlobalConnectionScheduler;
 import com.tencent.tdsql.mysql.cj.jdbc.util.ActiveConnectionCounter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -14,9 +18,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 
 /**
  * @author dorianzhang@tencent.com
