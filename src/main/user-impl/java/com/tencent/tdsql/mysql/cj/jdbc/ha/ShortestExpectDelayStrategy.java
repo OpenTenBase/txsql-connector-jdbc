@@ -5,7 +5,9 @@ import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl;
 import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencent.tdsql.mysql.cj.jdbc.exceptions.SQLError;
+import com.tencent.tdsql.mysql.cj.log.Log;
 import com.tencent.tdsql.mysql.cj.util.StringUtils;
+
 import java.lang.reflect.InvocationHandler;
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -46,6 +48,8 @@ public class ShortestExpectDelayStrategy implements BalanceStrategy {
         GlobalConnectionScheduler scheduler = GlobalConnectionScheduler.getInstance(allowHostMap.keySet().stream()
                 .collect(Collectors.toMap(hostPort -> hostPort, hostPort -> 0L, (a, b) -> b, ConcurrentHashMap::new)));
 
+        Log logger;
+        SQLException ex = null;
         for (int attempts = 0; attempts < numRetries; ) {
             scheduler.getLock().lock();
             String selectedHost;
@@ -57,11 +61,16 @@ public class ShortestExpectDelayStrategy implements BalanceStrategy {
                     try {
                         conn = ((LoadBalancedConnectionProxy) proxy).createConnectionForHost(selectedHost);
                         scheduler.getCounter().incrementAndGet(selectedHost);
-                        System.out.println(Thread.currentThread().getId() + " - " + scheduler.getCounter());
+                        logger = ((JdbcConnection)conn).getSession().getLog();
+                        if (logger != null && logger.isInfoEnabled()) {
+                            logger.logInfo("Hosts Counter: " + scheduler.getCounter());
+                        }
                     } catch (SQLException sqlEx) {
-                        if (!((LoadBalancedConnectionProxy) proxy).shouldExceptionTriggerConnectionSwitch(sqlEx)) {
+                        ex = sqlEx;
+                        if (((LoadBalancedConnectionProxy) proxy).shouldExceptionTriggerConnectionSwitch(sqlEx)) {
                             if (!StringUtils.isNullOrEmpty(selectedHost)) {
                                 allowHostMap.remove(selectedHost);
+                                scheduler.getCounter().remove(selectedHost);
                             }
                             ((LoadBalancedConnectionProxy) proxy).addToGlobalBlocklist(selectedHost);
                             if (allowHostMap.isEmpty()) {
@@ -83,6 +92,12 @@ public class ShortestExpectDelayStrategy implements BalanceStrategy {
             }
             return conn;
         }
+
+        if (ex != null) {
+            throw ex;
+        }
+
+        // we won't get here, compiler can't tell
         return null;
     }
 

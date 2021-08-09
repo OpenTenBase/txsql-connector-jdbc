@@ -1,7 +1,10 @@
 package tdsql;
 
+import com.tencent.tdsql.mysql.cj.conf.ConnectionUrl;
+import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencent.tdsql.mysql.cj.jdbc.ha.GlobalConnectionScheduler;
 import com.tencent.tdsql.mysql.cj.jdbc.util.ActiveConnectionCounter;
+import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -11,6 +14,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -130,7 +136,46 @@ public class LoadBalanceTest {
         latch.await();
     }
 
-    private static Connection getNewConnection() throws SQLException {
+    @Test
+    public void case04() throws Exception {
+        final String[] hosts = new String[]{MYSQL_57_3357, MYSQL_57_3358, MYSQL_57_3359, MYSQL_57_3360};
+        StringJoiner hostString = new StringJoiner(",");
+        for (String host : hosts) {
+            hostString.add(host);
+        }
+        final Properties props = new Properties();
+        props.setProperty(PropertyKey.USER.getKeyName(), "root");
+        props.setProperty(PropertyKey.PASSWORD.getKeyName(), "123456");
+        props.setProperty(PropertyKey.ha_loadBalanceStrategy.getKeyName(), "sed");
+        props.setProperty(PropertyKey.loadBalanceWeightFactor.getKeyName(), "1,1,1,2");
+        props.setProperty(PropertyKey.retriesAllDown.getKeyName(), "2");
+        props.setProperty(PropertyKey.maxReconnects.getKeyName(), "2");
+        props.setProperty(PropertyKey.initialTimeout.getKeyName(), "1");
+        props.setProperty(PropertyKey.autoReconnect.getKeyName(), "true");
+        props.setProperty(PropertyKey.loadBalanceBlocklistTimeout.getKeyName(), "1000");
+
+        StringJoiner propString = new StringJoiner("&");
+        for (Map.Entry<Object, Object> entry : props.entrySet()) {
+            propString.add(entry.getKey() + "=" + entry.getValue());
+        }
+
+        HikariDataSource ds = new HikariDataSource();
+        ds.setConnectionTimeout(60 * 1000);
+        ds.setJdbcUrl(ConnectionUrl.Type.LOADBALANCE_CONNECTION.getScheme() + "//" + hostString + "/" + DB_NAME + "?" + propString);
+        Connection conn1 = ds.getConnection();
+        Connection conn2 = ds.getConnection();
+        Connection conn3 = ds.getConnection();
+        Connection conn4 = ds.getConnection();
+        Connection conn5 = ds.getConnection();
+        System.out.println();
+        Connection conn6 = ds.getConnection();
+        Connection conn7 = ds.getConnection();
+        Connection conn8 = ds.getConnection();
+        Connection conn9 = ds.getConnection();
+        Connection conn10 = ds.getConnection();
+    }
+
+    private static Connection newConnection() throws SQLException {
         return DriverManager.getConnection(JMX_URL);
     }
 
@@ -158,7 +203,7 @@ public class LoadBalanceTest {
             try {
                 for (int i = 0; i < 100; i++) {
                     try {
-                        Connection c = getNewConnection();
+                        Connection c = newConnection();
                         for (int j = 0; j < 10; j++) {
                             executeSimpleTransaction(c, i, j);
                             Thread.sleep(Math.round(100 * Math.random()));

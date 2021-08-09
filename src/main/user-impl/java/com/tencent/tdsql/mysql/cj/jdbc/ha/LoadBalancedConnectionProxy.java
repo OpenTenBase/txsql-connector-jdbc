@@ -369,7 +369,11 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
             return;
         }
 
-        if (!isSedActived || this.currentConnection.isClosed()) {
+        if (isSedActived) {
+            return;
+        }
+
+        if (this.currentConnection.isClosed()) {
             invalidateCurrentConnection();
         }
 
