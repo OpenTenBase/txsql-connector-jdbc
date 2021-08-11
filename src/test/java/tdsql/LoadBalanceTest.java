@@ -13,6 +13,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -148,8 +149,6 @@ public class LoadBalanceTest {
         props.setProperty(PropertyKey.PASSWORD.getKeyName(), "123456");
         props.setProperty(PropertyKey.ha_loadBalanceStrategy.getKeyName(), "sed");
         props.setProperty(PropertyKey.loadBalanceWeightFactor.getKeyName(), "1,1,1,2");
-        props.setProperty(PropertyKey.retriesAllDown.getKeyName(), "2");
-        props.setProperty(PropertyKey.maxReconnects.getKeyName(), "2");
         props.setProperty(PropertyKey.initialTimeout.getKeyName(), "1");
         props.setProperty(PropertyKey.autoReconnect.getKeyName(), "true");
         props.setProperty(PropertyKey.loadBalanceBlocklistTimeout.getKeyName(), "1000");
@@ -162,17 +161,21 @@ public class LoadBalanceTest {
         HikariDataSource ds = new HikariDataSource();
         ds.setConnectionTimeout(60 * 1000);
         ds.setJdbcUrl(ConnectionUrl.Type.LOADBALANCE_CONNECTION.getScheme() + "//" + hostString + "/" + DB_NAME + "?" + propString);
-        Connection conn1 = ds.getConnection();
-        Connection conn2 = ds.getConnection();
-        Connection conn3 = ds.getConnection();
-        Connection conn4 = ds.getConnection();
-        Connection conn5 = ds.getConnection();
-        System.out.println();
-        Connection conn6 = ds.getConnection();
-        Connection conn7 = ds.getConnection();
-        Connection conn8 = ds.getConnection();
-        Connection conn9 = ds.getConnection();
-        Connection conn10 = ds.getConnection();
+
+        List<Connection> connList = new ArrayList<>();
+        connList.add(ds.getConnection());
+        connList.add(ds.getConnection());
+        connList.add(ds.getConnection());
+        connList.add(ds.getConnection());
+        connList.add(ds.getConnection());
+        connList.add(ds.getConnection());
+        connList.add(ds.getConnection());
+        connList.add(ds.getConnection());
+        connList.add(ds.getConnection());
+        connList.add(ds.getConnection());
+        for (Connection conn : connList) {
+            conn.close();
+        }
     }
 
     private static Connection newConnection() throws SQLException {
