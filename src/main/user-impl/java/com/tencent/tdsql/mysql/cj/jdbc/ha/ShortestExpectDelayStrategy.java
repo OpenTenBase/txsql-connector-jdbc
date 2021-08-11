@@ -13,7 +13,31 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 /**
- * @author dorianzhang@tencent.com
+ * Based on the weighted least connection scheduling algorithm, it is an improvement to it.The main difference between
+ * the two is that the shortest expected delay scheduling does not use the inactive
+ * connection value when judging the total cost value of each cluster node, and adds 1 to the active connection value
+ * to predict the total cost value.
+ * <p>Fake code of the algorithm like this:</p>
+ * <pre>
+ *     {@code
+ *     for (m = 0; m < n; m++) {
+ *         if (W(Sm) > 0) {
+ *             for (i = m+1; i < n; i++) {
+ *                 if ((C(Sm) + 1)*W(Si) > (C(Si) + 1)*W(Sm))
+ *                     m = i;
+ *             }
+ *             return Sm;
+ *         }
+ *     }
+ *     return NULL;
+ *     }
+ * </pre>
+ *
+ * @author <a href="mailto:dorianzhang@tencent.com">dorianzhang</a>
+ * @version v1.0
+ * @see AdvancedLoadBalanceStrategy
+ * @see NeverQueueStrategy
+ * @since v1.0.1
  */
 public class ShortestExpectDelayStrategy extends AdvancedLoadBalanceStrategy {
 

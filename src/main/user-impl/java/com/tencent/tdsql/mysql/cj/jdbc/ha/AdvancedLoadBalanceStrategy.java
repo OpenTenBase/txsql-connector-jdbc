@@ -22,7 +22,14 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * @author dorianzhang@tencent.com
+ * An abstract class that process some advanced load balancing scheduling algorithms implemented by ourselves
+ * This class has to be sub-classed by specific load balance scheduling algorithms implementations
+ *
+ * @author <a href="mailto:dorianzhang@tencent.com">dorianzhang</a>
+ * @version v1.0
+ * @see ShortestExpectDelayStrategy
+ * @see NeverQueueStrategy
+ * @since v1.0.1
  */
 public abstract class AdvancedLoadBalanceStrategy implements BalanceStrategy {
 
