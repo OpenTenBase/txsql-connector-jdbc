@@ -29,6 +29,8 @@
 
 package com.tencent.tdsql.mysql.cj.jdbc.ha;
 
+import static com.tencent.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
+
 import com.tencent.tdsql.mysql.cj.Messages;
 import com.tencent.tdsql.mysql.cj.PingTarget;
 import com.tencent.tdsql.mysql.cj.conf.ConnectionUrl;
@@ -47,7 +49,6 @@ import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencent.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencent.tdsql.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
 import com.tencent.tdsql.mysql.cj.util.Util;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -64,8 +65,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
-
-import static com.tencent.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
 
 /**
  * A proxy for a dynamic com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection implementation that load balances requests
@@ -113,7 +112,7 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
 
     private static Class<?>[] INTERFACES_TO_PROXY = new Class<?>[]{LoadBalancedConnection.class, JdbcConnection.class};
 
-    private static boolean isSedActived = false;
+    private static boolean isAdvancedAlgorithmActivated = false;
 
     /**
      * Static factory to create {@link LoadBalancedConnection} instances.
@@ -210,8 +209,12 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
         try {
             switch (strategy) {
                 case "sed":
-                    isSedActived = true;
+                    isAdvancedAlgorithmActivated = true;
                     this.balancer = new ShortestExpectDelayStrategy(props);
+                    break;
+                case "nq":
+                    isAdvancedAlgorithmActivated = true;
+                    this.balancer = new NeverQueueStrategy(props);
                     break;
                 case "random":
                     this.balancer = new RandomBalanceStrategy();
@@ -369,7 +372,7 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
             return;
         }
 
-        if (isSedActived) {
+        if (isAdvancedAlgorithmActivated) {
             return;
         }
 
@@ -704,7 +707,7 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
     /**
      * Adds a host to the blocklist with the given timeout.
      *
-     * @param host    The host to be blocklisted.
+     * @param host The host to be blocklisted.
      * @param timeout The blocklist timeout for this entry.
      */
     public void addToGlobalBlocklist(String host, long timeout) {
@@ -742,7 +745,7 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
     /**
      * Use {@link #addToGlobalBlocklist(String, long)} instead.
      *
-     * @param host    The host to be blocklisted.
+     * @param host The host to be blocklisted.
      * @param timeout The blocklist timeout for this entry.
      * @deprecated
      */
