@@ -91,7 +91,7 @@ public abstract class AdvancedLoadBalanceStrategy implements BalanceStrategy {
                         scheduler.getCounter().incrementAndGet(selectedHost);
                         logger = ((JdbcConnection) conn).getSession().getLog();
                         if (logger != null && logger.isInfoEnabled()) {
-                            logger.logInfo("Hosts Counter: " + scheduler.getCounter());
+                            logger.logInfo("JDBC-LB Hosts Counter: " + scheduler.getCounter());
                         }
                     } catch (SQLException sqlEx) {
                         ex = sqlEx;

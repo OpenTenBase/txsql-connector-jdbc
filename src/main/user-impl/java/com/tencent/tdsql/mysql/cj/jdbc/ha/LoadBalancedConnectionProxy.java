@@ -52,7 +52,6 @@ import com.tencent.tdsql.mysql.cj.util.Util;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -517,12 +516,15 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
      */
     @Override
     synchronized void doAbortInternal() {
-        // abort all underlying connections
-        for (JdbcConnection c : this.liveConnections.values()) {
-            try {
-                c.abortInternal();
-            } catch (SQLException e) {
+        GlobalConnectionScheduler scheduler = GlobalConnectionScheduler.getInstance();
+        try {
+            // abort all underlying connections
+            for (Entry<String, ConnectionImpl> entry : this.liveConnections.entrySet()) {
+                scheduler.getCounter().decrementAndGet(entry.getKey());
+                entry.getValue().abortInternal();
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
 
         if (!this.isClosed) {
@@ -540,12 +542,15 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
      */
     @Override
     synchronized void doAbort(Executor executor) {
-        // close all underlying connections
-        for (Connection c : this.liveConnections.values()) {
-            try {
-                c.abort(executor);
-            } catch (SQLException e) {
+        GlobalConnectionScheduler scheduler = GlobalConnectionScheduler.getInstance();
+        try {
+            // close all underlying connections
+            for (Entry<String, ConnectionImpl> entry : this.liveConnections.entrySet()) {
+                scheduler.getCounter().decrementAndGet(entry.getKey());
+                entry.getValue().abort(executor);
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
 
         if (!this.isClosed) {
