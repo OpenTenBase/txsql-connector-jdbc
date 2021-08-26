@@ -146,8 +146,8 @@ public class LoadBalanceTest {
         final Properties props = new Properties();
         props.setProperty(PropertyKey.USER.getKeyName(), "root");
         props.setProperty(PropertyKey.PASSWORD.getKeyName(), "123456");
-        props.setProperty(PropertyKey.ha_loadBalanceStrategy.getKeyName(), "sed");
-        props.setProperty(PropertyKey.loadBalanceWeightFactor.getKeyName(), "1,1,1,2");
+        props.setProperty(PropertyKey.ha_loadBalanceStrategy.getKeyName(), "nq");
+        props.setProperty(PropertyKey.loadBalanceWeightFactor.getKeyName(), "1,1,1,1");
         props.setProperty(PropertyKey.initialTimeout.getKeyName(), "1");
         props.setProperty(PropertyKey.autoReconnect.getKeyName(), "true");
         props.setProperty(PropertyKey.loadBalanceBlocklistTimeout.getKeyName(), "1000");
@@ -157,22 +157,18 @@ public class LoadBalanceTest {
             propString.add(entry.getKey() + "=" + entry.getValue());
         }
 
+        int min = 8;
         HikariDataSource ds = new HikariDataSource();
         ds.setConnectionTimeout(60 * 1000);
+        ds.setMinimumIdle(min);
+        ds.setMaximumPoolSize(min);
         ds.setJdbcUrl(ConnectionUrl.Type.LOADBALANCE_CONNECTION.getScheme() + "//" + hostString + "/" + DB_NAME + "?"
                 + propString);
 
         List<Connection> connList = new ArrayList<>();
-        connList.add(ds.getConnection());
-        connList.add(ds.getConnection());
-        connList.add(ds.getConnection());
-        connList.add(ds.getConnection());
-        connList.add(ds.getConnection());
-        connList.add(ds.getConnection());
-        connList.add(ds.getConnection());
-        connList.add(ds.getConnection());
-        connList.add(ds.getConnection());
-        connList.add(ds.getConnection());
+        for (int i = 0; i < min; i++) {
+            connList.add(ds.getConnection());
+        }
         for (Connection conn : connList) {
             conn.close();
         }
