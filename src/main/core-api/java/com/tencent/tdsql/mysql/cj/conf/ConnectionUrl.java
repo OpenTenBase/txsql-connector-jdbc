@@ -102,19 +102,19 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
      */
     public enum Type {
         // DNS SRV schemes (cardinality is validated by implementing classes):
-        FAILOVER_DNS_SRV_CONNECTION("jdbc:mysql+srv:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.FailoverDnsSrvConnectionUrl"), //
-        LOADBALANCE_DNS_SRV_CONNECTION("jdbc:mysql+srv:loadbalance:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.LoadBalanceDnsSrvConnectionUrl"), //
-        REPLICATION_DNS_SRV_CONNECTION("jdbc:mysql+srv:replication:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.ReplicationDnsSrvConnectionUrl"), //
-        XDEVAPI_DNS_SRV_SESSION("mysqlx+srv:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.XDevApiDnsSrvConnectionUrl"), //
+        FAILOVER_DNS_SRV_CONNECTION("jdbc:tdsql-mysql+srv:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.FailoverDnsSrvConnectionUrl"), //
+        LOADBALANCE_DNS_SRV_CONNECTION("jdbc:tdsql-mysql+srv:loadbalance:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.LoadBalanceDnsSrvConnectionUrl"), //
+        REPLICATION_DNS_SRV_CONNECTION("jdbc:tdsql-mysql+srv:replication:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.ReplicationDnsSrvConnectionUrl"), //
+        XDEVAPI_DNS_SRV_SESSION("tdsql-mysqlx+srv:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.XDevApiDnsSrvConnectionUrl"), //
         // Standard schemes:
-        SINGLE_CONNECTION("jdbc:mysql:", HostsCardinality.SINGLE, "com.tencent.tdsql.mysql.cj.conf.url.SingleConnectionUrl", PropertyKey.dnsSrv, FAILOVER_DNS_SRV_CONNECTION), //
-        FAILOVER_CONNECTION("jdbc:mysql:", HostsCardinality.MULTIPLE, "com.tencent.tdsql.mysql.cj.conf.url.FailoverConnectionUrl", PropertyKey.dnsSrv,
+        SINGLE_CONNECTION("jdbc:tdsql-mysql:", HostsCardinality.SINGLE, "com.tencent.tdsql.mysql.cj.conf.url.SingleConnectionUrl", PropertyKey.dnsSrv, FAILOVER_DNS_SRV_CONNECTION), //
+        FAILOVER_CONNECTION("jdbc:tdsql-mysql:", HostsCardinality.MULTIPLE, "com.tencent.tdsql.mysql.cj.conf.url.FailoverConnectionUrl", PropertyKey.dnsSrv,
                 FAILOVER_DNS_SRV_CONNECTION), //
-        LOADBALANCE_CONNECTION("jdbc:mysql:loadbalance:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.LoadBalanceConnectionUrl", PropertyKey.dnsSrv,
+        LOADBALANCE_CONNECTION("jdbc:tdsql-mysql:loadbalance:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.LoadBalanceConnectionUrl", PropertyKey.dnsSrv,
                 LOADBALANCE_DNS_SRV_CONNECTION), //
-        REPLICATION_CONNECTION("jdbc:mysql:replication:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.ReplicationConnectionUrl", PropertyKey.dnsSrv,
+        REPLICATION_CONNECTION("jdbc:tdsql-mysql:replication:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.ReplicationConnectionUrl", PropertyKey.dnsSrv,
                 REPLICATION_DNS_SRV_CONNECTION), //
-        XDEVAPI_SESSION("mysqlx:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.XDevApiConnectionUrl", PropertyKey.xdevapiDnsSrv,
+        XDEVAPI_SESSION("tdsql-mysqlx:", HostsCardinality.ONE_OR_MORE, "com.tencent.tdsql.mysql.cj.conf.url.XDevApiConnectionUrl", PropertyKey.xdevapiDnsSrv,
                 XDEVAPI_DNS_SRV_SESSION);
 
         private String scheme;

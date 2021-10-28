@@ -86,12 +86,12 @@ public class ConnectionUrlParser implements DatabaseUrlContainer {
     private static final String HOSTS_LIST_CLOSING_MARKERS = "])";
     private static final String ADDRESS_EQUALS_HOST_INFO_PREFIX = "ADDRESS=";
 
-    private static final Pattern CONNECTION_STRING_PTRN = Pattern.compile("(?<scheme>[\\w\\+:%]+)\\s*" // scheme: required; alphanumeric, plus, colon or percent
+    private static final Pattern CONNECTION_STRING_PTRN = Pattern.compile("(?<scheme>[tdsql\\-\\w\\+:%]+)\\s*" // scheme: required; alphanumeric, plus, colon or percent
             + "(?://(?<authority>[^/?#]*))?\\s*" // authority: optional; starts with "//" followed by any char except "/", "?" and "#"
             + "(?:/(?!\\s*/)(?<path>[^?#]*))?" // path: optional; starts with "/" but not followed by "/", and then followed by by any char except "?" and "#"
             + "(?:\\?(?!\\s*\\?)(?<query>[^#]*))?" // query: optional; starts with "?" but not followed by "?", and then followed by by any char except "#"
             + "(?:\\s*#(?<fragment>.*))?"); // fragment: optional; starts with "#", and then followed by anything
-    private static final Pattern SCHEME_PTRN = Pattern.compile("(?<scheme>[\\w\\+:%]+).*");
+    private static final Pattern SCHEME_PTRN = Pattern.compile("(?<scheme>[tdsql\\-\\w\\+:%]+).*");
     private static final Pattern HOST_LIST_PTRN = Pattern.compile("^\\[(?<hosts>.*)\\]$");
     private static final Pattern GENERIC_HOST_PTRN = Pattern.compile("^(?<host>.*?)(?::(?<port>[^:]*))?$");
     private static final Pattern KEY_VALUE_HOST_PTRN = Pattern.compile("[,\\s]*(?<key>[\\w\\.\\-\\s%]*)(?:=(?<value>[^,]*))?");

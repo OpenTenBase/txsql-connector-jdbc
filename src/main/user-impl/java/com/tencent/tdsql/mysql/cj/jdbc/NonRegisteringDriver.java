@@ -31,13 +31,6 @@ package com.tencent.tdsql.mysql.cj.jdbc;
 
 import static com.tencent.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
 
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.List;
-import java.util.Properties;
-import java.util.logging.Logger;
-
 import com.tencent.tdsql.mysql.cj.Constants;
 import com.tencent.tdsql.mysql.cj.Messages;
 import com.tencent.tdsql.mysql.cj.conf.ConnectionUrl;
@@ -46,12 +39,26 @@ import com.tencent.tdsql.mysql.cj.conf.HostInfo;
 import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencent.tdsql.mysql.cj.exceptions.CJException;
 import com.tencent.tdsql.mysql.cj.exceptions.ExceptionFactory;
+import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencent.tdsql.mysql.cj.exceptions.UnableToConnectException;
 import com.tencent.tdsql.mysql.cj.exceptions.UnsupportedConnectionStringException;
+import com.tencent.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencent.tdsql.mysql.cj.jdbc.ha.FailoverConnectionProxy;
 import com.tencent.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
 import com.tencent.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionProxy;
 import com.tencent.tdsql.mysql.cj.util.StringUtils;
+import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * The Java SQL framework allows for multiple database drivers. Each driver should supply a class that implements the Driver interface
@@ -72,6 +79,8 @@ import com.tencent.tdsql.mysql.cj.util.StringUtils;
  * </p>
  */
 public class NonRegisteringDriver implements java.sql.Driver {
+    private static final String ALLOWED_QUOTES = "\"'";
+    private static final String URL_PREFIX = "jdbc:tdsql-mysql://";
 
     /*
      * Standardizes OS name information to align with other drivers/clients
@@ -203,6 +212,9 @@ public class NonRegisteringDriver implements java.sql.Driver {
 
                 case LOADBALANCE_CONNECTION:
                 case LOADBALANCE_DNS_SRV_CONNECTION:
+                    if (url.contains("haLoadBalanceStrategy=sed") || url.contains("ha.loadBalanceStrategy=sed")) {
+                        return connectionUnion(conStr, url, info);
+                    }
                     return LoadBalancedConnectionProxy.createProxyInstance(conStr);
 
                 case REPLICATION_CONNECTION:
@@ -221,6 +233,134 @@ public class NonRegisteringDriver implements java.sql.Driver {
             throw ExceptionFactory.createException(UnableToConnectException.class,
                     Messages.getString("NonRegisteringDriver.17", new Object[] { ex.toString() }), ex);
         }
+    }
+
+    public java.sql.Connection connectionUnion(ConnectionUrl conStr, String initurl, Properties info) throws SQLException {
+        List<String> hostList = conStr.getHostsList().stream().map(HostInfo::getHostPortPair)
+                .collect(Collectors.toCollection(LinkedList::new));
+        Map<String, HostInfo> hostInfoMap = conStr.getHostsList().stream()
+                .collect(Collectors.toMap(HostInfo::getHostPortPair, hostInfo -> hostInfo, (a, b) -> b));
+        Properties parsedProps = conStr.getConnectionArgumentsAsProperties();
+        if (parsedProps == null) {
+            return null;
+        }
+        ConnectionManager.getInstance().addAllHost(hostList);
+        if (parsedProps.containsKey(PropertyKey.haLoadBalanceWeightFactor.getKeyName())) {
+            ConnectionManager.getInstance().addAllWeightFactor(hostList, StringUtils.split(parsedProps.getProperty(PropertyKey.haLoadBalanceWeightFactor.getKeyName()), ",", ALLOWED_QUOTES, ALLOWED_QUOTES, false));
+        } else {
+            ConnectionManager.getInstance().addAllWeightFactor(hostList, null);
+        }
+
+        String host;
+        if (hostList.size() > 0) {
+            int i = 0;
+            int j = 0;
+            while (i < hostList.size()) {
+                ++j;
+                host = this.dealHostConnectionCounts(hostList);
+                if (host == null) {
+                    continue;
+                }
+                if (ConnectionManager.getInstance().blackList.contains(host)) {
+                    ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(host);
+                    hostList.remove(host);
+                    --i;
+                } else {
+                    ConnectionManager.getInstance().getPropMap().put(host, info);
+                    java.sql.Connection conn = this.chargeConnection(hostInfoMap, host, true);
+                    if (conn != null) {
+                        return conn;
+                    }
+                    hostList.remove(host);
+                    ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(host);
+                    --i;
+                }
+                ++i;
+            }
+            throw SQLError.createSQLException(Messages.getString("NonRegisteringDriver.17") + " Can't connect to"
+                    + " all loadbalcance hosts.Blacklist:" + ConnectionManager.getInstance().blackList + " Trial round times[" + j + "]. Host list" +
+                    ConnectionManager.getInstance().getAllHost() + "." + Messages.getString("NonRegisteringDriver.18"), MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
+        }
+        return null;
+    }
+
+    private String dealHostConnectionCounts(List<String> hosts) {
+        ConcurrentHashMap<String, Integer> concurrentHashMap = ConnectionManager.HOST_CONNECTION_COUNT_MAP;
+        synchronized (concurrentHashMap) {
+            String host = this.getRandomHost(hosts);
+            int count = 1;
+            if (ConnectionManager.HOST_CONNECTION_COUNT_MAP.containsKey(host)) {
+                host = this.choice();
+                if (host == null) {
+                    return null;
+                }
+                count += ConnectionManager.HOST_CONNECTION_COUNT_MAP.get(host);
+            }
+            ConnectionManager.HOST_CONNECTION_COUNT_MAP.put(host, count);
+            return host;
+        }
+    }
+
+    private String choice() {
+        List<Map.Entry<String, Integer>> list = new ArrayList<Entry<String, Integer>>(ConnectionManager.HOST_CONNECTION_COUNT_MAP.entrySet());
+        Map<String, Integer> wfMap = ConnectionManager.getInstance().getWeightFactor();
+
+        for (int i = 0; i < list.size(); i++) {
+            if (wfMap.get(list.get(i).getKey()) > 0) {
+                int ci = list.get(i).getValue() + 1;
+                for (int j = i + 1; j < list.size(); j++) {
+                    if (wfMap.get(list.get(j).getKey()) > 0) {
+                        int cj = list.get(j).getValue() + 1;
+                        if (ci * wfMap.get(list.get(j).getKey()) >= cj * wfMap.get(list.get(i).getKey())) {
+                            i = j;
+                        }
+                    }
+                }
+                return list.get(i).getKey();
+            }
+        }
+        return null;
+    }
+
+    private String getRandomHost(List<String> hosts) {
+        int random = (int) Math.floor(Math.random() * (double) hosts.size());
+        return hosts.get(random);
+    }
+
+    private java.sql.Connection chargeConnection(Map<String, HostInfo> hostInfoMap, String hostPortPair, Boolean flag) {
+        java.sql.Connection conn = null;
+        try {
+            HostInfo hostInfo = hostInfoMap.get(hostPortPair);
+            conn = ConnectionImpl.getInstance(hostInfo);
+            if (conn != null && !conn.isClosed()) {
+                if (flag) {
+                    ConnectionManager.getInstance().addConnection(hostInfo, hostPortPair, conn);
+                }
+                return conn;
+            }
+            return conn;
+        } catch (Exception e) {
+            return conn;
+        }
+        /*java.sql.Connection conn = null;
+        try {
+            props = this.parseURL(resultUrl, props);
+            if (props == null) {
+                return conn;
+            }
+            conn = ConnectionImpl.getInstance(this.host(props), this.port(props), props, this.database(props), resultUrl);
+            if (conn != null && !conn.isClosed()) {
+                if (flag) {
+                    ConnectionManager.getInstance().addConnection(host, conn);
+                }
+                return conn;
+            }
+            return conn;
+        } catch (SQLException sqlEx) {
+            return conn;
+        } catch (Exception ex) {
+            return conn;
+        }*/
     }
 
     @Override

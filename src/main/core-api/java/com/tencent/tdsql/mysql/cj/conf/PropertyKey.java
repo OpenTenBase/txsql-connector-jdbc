@@ -271,7 +271,13 @@ public enum PropertyKey {
     yearIsDateType("yearIsDateType", true), //
     zeroDateTimeBehavior("zeroDateTimeBehavior", true), //
 
-    loadBalanceWeightFactor("loadBalanceWeightFactor", true)
+    loadBalanceWeightFactor("loadBalanceWeightFactor", true),
+
+    haLoadBalanceWeightFactor("haLoadBalanceWeightFactor", true),
+    haLoadBalanceBlacklistTimeout("haLoadBalanceBlacklistTimeout", true),
+    haLoadBalanceHeartbeatMonitor("haLoadBalanceHeartbeatMonitor", true),
+    haLoadBalanceHeartbeatIntervalTime("haLoadBalanceHeartbeatIntervalTime", true),
+    haLoadBalanceMaximumErrorRetries("haLoadBalanceMaximumErrorRetries", true)
     ;
 
     private String keyName;
