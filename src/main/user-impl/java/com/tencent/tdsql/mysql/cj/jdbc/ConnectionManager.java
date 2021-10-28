@@ -16,6 +16,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class ConnectionManager {
+
     public Set<String> blackList = new LinkedHashSet<String>();
     public static final ConcurrentHashMap<String, Integer> HOST_CONNECTION_COUNT_MAP = new ConcurrentHashMap<String, Integer>();
     private final Map<String, Connection> heartbeatMap = new ConcurrentHashMap<String, Connection>();
@@ -27,6 +28,11 @@ public class ConnectionManager {
     private final Set<String> hosts = new LinkedHashSet<String>();
     private final Map<String, Integer> weightFactor = new HashMap<String, Integer>();
     private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(10);
+
+    private int haLoadBalanceMaximumErrorRetries = 0;
+    private int haLoadBalanceHeartbeatIntervalTime = 3000;
+    private int haLoadBalanceBlacklistTimeout = 5000;
+    private boolean haLoadBalanceHeartbeatMonitor = true;
 
     public static ConnectionManager getInstance() {
         return CONNECTION_MANAGER;
@@ -46,7 +52,8 @@ public class ConnectionManager {
         List<Connection> l;
         Map<String, List<Connection>> map = this.hostConnectionMap;
         synchronized (map) {
-            l = this.hostConnectionMap.containsKey(host) ? this.hostConnectionMap.get(host) : new ArrayList<Connection>();
+            l = this.hostConnectionMap.containsKey(host) ? this.hostConnectionMap.get(host)
+                    : new ArrayList<Connection>();
             l.add(conn);
             this.hostConnectionMap.put(host, l);
         }
@@ -61,7 +68,8 @@ public class ConnectionManager {
                         Map<String, Connection> map = ConnectionManager.this.heartbeatMap;
                         synchronized (map) {
                             if (!ConnectionManager.this.heartbeatMap.containsKey(ht)) {
-                                Properties prop = ((com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl) (ConnectionManager.this.hostConnectionMap.get(ht)).get(0)).getProperties();
+                                Properties prop = ((com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl) (ConnectionManager.this.hostConnectionMap.get(
+                                        ht)).get(0)).getProperties();
                                 ConnectionManager.getInstance().setProps(prop);
                                 newConn = ConnectionManager.this.copyConn(hostInfo, ht);
                                 ConnectionManager.this.heartbeatMap.put(ht, newConn);
@@ -69,24 +77,16 @@ public class ConnectionManager {
                             }
                         }
                     } catch (Exception sqlEx) {
-                        ConnectionManager.this.log(newConn, "haLoadBalanceHeartbeatMonitor SQLException " + sqlEx.getMessage());
+                        ConnectionManager.this.log(newConn,
+                                "haLoadBalanceHeartbeatMonitor SQLException " + sqlEx.getMessage());
                     }
                 }
                 if (newConn != null) {
                     java.sql.Statement stmt;
                     boolean flag = true;
-                    int maximumErrorRetries = Integer.parseInt(ConnectionManager.this.props.getProperty("haLoadBalanceMaximumErrorRetries", "1"));
-                    if (maximumErrorRetries == 0) {
-                        maximumErrorRetries = 1;
-                    }
                     int attempts = 0;
                     while (flag) {
                         try {
-                            int haLoadBalanceHeartbeatIntervalTime = 3000;
-                            if (ConnectionManager.this.props != null) {
-                                haLoadBalanceHeartbeatIntervalTime = Integer.parseInt(ConnectionManager.this.props.getProperty("haLoadBalanceHeartbeatIntervalTime", "3000"));
-                                haLoadBalanceHeartbeatIntervalTime = haLoadBalanceHeartbeatIntervalTime <= 0 ? 3000 : haLoadBalanceHeartbeatIntervalTime;
-                            }
                             Thread.sleep(haLoadBalanceHeartbeatIntervalTime);
                             if (newConn == null || newConn.isClosed()) {
                                 continue;
@@ -110,16 +110,16 @@ public class ConnectionManager {
                                 continue;
                             }
                         } catch (Exception e) {
-                            if (++attempts < maximumErrorRetries) {
+                            if (++attempts < haLoadBalanceMaximumErrorRetries) {
                                 continue;
                             }
                             ConnectionManager.this.blackList.add(ht);
                             ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(ht);
                             ConnectionManager.this.log(newConn, "add ip [" + ht + "] to blacklist");
                             ConnectionManager.this.log(newConn, "current black list [" + ConnectionManager.this.blackList + "]");
-                            int blacklistTimeout = Integer.parseInt(ConnectionManager.this.props.getProperty("haLoadBalanceBlacklistTimeout", "5000"));
-                            BlackListTask blackListTask = new BlackListTask(hostInfo, ht, blacklistTimeout);
-                            ConnectionManager.this.executor.schedule(blackListTask, blacklistTimeout, TimeUnit.MILLISECONDS);
+                            BlackListTask blackListTask = new BlackListTask(hostInfo, ht, haLoadBalanceBlacklistTimeout);
+                            ConnectionManager.this.executor.schedule(blackListTask, haLoadBalanceBlacklistTimeout,
+                                    TimeUnit.MILLISECONDS);
                             ConnectionManager.this.heartbeatMap.remove(ht);
                         }
                         ConnectionManager.this.hostConnectionMap.remove(host);
@@ -130,9 +130,10 @@ public class ConnectionManager {
             }
         };
         if (this.props == null) {
-            this.props = ((com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl) this.hostConnectionMap.get(ht).get(0)).getProperties();
+            this.props = ((com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl) this.hostConnectionMap.get(ht)
+                    .get(0)).getProperties();
         }
-        if (Boolean.parseBoolean(this.props.getProperty("haLoadBalanceHeartbeatMonitor", "false"))) {
+        if (this.haLoadBalanceHeartbeatMonitor) {
             haLoadBalanceHeartbeatMonitor.setDaemon(true);
             haLoadBalanceHeartbeatMonitor.start();
         }
@@ -154,26 +155,22 @@ public class ConnectionManager {
         return null ConnectionImpl.getInstance(host, port, prop, db, url);*/
     }
 
-    public void addAllHost(List<String> l) {
-        if (this.hosts.isEmpty()) {
-            this.hosts.addAll(l);
-        }
+    public synchronized void addAllHost(List<String> l) {
+        this.hosts.addAll(l);
     }
 
-    public void addAllWeightFactor(List<String> l, List<String> wf) {
-        if (this.weightFactor.isEmpty()) {
-            if (wf == null || wf.isEmpty()) {
-                for (String s : l) {
-                    this.weightFactor.put(s, 1);
-                }
-                return;
+    public synchronized void addAllWeightFactor(List<String> l, List<String> wf) {
+        if (wf == null || wf.isEmpty()) {
+            for (String h : l) {
+                this.weightFactor.put(h, 1);
             }
-            for (int i = 0; i < l.size(); i++) {
-                if (i >= wf.size()) {
-                    this.weightFactor.put(l.get(i), 1);
-                } else {
-                    this.weightFactor.put(l.get(i), Integer.parseInt(wf.get(i)));
-                }
+            return;
+        }
+        for (int i = 0; i < l.size(); i++) {
+            if (i >= wf.size()) {
+                this.weightFactor.put(l.get(i), 1);
+            } else {
+                this.weightFactor.put(l.get(i), Integer.parseInt(wf.get(i)));
             }
         }
     }
@@ -193,6 +190,7 @@ public class ConnectionManager {
     }
 
     private class BlackListTask implements Runnable {
+
         private final HostInfo hostInfo;
         private final String bl;
         private final int blacklistTimeout;
@@ -221,11 +219,16 @@ public class ConnectionManager {
                             return;
                         }
                     }
-                    ConnectionManager.this.executor.schedule(new BlackListTask(this.hostInfo, this.bl, this.blacklistTimeout), this.blacklistTimeout, TimeUnit.MILLISECONDS);
+                    ConnectionManager.this.executor.schedule(
+                            new BlackListTask(this.hostInfo, this.bl, this.blacklistTimeout), this.blacklistTimeout,
+                            TimeUnit.MILLISECONDS);
                 } catch (Exception e) {
-                    ConnectionManager.this.executor.schedule(new BlackListTask(this.hostInfo, this.bl, this.blacklistTimeout), this.blacklistTimeout, TimeUnit.MILLISECONDS);
+                    ConnectionManager.this.executor.schedule(
+                            new BlackListTask(this.hostInfo, this.bl, this.blacklistTimeout), this.blacklistTimeout,
+                            TimeUnit.MILLISECONDS);
                     try {
-                        ConnectionManager.this.log(conn, "BlackListTask [" + ConnectionManager.getInstance().blackList + "]");
+                        ConnectionManager.this.log(conn,
+                                "BlackListTask [" + ConnectionManager.getInstance().blackList + "]");
                         if (conn != null && !conn.isClosed()) {
                             conn.close();
                         }
@@ -234,7 +237,8 @@ public class ConnectionManager {
                     }
                 } finally {
                     try {
-                        ConnectionManager.this.log(conn, "BlackListTask [" + ConnectionManager.getInstance().blackList + "]");
+                        ConnectionManager.this.log(conn,
+                                "BlackListTask [" + ConnectionManager.getInstance().blackList + "]");
                         if (conn != null && !conn.isClosed()) {
                             conn.close();
                         }
@@ -245,5 +249,30 @@ public class ConnectionManager {
 
             }
         }
+    }
+
+    public void setHaLoadBalanceMaximumErrorRetries(int haLoadBalanceMaximumErrorRetries) {
+        this.haLoadBalanceMaximumErrorRetries = haLoadBalanceMaximumErrorRetries;
+        if (this.haLoadBalanceMaximumErrorRetries <= 0) {
+            this.haLoadBalanceMaximumErrorRetries = 1;
+        }
+    }
+
+    public void setHaLoadBalanceHeartbeatIntervalTime(int haLoadBalanceHeartbeatIntervalTime) {
+        this.haLoadBalanceHeartbeatIntervalTime = haLoadBalanceHeartbeatIntervalTime;
+        if (this.haLoadBalanceHeartbeatIntervalTime <= 0) {
+            this.haLoadBalanceHeartbeatIntervalTime = 3000;
+        }
+    }
+
+    public void setHaLoadBalanceBlacklistTimeout(int haLoadBalanceBlacklistTimeout) {
+        this.haLoadBalanceBlacklistTimeout = haLoadBalanceBlacklistTimeout;
+        if (this.haLoadBalanceBlacklistTimeout <= 0) {
+            this.haLoadBalanceBlacklistTimeout = 5000;
+        }
+    }
+
+    public void setHaLoadBalanceHeartbeatMonitor(boolean haLoadBalanceHeartbeatMonitor) {
+        this.haLoadBalanceHeartbeatMonitor = haLoadBalanceHeartbeatMonitor;
     }
 }

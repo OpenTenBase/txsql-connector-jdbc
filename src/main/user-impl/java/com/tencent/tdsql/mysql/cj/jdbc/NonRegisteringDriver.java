@@ -81,6 +81,7 @@ import java.util.stream.Collectors;
 public class NonRegisteringDriver implements java.sql.Driver {
     private static final String ALLOWED_QUOTES = "\"'";
     private static final String URL_PREFIX = "jdbc:tdsql-mysql://";
+    private List<String> haLoadBalanceWeightFactor = null;
 
     /*
      * Standardizes OS name information to align with other drivers/clients
@@ -244,9 +245,10 @@ public class NonRegisteringDriver implements java.sql.Driver {
         if (parsedProps == null) {
             return null;
         }
+        this.checkParams(parsedProps);
         ConnectionManager.getInstance().addAllHost(hostList);
         if (parsedProps.containsKey(PropertyKey.haLoadBalanceWeightFactor.getKeyName())) {
-            ConnectionManager.getInstance().addAllWeightFactor(hostList, StringUtils.split(parsedProps.getProperty(PropertyKey.haLoadBalanceWeightFactor.getKeyName()), ",", ALLOWED_QUOTES, ALLOWED_QUOTES, false));
+            ConnectionManager.getInstance().addAllWeightFactor(hostList, this.haLoadBalanceWeightFactor);
         } else {
             ConnectionManager.getInstance().addAllWeightFactor(hostList, null);
         }
@@ -282,6 +284,68 @@ public class NonRegisteringDriver implements java.sql.Driver {
                     ConnectionManager.getInstance().getAllHost() + "." + Messages.getString("NonRegisteringDriver.18"), MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
         }
         return null;
+    }
+
+    private void checkParams(Properties parsedProps) throws SQLException {
+        // haLoadBalanceWeightFactor
+        List<String> haLoadBalanceWeightFactor = StringUtils.split(parsedProps.getProperty("haLoadBalanceWeightFactor",
+                ""), ",", ALLOWED_QUOTES, ALLOWED_QUOTES, false);
+        if (!haLoadBalanceWeightFactor.isEmpty()) {
+            for (String wf : haLoadBalanceWeightFactor) {
+                try {
+                    Integer.parseInt(wf);
+                } catch (NumberFormatException e) {
+                    throw SQLError.createSQLException(
+                            "Invaild haLoadBalanceWeightFactor value",
+                            MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
+                }
+            }
+            this.haLoadBalanceWeightFactor = haLoadBalanceWeightFactor;
+        }
+
+        // haLoadBalanceMaximumErrorRetries
+        String haLoadBalanceMaximumErrorRetriesStr = parsedProps.getProperty("haLoadBalanceMaximumErrorRetries",
+                "1");
+        try {
+            int haLoadBalanceMaximumErrorRetries = Integer.parseInt(haLoadBalanceMaximumErrorRetriesStr);
+            ConnectionManager.getInstance().setHaLoadBalanceMaximumErrorRetries(haLoadBalanceMaximumErrorRetries);
+        } catch (NumberFormatException e) {
+            throw SQLError.createSQLException("Invaild haLoadBalanceMaximumErrorRetries value",
+                    MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
+        }
+
+        // haLoadBalanceHeartbeatIntervalTime
+        String haLoadBalanceHeartbeatIntervalTimeStr = parsedProps.getProperty("haLoadBalanceHeartbeatIntervalTime",
+                "3000");
+        try {
+            int haLoadBalanceHeartbeatIntervalTime = Integer.parseInt(haLoadBalanceHeartbeatIntervalTimeStr);
+            ConnectionManager.getInstance().setHaLoadBalanceHeartbeatIntervalTime(haLoadBalanceHeartbeatIntervalTime);
+        } catch (NumberFormatException e) {
+            throw SQLError.createSQLException("Invaild haLoadBalanceHeartbeatIntervalTime value",
+                    MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
+        }
+
+        // haLoadBalanceBlacklistTimeout
+        String haLoadBalanceBlacklistTimeoutStr = parsedProps.getProperty("haLoadBalanceBlacklistTimeout",
+                "5000");
+        try {
+            int haLoadBalanceBlacklistTimeout = Integer.parseInt(haLoadBalanceBlacklistTimeoutStr);
+            ConnectionManager.getInstance().setHaLoadBalanceBlacklistTimeout(haLoadBalanceBlacklistTimeout);
+        } catch (NumberFormatException e) {
+            throw SQLError.createSQLException("Invaild haLoadBalanceBlacklistTimeout value",
+                    MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
+        }
+
+        // haLoadBalanceHeartbeatMonitor
+        String haLoadBalanceHeartbeatMonitorStr = parsedProps.getProperty("haLoadBalanceHeartbeatMonitor",
+                "false");
+        try {
+            boolean haLoadBalanceHeartbeatMonitor = Boolean.parseBoolean(haLoadBalanceHeartbeatMonitorStr);
+            ConnectionManager.getInstance().setHaLoadBalanceHeartbeatMonitor(haLoadBalanceHeartbeatMonitor);
+        } catch (Exception e) {
+            throw SQLError.createSQLException("Invaild haLoadBalanceHeartbeatMonitor value",
+                    MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
+        }
     }
 
     private String dealHostConnectionCounts(List<String> hosts) {
