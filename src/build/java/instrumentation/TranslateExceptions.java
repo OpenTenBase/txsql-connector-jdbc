@@ -29,18 +29,18 @@
 
 package instrumentation;
 
-import com.tencent.tdsql.mysql.cj.QueryBindings;
-import com.tencent.tdsql.mysql.cj.exceptions.CJException;
-import com.tencent.tdsql.mysql.cj.jdbc.*;
-import com.tencent.tdsql.mysql.cj.jdbc.CallableStatement.CallableStatementParamInfo;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
-import com.tencent.tdsql.mysql.cj.jdbc.ha.*;
-import com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetImpl;
-import com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetInternalMethods;
-import com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData;
-import com.tencent.tdsql.mysql.cj.jdbc.result.UpdatableResultSet;
-import com.tencent.tdsql.mysql.cj.protocol.ColumnDefinition;
-import com.tencent.tdsql.mysql.cj.protocol.Message;
+import com.tencentcloud.tdsql.mysql.cj.QueryBindings;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.*;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.CallableStatement.CallableStatementParamInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.*;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetInternalMethods;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.UpdatableResultSet;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ColumnDefinition;
+import com.tencentcloud.tdsql.mysql.cj.protocol.Message;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtMethod;
@@ -99,12 +99,12 @@ public class TranslateExceptions {
         /*
          * java.sql.Blob
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.Blob implements java.sql.Blob, OutputStreamWatcher
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.Blob implements java.sql.Blob, OutputStreamWatcher
         clazz = pool.get(Blob.class.getName());
         instrumentJdbcMethods(clazz, java.sql.Blob.class, false, EXCEPTION_INTERCEPTOR_MEMBER);
         clazz.writeFile(args[0]);
 
-        // com.tencent.tdsql.mysql.cj.jdbc.BlobFromLocator implements java.sql.Blob
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.BlobFromLocator implements java.sql.Blob
         clazz = pool.get(BlobFromLocator.class.getName());
         instrumentJdbcMethods(clazz, java.sql.Blob.class, false, EXCEPTION_INTERCEPTOR_MEMBER);
         clazz.writeFile(args[0]);
@@ -112,7 +112,7 @@ public class TranslateExceptions {
         /*
          * java.sql.CallableStatement
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.CallableStatement extends PreparedStatement implements java.sql.CallableStatement
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.CallableStatement extends PreparedStatement implements java.sql.CallableStatement
         clazz = pool.get(CallableStatement.class.getName());
         instrumentJdbcMethods(clazz, java.sql.CallableStatement.class, false, EXCEPTION_INTERCEPTOR_GETTER);
         instrumentJdbcMethods(clazz, JdbcStatement.class, true, EXCEPTION_INTERCEPTOR_GETTER);
@@ -137,24 +137,24 @@ public class TranslateExceptions {
         clazz.writeFile(args[0]);
 
         /*
-         * com.tencent.tdsql.mysql.cj.jdbc.StatementWrapper extends WrapperBase implements Statement
+         * com.tencentcloud.tdsql.mysql.cj.jdbc.StatementWrapper extends WrapperBase implements Statement
          */
         // TODO: Does it's own typical exception wrapping, could be instrumented with different catch method
 
         /*
-         * com.tencent.tdsql.mysql.cj.jdbc.PreparedStatementWrapper extends StatementWrapper implements PreparedStatement
+         * com.tencentcloud.tdsql.mysql.cj.jdbc.PreparedStatementWrapper extends StatementWrapper implements PreparedStatement
          */
         // TODO: Does it's own typical exception wrapping, could be instrumented with different catch method
 
         /*
-         * com.tencent.tdsql.mysql.cj.jdbc.CallableStatementWrapper extends PreparedStatementWrapper implements CallableStatement
+         * com.tencentcloud.tdsql.mysql.cj.jdbc.CallableStatementWrapper extends PreparedStatementWrapper implements CallableStatement
          */
         // TODO: Does it's own typical exception wrapping, could be instrumented with different catch method
 
         /*
          * java.sql.Clob
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.Clob implements java.sql.Clob, OutputStreamWatcher, WriterWatcher
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.Clob implements java.sql.Clob, OutputStreamWatcher, WriterWatcher
         clazz = pool.get(Clob.class.getName());
         instrumentJdbcMethods(clazz, java.sql.Clob.class, false, EXCEPTION_INTERCEPTOR_MEMBER);
         clazz.writeFile(args[0]);
@@ -162,13 +162,13 @@ public class TranslateExceptions {
         /*
          * 
          * java.sql.Connection extends java.sql.Wrapper
-         * ----> com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection extends java.sql.Connection, MysqlConnection
-         * ----------> com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl
-         * ----------> com.tencent.tdsql.mysql.cj.jdbc.LoadBalancedConnection extends JdbcConnection
-         * -------------> com.tencent.tdsql.mysql.cj.jdbc.LoadBalancedMySQLConnection extends MultiHostMySQLConnection implements LoadBalancedConnection
-         * ----------> com.tencent.tdsql.mysql.cj.jdbc.MultiHostMySQLConnection
-         * -------> com.tencent.tdsql.mysql.cj.jdbc.ReplicationConnection implements JdbcConnection, PingTarget
-         * -------> com.tencent.tdsql.mysql.cj.jdbc.ConnectionWrapper
+         * ----> com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection extends java.sql.Connection, MysqlConnection
+         * ----------> com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl
+         * ----------> com.tencentcloud.tdsql.mysql.cj.jdbc.LoadBalancedConnection extends JdbcConnection
+         * -------------> com.tencentcloud.tdsql.mysql.cj.jdbc.LoadBalancedMySQLConnection extends MultiHostMySQLConnection implements LoadBalancedConnection
+         * ----------> com.tencentcloud.tdsql.mysql.cj.jdbc.MultiHostMySQLConnection
+         * -------> com.tencentcloud.tdsql.mysql.cj.jdbc.ReplicationConnection implements JdbcConnection, PingTarget
+         * -------> com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionWrapper
          */
         // ConnectionImpl extends AbstractJdbcConnection implements JdbcConnection
         clazz = pool.get(ConnectionImpl.class.getName());
@@ -188,7 +188,7 @@ public class TranslateExceptions {
         catchRuntimeException(clazz, clazz.getDeclaredMethod("setupServerForTruncationChecks", new CtClass[] {}), EXCEPTION_INTERCEPTOR_GETTER);
         clazz.writeFile(args[0]);
 
-        // com.tencent.tdsql.mysql.cj.jdbc.LoadBalancedMySQLConnection extends MultiHostMySQLConnection implements LoadBalancedConnection
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.LoadBalancedMySQLConnection extends MultiHostMySQLConnection implements LoadBalancedConnection
         clazz = pool.get(LoadBalancedMySQLConnection.class.getName());
         instrumentJdbcMethods(clazz, LoadBalancedConnection.class, false, EXCEPTION_INTERCEPTOR_GETTER);
         clazz.writeFile(args[0]);
@@ -198,7 +198,7 @@ public class TranslateExceptions {
         instrumentJdbcMethods(clazz, JdbcConnection.class, false, EXCEPTION_INTERCEPTOR_GETTER);
         clazz.writeFile(args[0]);
 
-        // com.tencent.tdsql.mysql.cj.jdbc.ReplicationConnection implements JdbcConnection, PingTarget
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.ReplicationConnection implements JdbcConnection, PingTarget
         clazz = pool.get(ReplicationMySQLConnection.class.getName());
         instrumentJdbcMethods(clazz, ReplicationConnection.class, false, EXCEPTION_INTERCEPTOR_GETTER);
         clazz.writeFile(args[0]);
@@ -217,12 +217,12 @@ public class TranslateExceptions {
         /*
          * java.sql.DatabaseMetaData extends java.sql.Wrapper
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.DatabaseMetaData implements java.sql.DatabaseMetaData
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaData implements java.sql.DatabaseMetaData
         clazz = pool.get(DatabaseMetaData.class.getName());
         instrumentJdbcMethods(clazz, java.sql.DatabaseMetaData.class, false, EXCEPTION_INTERCEPTOR_GETTER);
         clazz.writeFile(args[0]);
 
-        // com.tencent.tdsql.mysql.cj.jdbc.DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaDataUsingInfoSchema extends DatabaseMetaData
         clazz = pool.get(DatabaseMetaDataUsingInfoSchema.class.getName());
         instrumentJdbcMethods(clazz, java.sql.DatabaseMetaData.class, false, EXCEPTION_INTERCEPTOR_GETTER);
         clazz.writeFile(args[0]);
@@ -230,7 +230,7 @@ public class TranslateExceptions {
         /*
          * java.sql.Driver
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.Driver extends NonRegisteringDriver implements java.sql.Driver
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.Driver extends NonRegisteringDriver implements java.sql.Driver
         clazz = pool.get(NonRegisteringDriver.class.getName());
         instrumentJdbcMethods(clazz, java.sql.Driver.class);
         clazz.writeFile(args[0]);
@@ -238,7 +238,7 @@ public class TranslateExceptions {
         /*
          * java.sql.NClob
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.NClob extends Clob implements java.sql.NClob
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.NClob extends Clob implements java.sql.NClob
         clazz = pool.get(NClob.class.getName());
         instrumentJdbcMethods(clazz, java.sql.NClob.class);
         clazz.writeFile(args[0]);
@@ -246,12 +246,12 @@ public class TranslateExceptions {
         /*
          * java.sql.ParameterMetaData extends java.sql.Wrapper
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.CallableStatement.CallableStatementParamInfo implements ParameterMetaData
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.CallableStatement.CallableStatementParamInfo implements ParameterMetaData
         clazz = pool.get(CallableStatementParamInfo.class.getName());
         instrumentJdbcMethods(clazz, java.sql.ParameterMetaData.class);
         clazz.writeFile(args[0]);
 
-        // com.tencent.tdsql.mysql.cj.jdbc.MysqlParameterMetadata implements ParameterMetaData
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlParameterMetadata implements ParameterMetaData
         clazz = pool.get(MysqlParameterMetadata.class.getName());
         instrumentJdbcMethods(clazz, java.sql.ParameterMetaData.class, false, EXCEPTION_INTERCEPTOR_MEMBER);
         clazz.writeFile(args[0]);
@@ -259,7 +259,7 @@ public class TranslateExceptions {
         /*
          * java.sql.PreparedStatement extends java.sql.Statement (java.sql.Statement extends java.sql.Wrapper)
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.PreparedStatement extends com.tencent.tdsql.mysql.cj.jdbc.StatementImpl implements java.sql.PreparedStatement
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.PreparedStatement extends com.tencentcloud.tdsql.mysql.cj.jdbc.StatementImpl implements java.sql.PreparedStatement
         clazz = pool.get(ClientPreparedStatement.class.getName());
         instrumentJdbcMethods(clazz, java.sql.PreparedStatement.class, false, EXCEPTION_INTERCEPTOR_GETTER);
         instrumentJdbcMethods(clazz, JdbcStatement.class, true, EXCEPTION_INTERCEPTOR_GETTER);
@@ -295,7 +295,7 @@ public class TranslateExceptions {
         clazz.writeFile(args[0]);
 
         /*
-         * com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement extends PreparedStatement
+         * com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement extends PreparedStatement
          */
         clazz = pool.get(ServerPreparedStatement.class.getName());
         instrumentJdbcMethods(clazz, java.sql.PreparedStatement.class, false, EXCEPTION_INTERCEPTOR_GETTER);
@@ -320,12 +320,12 @@ public class TranslateExceptions {
         /*
          * java.sql.ResultSet extends java.sql.Wrapper
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.ResultSetImpl implements com.tencent.tdsql.mysql.cj.jdbc.ResultSetInternalMethods (extends java.sql.ResultSet)
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.ResultSetImpl implements com.tencentcloud.tdsql.mysql.cj.jdbc.ResultSetInternalMethods (extends java.sql.ResultSet)
         clazz = pool.get(ResultSetImpl.class.getName());
         instrumentJdbcMethods(clazz, ResultSetInternalMethods.class, false, EXCEPTION_INTERCEPTOR_GETTER);
         clazz.writeFile(args[0]);
 
-        // com.tencent.tdsql.mysql.cj.jdbc.UpdatableResultSet extends ResultSetImpl
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.UpdatableResultSet extends ResultSetImpl
         clazz = pool.get(UpdatableResultSet.class.getName());
         instrumentJdbcMethods(clazz, ResultSetInternalMethods.class, false, EXCEPTION_INTERCEPTOR_GETTER);
         catchRuntimeException(clazz, clazz.getDeclaredMethod("generateStatements", new CtClass[] {}), EXCEPTION_INTERCEPTOR_GETTER);
@@ -334,7 +334,7 @@ public class TranslateExceptions {
         /*
          * java.sql.ResultSetMetaData extends java.sql.Wrapper
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.ResultSetMetaData implements java.sql.ResultSetMetaData
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.ResultSetMetaData implements java.sql.ResultSetMetaData
         clazz = pool.get(ResultSetMetaData.class.getName());
         instrumentJdbcMethods(clazz, java.sql.ResultSetMetaData.class, false, EXCEPTION_INTERCEPTOR_MEMBER);
         clazz.writeFile(args[0]);
@@ -342,7 +342,7 @@ public class TranslateExceptions {
         /*
          * java.sql.Savepoint
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.MysqlSavepoint implements java.sql.Savepoint
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlSavepoint implements java.sql.Savepoint
         clazz = pool.get(MysqlSavepoint.class.getName());
         instrumentJdbcMethods(clazz, Savepoint.class, false, EXCEPTION_INTERCEPTOR_MEMBER);
         clazz.writeFile(args[0]);
@@ -350,7 +350,7 @@ public class TranslateExceptions {
         /*
          * java.sql.Statement extends java.sql.Wrapper
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.StatementImpl implements com.tencent.tdsql.mysql.cj.jdbc.Statement (extends java.sql.Statement)
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.StatementImpl implements com.tencentcloud.tdsql.mysql.cj.jdbc.Statement (extends java.sql.Statement)
         clazz = pool.get(StatementImpl.class.getName());
         instrumentJdbcMethods(clazz, JdbcStatement.class, false, EXCEPTION_INTERCEPTOR_GETTER);
         // non-JDBC
@@ -387,7 +387,7 @@ public class TranslateExceptions {
         /*
          * java.sql.SQLXML
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.MysqlSQLXML implements SQLXML
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlSQLXML implements SQLXML
         clazz = pool.get(MysqlSQLXML.class.getName());
         instrumentJdbcMethods(clazz, java.sql.SQLXML.class, false, EXCEPTION_INTERCEPTOR_MEMBER);
         clazz.writeFile(args[0]);
@@ -423,7 +423,7 @@ public class TranslateExceptions {
         /*
          * javax.sql.PooledConnection
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.MysqlPooledConnection
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlPooledConnection
         clazz = pool.get(MysqlPooledConnection.class.getName());
         instrumentJdbcMethods(clazz, javax.sql.PooledConnection.class, false, EXCEPTION_INTERCEPTOR_MEMBER);
         clazz.writeFile(args[0]);
@@ -432,12 +432,12 @@ public class TranslateExceptions {
          * javax.sql.XAConnection
          * javax.transaction.xa.XAResource
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.MysqlXAConnection extends MysqlPooledConnection implements XAConnection, XAResource
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXAConnection extends MysqlPooledConnection implements XAConnection, XAResource
         clazz = pool.get(MysqlXAConnection.class.getName());
         instrumentJdbcMethods(clazz, javax.sql.XAConnection.class);
         clazz.writeFile(args[0]);
 
-        // com.tencent.tdsql.mysql.cj.jdbc.SuspendableXAConnection extends MysqlPooledConnection implements XAConnection, XAResource
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.SuspendableXAConnection extends MysqlPooledConnection implements XAConnection, XAResource
         clazz = pool.get(SuspendableXAConnection.class.getName());
         instrumentJdbcMethods(clazz, javax.sql.XAConnection.class);
         clazz.writeFile(args[0]);
@@ -445,7 +445,7 @@ public class TranslateExceptions {
         /*
          * javax.sql.XADataSource
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.MysqlXADataSource extends MysqlDataSource implements javax.sql.XADataSource
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXADataSource extends MysqlDataSource implements javax.sql.XADataSource
         clazz = pool.get(MysqlXADataSource.class.getName());
         instrumentJdbcMethods(clazz, javax.sql.DataSource.class);
         instrumentJdbcMethods(clazz, javax.sql.XADataSource.class);
@@ -454,7 +454,7 @@ public class TranslateExceptions {
         /*
          * javax.transaction.xa.Xid
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.MysqlXid implements Xid
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXid implements Xid
         clazz = pool.get(MysqlXid.class.getName());
         instrumentJdbcMethods(clazz, javax.transaction.xa.Xid.class);
         clazz.writeFile(args[0]);
@@ -463,47 +463,47 @@ public class TranslateExceptions {
          * TODO:
          * java.sql.DataTruncation
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.exceptions.MysqlDataTruncation extends DataTruncation
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MysqlDataTruncation extends DataTruncation
 
         /*
          * TODO:
          * java.sql.SQLException
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.exceptions.NotUpdatable extends SQLException
-        // com.tencent.tdsql.mysql.cj.jdbc.exceptions.OperationNotSupportedException extends SQLException
-        // com.tencent.tdsql.mysql.cj.jdbc.exceptions.PacketTooBigException extends SQLException
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.NotUpdatable extends SQLException
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.OperationNotSupportedException extends SQLException
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.PacketTooBigException extends SQLException
 
         /*
          * TODO:
          * java.sql.SQLNonTransientException
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLQueryInterruptedException extends SQLNonTransientException
-        // com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLStatementCancelledException extends SQLNonTransientException
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLQueryInterruptedException extends SQLNonTransientException
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLStatementCancelledException extends SQLNonTransientException
 
         /*
          * TODO:
          * java.sql.SQLRecoverableException
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException extends SQLRecoverableException implements StreamingNotifiable
-        // ---> com.tencent.tdsql.mysql.cj.jdbc.exceptions.ConnectionFeatureNotAvailableException extends CommunicationsException
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException extends SQLRecoverableException implements StreamingNotifiable
+        // ---> com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.ConnectionFeatureNotAvailableException extends CommunicationsException
 
         /*
          * TODO:
          * java.sql.SQLTransientException
          * ---> java.sql.SQLTimeoutException
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLTimeoutException extends SQLTimeoutException
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLTimeoutException extends SQLTimeoutException
 
         /*
          * TODO:
          * java.sql.SQLTransientException
          * ---> java.sql.SQLTransactionRollbackException
          */
-        // com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLTransactionRollbackException extends SQLTransactionRollbackException implements DeadlockTimeoutRollbackMarker
+        // com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLTransactionRollbackException extends SQLTransactionRollbackException implements DeadlockTimeoutRollbackMarker
 
         /*
          * TODO:
-         * com.tencent.tdsql.mysql.cj.jdbc.MysqlXAException extends javax.transaction.xa.XAException
+         * com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXAException extends javax.transaction.xa.XAException
          */
 
         /*

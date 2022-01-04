@@ -29,8 +29,8 @@
 
 package documentation;
 
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinition;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
 
 import java.util.HashMap;
 import java.util.Map;
