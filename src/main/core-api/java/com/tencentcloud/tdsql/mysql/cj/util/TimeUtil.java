@@ -93,7 +93,7 @@ public class TimeUtil {
     public static final Pattern DURATION_LITERAL_NO_DAYS = Pattern.compile("(-)?\\d{1,3}:([0-5])?\\d(:([0-5])?\\d(\\.\\d{1,9})?)?");
 
     // Mappings from TimeZone identifications (prefixed by type: Windows, TZ name, MetaZone, TZ alias, ...), to standard TimeZone Ids
-    private static final String TIME_ZONE_MAPPINGS_RESOURCE = "/com/tencent/tdsql/mysql/cj/util/TimeZoneMapping.properties";
+    private static final String TIME_ZONE_MAPPINGS_RESOURCE = "/com/tencentcloud/tdsql/mysql/cj/util/TimeZoneMapping.properties";
 
     private static Properties timeZoneMappings = null;
 

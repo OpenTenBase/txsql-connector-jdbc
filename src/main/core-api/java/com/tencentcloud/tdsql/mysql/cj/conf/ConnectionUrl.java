@@ -413,7 +413,7 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
     public static Properties getPropertiesFromConfigFiles(String configFiles) {
         Properties configProps = new Properties();
         for (String configFile : configFiles.split(",")) {
-            try (InputStream configAsStream = ConnectionUrl.class.getResourceAsStream("/com/tencent/tdsql/mysql/cj/configurations/" + configFile + ".properties")) {
+            try (InputStream configAsStream = ConnectionUrl.class.getResourceAsStream("/com/tencentcloud/tdsql/mysql/cj/configurations/" + configFile + ".properties")) {
                 if (configAsStream == null) {
                     throw ExceptionFactory.createException(InvalidConnectionAttributeException.class,
                             Messages.getString("ConnectionString.10", new Object[] { configFile }));

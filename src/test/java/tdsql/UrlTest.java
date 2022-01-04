@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -21,22 +19,22 @@ public class UrlTest {
 
     @Test
     public void case01() {
-        connect("jdbc:tdsql-mysql://9.134.209.89:3357/jdbc_test_db");
+        connect("jdbc:tdsql-mysql://9.134.209.89:3357/jdbc_test_db?useSSL=false");
     }
 
     @Test
     public void case02() {
-        connect("jdbc:tdsql-mysql://9.134.209.89:3357,9.134.209.89:3358,9.134.209.89:3359,9.134.209.89:3360/jdbc_test_db");
+        connect("jdbc:tdsql-mysql://9.134.209.89:3357,9.134.209.89:3358,9.134.209.89:3359,9.134.209.89:3360/jdbc_test_db?useSSL=false");
     }
 
     @Test
     public void case03() {
-        connect("jdbc:tdsql-mysql:loadbalance://9.134.209.89:3357,9.134.209.89:3358,9.134.209.89:3359,9.134.209.89:3360/jdbc_test_db");
+        connect("jdbc:tdsql-mysql:loadbalance://9.134.209.89:3357,9.134.209.89:3358,9.134.209.89:3359,9.134.209.89:3360/jdbc_test_db?useSSL=false");
     }
 
     @Test
     public void case04() {
-        connect("jdbc:tdsql-mysql:replication://9.134.209.89:3357,9.134.209.89:3358,9.134.209.89:3359,9.134.209.89:3360/jdbc_test_db");
+        connect("jdbc:tdsql-mysql:replication://9.134.209.89:3357,9.134.209.89:3358,9.134.209.89:3359,9.134.209.89:3360/jdbc_test_db?useSSL=false");
     }
 
     @Test
@@ -57,11 +55,5 @@ public class UrlTest {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    }
-
-    public static void main(String[] args) {
-        List<String> list = new ArrayList();
-        list.add("1");
-        list.add("2");
     }
 }
