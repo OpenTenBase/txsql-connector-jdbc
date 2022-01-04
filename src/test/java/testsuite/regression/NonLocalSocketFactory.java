@@ -29,8 +29,8 @@
 
 package testsuite.regression;
 
-import com.tencent.tdsql.mysql.cj.Session;
-import com.tencent.tdsql.mysql.cj.protocol.StandardSocketFactory;
+import com.tencentcloud.tdsql.mysql.cj.Session;
+import com.tencentcloud.tdsql.mysql.cj.protocol.StandardSocketFactory;
 
 public class NonLocalSocketFactory extends StandardSocketFactory {
 

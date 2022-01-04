@@ -83,43 +83,43 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.CharsetMapping;
-import com.tencent.tdsql.mysql.cj.MysqlConnection;
-import com.tencent.tdsql.mysql.cj.NativeSession;
-import com.tencent.tdsql.mysql.cj.PreparedQuery;
-import com.tencent.tdsql.mysql.cj.Query;
-import com.tencent.tdsql.mysql.cj.conf.ConnectionUrl;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.SslMode;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.ExceptionFactory;
-import com.tencent.tdsql.mysql.cj.exceptions.InvalidConnectionAttributeException;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcPropertySet;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
-import com.tencent.tdsql.mysql.cj.jdbc.NonRegisteringDriver;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
-import com.tencent.tdsql.mysql.cj.protocol.MessageReader;
-import com.tencent.tdsql.mysql.cj.protocol.MessageSender;
-import com.tencent.tdsql.mysql.cj.protocol.Resultset;
-import com.tencent.tdsql.mysql.cj.protocol.a.DebugBufferingPacketReader;
-import com.tencent.tdsql.mysql.cj.protocol.a.DebugBufferingPacketSender;
-import com.tencent.tdsql.mysql.cj.protocol.a.MultiPacketReader;
-import com.tencent.tdsql.mysql.cj.protocol.a.NativePacketHeader;
-import com.tencent.tdsql.mysql.cj.protocol.a.NativePacketPayload;
-import com.tencent.tdsql.mysql.cj.protocol.a.NativeProtocol;
-import com.tencent.tdsql.mysql.cj.protocol.a.SimplePacketReader;
-import com.tencent.tdsql.mysql.cj.protocol.a.SimplePacketSender;
-import com.tencent.tdsql.mysql.cj.protocol.a.TimeTrackingPacketReader;
-import com.tencent.tdsql.mysql.cj.protocol.a.TimeTrackingPacketSender;
-import com.tencent.tdsql.mysql.cj.protocol.a.TracingPacketReader;
-import com.tencent.tdsql.mysql.cj.protocol.a.TracingPacketSender;
-import com.tencent.tdsql.mysql.cj.util.TimeUtil;
-import com.tencent.tdsql.mysql.cj.util.Util;
-import com.tencent.tdsql.mysql.jdbc.Driver;
+import com.tencentcloud.tdsql.mysql.cj.CharsetMapping;
+import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
+import com.tencentcloud.tdsql.mysql.cj.NativeSession;
+import com.tencentcloud.tdsql.mysql.cj.PreparedQuery;
+import com.tencentcloud.tdsql.mysql.cj.Query;
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.SslMode;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.InvalidConnectionAttributeException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcPropertySet;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.NonRegisteringDriver;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.protocol.MessageReader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.MessageSender;
+import com.tencentcloud.tdsql.mysql.cj.protocol.Resultset;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.DebugBufferingPacketReader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.DebugBufferingPacketSender;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.MultiPacketReader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativePacketHeader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativePacketPayload;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeProtocol;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.SimplePacketReader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.SimplePacketSender;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.TimeTrackingPacketReader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.TimeTrackingPacketSender;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.TracingPacketReader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.TracingPacketSender;
+import com.tencentcloud.tdsql.mysql.cj.util.TimeUtil;
+import com.tencentcloud.tdsql.mysql.cj.util.Util;
+import com.tencentcloud.tdsql.mysql.jdbc.Driver;
 
 import testsuite.BaseQueryInterceptor;
 import testsuite.BaseTestCase;
@@ -755,7 +755,7 @@ public class ConnectionTest extends BaseTestCase {
         }
 
         try {
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) dumpConn).clientPrepareStatement(bogusSQL).executeQuery();
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) dumpConn).clientPrepareStatement(bogusSQL).executeQuery();
         } catch (SQLException sqlEx) {
             assertTrue(sqlEx.getMessage().indexOf(bogusSQL) != -1);
         }
@@ -890,7 +890,7 @@ public class ConnectionTest extends BaseTestCase {
 
         try {
             // Must be set after connect, otherwise it's the server that's enforcing it.
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) loadConn).getPropertySet().getProperty(PropertyKey.allowLoadLocalInfile).setValue(false);
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) loadConn).getPropertySet().getProperty(PropertyKey.allowLoadLocalInfile).setValue(false);
 
             assertThrows(SQLException.class,
                     "Server asked for stream in response to \"LOAD DATA LOCAL INFILE\" but functionality is not enabled at client by setting "
@@ -1099,11 +1099,11 @@ public class ConnectionTest extends BaseTestCase {
     public void testPing() throws SQLException {
         Connection conn2 = getConnectionWithProps((String) null);
 
-        ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) conn2).ping();
+        ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) conn2).ping();
         conn2.close();
 
         try {
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) conn2).ping();
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) conn2).ping();
             fail("Should have failed with an exception");
         } catch (SQLException sqlEx) {
             // ignore for now
@@ -1140,9 +1140,9 @@ public class ConnectionTest extends BaseTestCase {
      */
     @Test
     public void testSetProfileSql() throws Exception {
-        ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getProperty(PropertyKey.profileSQL).setValue(false);
+        ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getProperty(PropertyKey.profileSQL).setValue(false);
         this.stmt.execute("SELECT 1");
-        ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getProperty(PropertyKey.profileSQL).setValue(true);
+        ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getProperty(PropertyKey.profileSQL).setValue(true);
         this.stmt.execute("SELECT 1");
     }
 
@@ -1521,7 +1521,7 @@ public class ConnectionTest extends BaseTestCase {
             props.setProperty(PropertyKey.useCursorFetch.getKeyName(), "true");
             fetchConn = getConnectionWithProps(props);
 
-            String classname = "com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement";
+            String classname = "com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement";
 
             assertEquals(classname, fetchConn.prepareStatement("SELECT 1").getClass().getName());
         } finally {
@@ -1559,7 +1559,7 @@ public class ConnectionTest extends BaseTestCase {
         checkInterfaceImplemented(java.sql.PreparedStatement.class.getMethods(), pStmtToCheck.getClass(), pStmtToCheck);
         checkInterfaceImplemented(java.sql.ParameterMetaData.class.getMethods(), paramMd.getClass(), paramMd);
 
-        pStmtToCheck = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) connToCheck).serverPrepareStatement("SELECT 1");
+        pStmtToCheck = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) connToCheck).serverPrepareStatement("SELECT 1");
 
         checkInterfaceImplemented(java.sql.PreparedStatement.class.getMethods(), pStmtToCheck.getClass(), pStmtToCheck);
         ResultSet toCheckRs = connToCheck.createStatement().executeQuery("SELECT 1");
@@ -1734,7 +1734,7 @@ public class ConnectionTest extends BaseTestCase {
 
         if (host.equals("localhost") || host.equals("127.0.0.1")) {
             // we can actually test this
-            assertTrue(((com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl) this.conn).isServerLocal());
+            assertTrue(((com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl) this.conn).isServerLocal());
         }
     }
 

@@ -45,9 +45,9 @@ import java.util.Properties;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.util.Base64Decoder;
-import com.tencent.tdsql.mysql.cj.util.StringUtils;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.util.Base64Decoder;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 
 import testsuite.BaseTestCase;
 
@@ -208,10 +208,10 @@ public class StringRegressionTest extends BaseTestCase {
             pStmt.setString(1, latin1String);
             pStmt.executeUpdate();
 
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) latin1Conn).getPropertySet().getProperty(PropertyKey.traceProtocol).setValue(true);
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) latin1Conn).getPropertySet().getProperty(PropertyKey.traceProtocol).setValue(true);
 
             this.rs = latin1Conn.createStatement().executeQuery("SELECT * FROM latin1RegressTest");
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) latin1Conn).getPropertySet().getProperty(PropertyKey.traceProtocol).setValue(false);
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) latin1Conn).getPropertySet().getProperty(PropertyKey.traceProtocol).setValue(false);
 
             this.rs.next();
 

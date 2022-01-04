@@ -58,12 +58,12 @@ import java.util.concurrent.Callable;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement;
-import com.tencent.tdsql.mysql.cj.util.StringUtils;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 
 import testsuite.BaseTestCase;
 
@@ -427,7 +427,7 @@ public class SyntaxRegressionTest extends BaseTestCase {
                         .prepareStatement("ALTER IGNORE TABLE testExchangePartition1 " + "EXCHANGE PARTITION p1 WITH TABLE testExchangePartition2");
 
             }
-            assertEquals(com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement.class, this.pstmt.getClass());
+            assertEquals(com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement.class, this.pstmt.getClass());
             this.pstmt.executeUpdate();
 
             // Using Server PreparedStatement, without validation.
@@ -438,7 +438,7 @@ public class SyntaxRegressionTest extends BaseTestCase {
                 this.pstmt = testConn.prepareStatement("ALTER TABLE testExchangePartition1 " + "EXCHANGE PARTITION p1 WITH TABLE testExchangePartition2");
 
             }
-            assertEquals(com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement.class, this.pstmt.getClass());
+            assertEquals(com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement.class, this.pstmt.getClass());
             this.pstmt.executeUpdate();
         } finally {
             if (testConn != null) {
@@ -507,12 +507,12 @@ public class SyntaxRegressionTest extends BaseTestCase {
             this.pstmt.execute();
 
             this.pstmt = c.prepareStatement("INSERT INTO testExplicitPartitions PARTITION (pNeg, subp0) VALUES (-2, \"(pNeg-)subp0\")");
-            assertTrue(this.pstmt instanceof com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement);
+            assertTrue(this.pstmt instanceof com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement);
             this.pstmt.execute();
 
             this.pstmt = c.prepareStatement(
                     "INSERT INTO testExplicitPartitions PARTITION (`p100-99999`) VALUES (100, \"`p100-99999`(-subp6)\"), (101, \"`p100-99999`(-subp7)\"), (1000, \"`p100-99999`(-subp6)\")");
-            assertTrue(this.pstmt instanceof com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement);
+            assertTrue(this.pstmt instanceof com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement);
             this.pstmt.execute();
 
             this.stmt.executeUpdate("INSERT INTO testExplicitPartitions PARTITION(`p10-99`,subp3) VALUES (1, \"subp3\"), (10, \"p10-99\")");

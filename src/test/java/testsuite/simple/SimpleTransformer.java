@@ -31,8 +31,8 @@ package testsuite.simple;
 
 import java.util.Properties;
 
-import com.tencent.tdsql.mysql.cj.conf.ConnectionPropertiesTransform;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionPropertiesTransform;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 
 /**
  * Used for testing the ConnectionPropertiesTransform functionality.

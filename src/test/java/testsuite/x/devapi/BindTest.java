@@ -39,8 +39,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.exceptions.WrongArgumentException;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
 
 public class BindTest extends BaseCollectionTestCase {
     @Test

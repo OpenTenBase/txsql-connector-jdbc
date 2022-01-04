@@ -44,9 +44,9 @@ import java.nio.channels.SocketChannel;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.tencent.tdsql.mysql.cj.conf.HostInfo;
-import com.tencent.tdsql.mysql.cj.conf.PropertySet;
-import com.tencent.tdsql.mysql.cj.protocol.StandardSocketFactory;
+import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
+import com.tencentcloud.tdsql.mysql.cj.protocol.StandardSocketFactory;
 
 public class InjectedSocketFactory extends StandardSocketFactory {
 

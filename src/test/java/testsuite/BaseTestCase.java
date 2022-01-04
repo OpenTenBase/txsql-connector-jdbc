@@ -29,7 +29,7 @@
 
 package testsuite;
 
-import static com.tencent.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
+import static com.tencentcloud.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -65,17 +65,17 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.conf.ConnectionUrl;
-import com.tencent.tdsql.mysql.cj.conf.ConnectionUrlParser;
-import com.tencent.tdsql.mysql.cj.conf.HostInfo;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.NonRegisteringDriver;
-import com.tencent.tdsql.mysql.cj.jdbc.ha.ReplicationConnection;
-import com.tencent.tdsql.mysql.cj.util.StringUtils;
-import com.tencent.tdsql.mysql.cj.util.Util;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrlParser;
+import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.NonRegisteringDriver;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnection;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
+import com.tencentcloud.tdsql.mysql.cj.util.Util;
 
 /**
  * Base class for all test cases. Creates connections, statements, etc. and closes them.
@@ -91,14 +91,14 @@ public abstract class BaseTestCase {
     protected boolean DISABLED_testBug3620new = true; // TODO this test is working in c/J 5.1 but fails here; disabled for later analysis
 
     /**
-     * JDBC URL, initialized from com.tencent.tdsql.mysql.cj.testsuite.url system property, or defaults to jdbc:mysql:///test and its connection URL.
+     * JDBC URL, initialized from com.tencentcloud.tdsql.mysql.cj.testsuite.url system property, or defaults to jdbc:mysql:///test and its connection URL.
      */
     public static String dbUrl = "jdbc:mysql:///test";
     public static String timeZoneFreeDbUrl = "jdbc:mysql:///test";
     protected static ConnectionUrl mainConnectionUrl = null;
 
     /**
-     * JDBC URL, initialized from com.tencent.tdsql.mysql.cj.testsuite.url.openssl system property and its connection URL
+     * JDBC URL, initialized from com.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl system property and its connection URL
      */
     protected static String sha256Url = null;
     protected static ConnectionUrl sha256ConnectionUrl = null;
@@ -118,7 +118,7 @@ public abstract class BaseTestCase {
     private List<String[]> createdObjects;
 
     /** The driver to use */
-    protected String dbClass = "com.tencent.tdsql.mysql.cj.jdbc.Driver";
+    protected String dbClass = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
 
     /** My instance number */
     private int myInstanceNumber = 0;

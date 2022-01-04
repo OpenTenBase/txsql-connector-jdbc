@@ -29,8 +29,8 @@
 
 package instrumentation;
 
-import com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl;
-import com.tencent.tdsql.mysql.cj.jdbc.ConnectionWrapper;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionWrapper;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtMethod;

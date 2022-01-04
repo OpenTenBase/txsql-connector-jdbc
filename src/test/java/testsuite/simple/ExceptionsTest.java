@@ -34,21 +34,21 @@ import java.util.concurrent.Callable;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.NonRegisteringDriver;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.ConnectionFeatureNotAvailableException;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLQueryInterruptedException;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLStatementCancelledException;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLTimeoutException;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLTransactionRollbackException;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.NotUpdatable;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.OperationNotSupportedException;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.PacketTooBigException;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.SQLError;
-import com.tencent.tdsql.mysql.cj.protocol.PacketReceivedTimeHolder;
-import com.tencent.tdsql.mysql.cj.protocol.PacketSentTimeHolder;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.NonRegisteringDriver;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.ConnectionFeatureNotAvailableException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLQueryInterruptedException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLStatementCancelledException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLTimeoutException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLTransactionRollbackException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.NotUpdatable;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.OperationNotSupportedException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.PacketTooBigException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
+import com.tencentcloud.tdsql.mysql.cj.protocol.PacketReceivedTimeHolder;
+import com.tencentcloud.tdsql.mysql.cj.protocol.PacketSentTimeHolder;
 
 import testsuite.BaseTestCase;
 

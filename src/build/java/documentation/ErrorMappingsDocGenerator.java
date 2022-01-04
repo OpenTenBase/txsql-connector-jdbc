@@ -29,7 +29,7 @@
 
 package documentation;
 
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 
 import java.util.HashMap;
 import java.util.Map;

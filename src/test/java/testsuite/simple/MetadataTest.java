@@ -56,15 +56,15 @@ import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.Query;
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.jdbc.DatabaseMetaDataUsingInfoSchema;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
-import com.tencent.tdsql.mysql.cj.protocol.Resultset;
-import com.tencent.tdsql.mysql.cj.util.StringUtils;
+import com.tencentcloud.tdsql.mysql.cj.Query;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaDataUsingInfoSchema;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.protocol.Resultset;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 
 import testsuite.BaseQueryInterceptor;
 import testsuite.BaseTestCase;
@@ -675,8 +675,8 @@ public class MetadataTest extends BaseTestCase {
         });
 
         assertEquals(Types.CHAR, this.rs.getMetaData().getColumnType(1));
-        assertEquals("ISO-8859-13", ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(1));
-        assertEquals("latin7", ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterSet(1));
+        assertEquals("ISO-8859-13", ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(1));
+        assertEquals("latin7", ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterSet(1));
         assertEquals("QQQ", this.rs.getMetaData().getColumnLabel(1));
         assertEquals("c1", this.rs.getMetaData().getColumnName(1));
         assertTrue(this.rs.getMetaData().isCaseSensitive(1));
@@ -1653,12 +1653,12 @@ public class MetadataTest extends BaseTestCase {
          * Setup test case.
          */
         // 1. Get list of SQL:2003 to exclude.
-        Field dbmdSql2003Keywords = com.tencent.tdsql.mysql.cj.jdbc.DatabaseMetaData.class.getDeclaredField("SQL2003_KEYWORDS");
+        Field dbmdSql2003Keywords = com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaData.class.getDeclaredField("SQL2003_KEYWORDS");
         dbmdSql2003Keywords.setAccessible(true);
         @SuppressWarnings("unchecked")
         List<String> sql2003ReservedWords = Collections.unmodifiableList((List<String>) dbmdSql2003Keywords.get(null));
         assertTrue(sql2003ReservedWords != null && !sql2003ReservedWords.isEmpty(),
-                "Failed to get field SQL2003_KEYWORDS from com.tencent.tdsql.mysql.cj.jdbc.DatabaseMetaData");
+                "Failed to get field SQL2003_KEYWORDS from com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaData");
 
         // 2. Retrieve list of reserved words from server.
         final String keywordsQuery = "SELECT WORD FROM INFORMATION_SCHEMA.KEYWORDS WHERE RESERVED=1 ORDER BY WORD";
@@ -1678,7 +1678,7 @@ public class MetadataTest extends BaseTestCase {
         dbmduisKeywordsCacheField.setAccessible(true);
         @SuppressWarnings("unchecked")
         Map<ServerVersion, String> dbmduisKeywordsCache = (Map<ServerVersion, String>) dbmduisKeywordsCacheField.get(null);
-        assertNotNull(dbmduisKeywordsCache, "Failed to retrieve the field keywordsCache from com.tencent.tdsql.mysql.cj.jdbc.DatabaseMetaDataUsingInfoSchema.");
+        assertNotNull(dbmduisKeywordsCache, "Failed to retrieve the field keywordsCache from com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaDataUsingInfoSchema.");
         dbmduisKeywordsCache.clear();
         assertTrue(dbmduisKeywordsCache.isEmpty(), "Failed to clear the DatabaseMetaDataUsingInfoSchema keywords cache.");
 

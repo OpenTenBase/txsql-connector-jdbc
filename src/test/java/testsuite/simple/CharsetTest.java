@@ -52,8 +52,8 @@ import java.util.SortedMap;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.CharsetMapping;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.CharsetMapping;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 
 import testsuite.BaseTestCase;
 

@@ -44,18 +44,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.protocol.ColumnDefinition;
-import com.tencent.tdsql.mysql.cj.protocol.ProtocolEntity;
-import com.tencent.tdsql.mysql.cj.protocol.ResultBuilder;
-import com.tencent.tdsql.mysql.cj.protocol.x.StatementExecuteOk;
-import com.tencent.tdsql.mysql.cj.protocol.x.StatementExecuteOkBuilder;
-import com.tencent.tdsql.mysql.cj.protocol.x.XMessageBuilder;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocol;
-import com.tencent.tdsql.mysql.cj.result.DefaultColumnDefinition;
-import com.tencent.tdsql.mysql.cj.result.Field;
-import com.tencent.tdsql.mysql.cj.result.Row;
-import com.tencent.tdsql.mysql.cj.xdevapi.DocFilterParams;
-import com.tencent.tdsql.mysql.cj.xdevapi.RowResult;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ColumnDefinition;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ProtocolEntity;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ResultBuilder;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.StatementExecuteOk;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.StatementExecuteOkBuilder;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XMessageBuilder;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocol;
+import com.tencentcloud.tdsql.mysql.cj.result.DefaultColumnDefinition;
+import com.tencentcloud.tdsql.mysql.cj.result.Field;
+import com.tencentcloud.tdsql.mysql.cj.result.Row;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DocFilterParams;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.RowResult;
 
 /**
  * Tests for protocol-level <b>async</b> APIs against X Plugin via X Protocol.

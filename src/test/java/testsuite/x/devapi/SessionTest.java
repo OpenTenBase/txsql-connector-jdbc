@@ -65,39 +65,39 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.protobuf.MessageLite;
-import com.tencent.tdsql.mysql.cj.Constants;
-import com.tencent.tdsql.mysql.cj.CoreSession;
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.Compression;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.XdevapiSslMode;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.CJCommunicationsException;
-import com.tencent.tdsql.mysql.cj.exceptions.CJPacketTooBigException;
-import com.tencent.tdsql.mysql.cj.exceptions.FeatureNotAvailableException;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.exceptions.WrongArgumentException;
-import com.tencent.tdsql.mysql.cj.protocol.SocketFactory;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocolError;
-import com.tencent.tdsql.mysql.cj.x.protobuf.Mysqlx.ServerMessages;
-import com.tencent.tdsql.mysql.cj.x.protobuf.MysqlxNotice.Frame;
-import com.tencent.tdsql.mysql.cj.x.protobuf.MysqlxNotice.Warning;
-import com.tencent.tdsql.mysql.cj.xdevapi.Client;
-import com.tencent.tdsql.mysql.cj.xdevapi.Client.ClientProperty;
-import com.tencent.tdsql.mysql.cj.xdevapi.ClientFactory;
-import com.tencent.tdsql.mysql.cj.xdevapi.ClientImpl;
-import com.tencent.tdsql.mysql.cj.xdevapi.ClientImpl.PooledXProtocol;
-import com.tencent.tdsql.mysql.cj.xdevapi.FindStatement;
-import com.tencent.tdsql.mysql.cj.xdevapi.Row;
-import com.tencent.tdsql.mysql.cj.xdevapi.RowResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.Schema;
-import com.tencent.tdsql.mysql.cj.xdevapi.SelectStatement;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionFactory;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionImpl;
-import com.tencent.tdsql.mysql.cj.xdevapi.SqlMultiResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.SqlResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.SqlStatement;
-import com.tencent.tdsql.mysql.cj.xdevapi.XDevAPIError;
+import com.tencentcloud.tdsql.mysql.cj.Constants;
+import com.tencentcloud.tdsql.mysql.cj.CoreSession;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.Compression;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.XdevapiSslMode;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJPacketTooBigException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.FeatureNotAvailableException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
+import com.tencentcloud.tdsql.mysql.cj.protocol.SocketFactory;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocolError;
+import com.tencentcloud.tdsql.mysql.cj.x.protobuf.Mysqlx.ServerMessages;
+import com.tencentcloud.tdsql.mysql.cj.x.protobuf.MysqlxNotice.Frame;
+import com.tencentcloud.tdsql.mysql.cj.x.protobuf.MysqlxNotice.Warning;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Client;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Client.ClientProperty;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.ClientFactory;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.ClientImpl;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.ClientImpl.PooledXProtocol;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.FindStatement;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Row;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.RowResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Schema;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SelectStatement;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionFactory;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionImpl;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SqlMultiResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SqlResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SqlStatement;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.XDevAPIError;
 
 import testsuite.InjectedSocketFactory;
 import testsuite.UnreliableSocketFactory;
@@ -1155,7 +1155,7 @@ public class SessionTest extends DevApiBaseTestCase {
         }
 
         for (String path : new String[] { null, "\\\\.\\pipe\\MySQL80" }) {
-            String url = this.baseUrl + makeParam(PropertyKey.socketFactory, "com.tencent.tdsql.mysql.cj.protocol.NamedPipeSocketFactory");
+            String url = this.baseUrl + makeParam(PropertyKey.socketFactory, "com.tencentcloud.tdsql.mysql.cj.protocol.NamedPipeSocketFactory");
             if (path != null) {
                 url += makeParam(PropertyKey.PATH, path);
             }

@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
  */
 public class LoadBalanceTest {
 
-    private static final String DB_CLASS = "com.tencent.tdsql.mysql.cj.jdbc.Driver";
+    private static final String DB_CLASS = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
 
     @BeforeAll
     public static void init() throws ClassNotFoundException {

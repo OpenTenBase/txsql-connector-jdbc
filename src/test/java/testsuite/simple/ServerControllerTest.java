@@ -31,8 +31,8 @@ package testsuite.simple;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.admin.ServerController;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions;
+import com.tencentcloud.tdsql.mysql.cj.admin.ServerController;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
 
 import testsuite.BaseTestCase;
 

@@ -53,10 +53,10 @@ import java.util.concurrent.Callable;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 
 import testsuite.BaseTestCase;
 
@@ -305,7 +305,7 @@ public class CallableStatementRegressionTest extends BaseTestCase {
             assertEquals(Types.INTEGER, cStmt.getParameterMetaData().getParameterType(1));
             java.sql.DatabaseMetaData dbmd = this.conn.getMetaData();
 
-            this.rs = ((com.tencent.tdsql.mysql.cj.jdbc.DatabaseMetaData) dbmd).getFunctionColumns(this.conn.getCatalog(), null, "testBug10310", "%");
+            this.rs = ((com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaData) dbmd).getFunctionColumns(this.conn.getCatalog(), null, "testBug10310", "%");
             ResultSetMetaData rsmd = this.rs.getMetaData();
 
             assertEquals(17, rsmd.getColumnCount());

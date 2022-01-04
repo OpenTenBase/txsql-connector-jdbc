@@ -37,12 +37,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.protocol.x.OkBuilder;
-import com.tencent.tdsql.mysql.cj.protocol.x.XMessageBuilder;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocol;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocolError;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.OkBuilder;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XMessageBuilder;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocol;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocolError;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
 
 /**
  * Tests for protocol-level auth APIs against X Plugin via X Protocol.
@@ -128,7 +128,7 @@ public class XProtocolAuthTest extends InternalXBaseTestCase {
             return;
         }
         try {
-            protocol.send(this.messageBuilder.buildPlainAuthStart(getTestUser(), "com.tencent.tdsql.mysql.cj.theWrongPassword", getTestDatabase()), 0);
+            protocol.send(this.messageBuilder.buildPlainAuthStart(getTestUser(), "com.tencentcloud.tdsql.mysql.cj.theWrongPassword", getTestDatabase()), 0);
             protocol.readAuthenticateOk();
             fail("Auth using wrong password should fail");
         } catch (XProtocolError ex) {

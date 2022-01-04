@@ -36,17 +36,17 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
 
-import com.tencent.tdsql.mysql.cj.MysqlxSession;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocolError;
-import com.tencent.tdsql.mysql.cj.xdevapi.PreparableStatement;
-import com.tencent.tdsql.mysql.cj.xdevapi.Schema;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionImpl;
-import com.tencent.tdsql.mysql.cj.xdevapi.SqlResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.Statement;
-import com.tencent.tdsql.mysql.cj.xdevapi.UpdateResultBuilder;
+import com.tencentcloud.tdsql.mysql.cj.MysqlxSession;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocolError;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.PreparableStatement;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Schema;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionImpl;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SqlResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Statement;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.UpdateResultBuilder;
 
 import testsuite.x.internal.InternalXBaseTestCase;
 

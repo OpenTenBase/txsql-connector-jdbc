@@ -42,12 +42,12 @@ import javax.security.sasl.SaslException;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.exceptions.CJException;
-import com.tencent.tdsql.mysql.cj.protocol.AuthenticationPlugin;
-import com.tencent.tdsql.mysql.cj.protocol.a.NativeConstants.StringSelfDataType;
-import com.tencent.tdsql.mysql.cj.protocol.a.NativePacketPayload;
-import com.tencent.tdsql.mysql.cj.protocol.a.authentication.AuthenticationLdapSaslClientPlugin;
-import com.tencent.tdsql.mysql.cj.sasl.ScramShaSaslClient;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
+import com.tencentcloud.tdsql.mysql.cj.protocol.AuthenticationPlugin;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringSelfDataType;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativePacketPayload;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.authentication.AuthenticationLdapSaslClientPlugin;
+import com.tencentcloud.tdsql.mysql.cj.sasl.ScramShaSaslClient;
 
 import testsuite.BaseTestCase;
 

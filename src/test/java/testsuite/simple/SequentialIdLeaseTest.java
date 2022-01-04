@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.util.SequentialIdLease;
+import com.tencentcloud.tdsql.mysql.cj.util.SequentialIdLease;
 
 import testsuite.BaseTestCase;
 

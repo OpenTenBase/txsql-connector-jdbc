@@ -44,12 +44,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.exceptions.DataReadException;
-import com.tencent.tdsql.mysql.cj.util.TimeUtil;
-import com.tencent.tdsql.mysql.cj.xdevapi.Row;
-import com.tencent.tdsql.mysql.cj.xdevapi.RowResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.Table;
-import com.tencent.tdsql.mysql.cj.xdevapi.Warning;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.DataReadException;
+import com.tencentcloud.tdsql.mysql.cj.util.TimeUtil;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Row;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.RowResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Table;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Warning;
 
 public class ResultTest extends DevApiBaseTestCase {
     @BeforeEach

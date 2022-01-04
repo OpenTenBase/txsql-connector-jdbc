@@ -120,89 +120,89 @@ import javax.transaction.xa.Xid;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.CharsetMapping;
-import com.tencent.tdsql.mysql.cj.Constants;
-import com.tencent.tdsql.mysql.cj.Messages;
-import com.tencent.tdsql.mysql.cj.MysqlConnection;
-import com.tencent.tdsql.mysql.cj.NativeSession;
-import com.tencent.tdsql.mysql.cj.Query;
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.Session;
-import com.tencent.tdsql.mysql.cj.conf.ConnectionPropertiesTransform;
-import com.tencent.tdsql.mysql.cj.conf.ConnectionUrl;
-import com.tencent.tdsql.mysql.cj.conf.HostInfo;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.SslMode;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.ZeroDatetimeBehavior;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.conf.PropertySet;
-import com.tencent.tdsql.mysql.cj.conf.url.ReplicationConnectionUrl;
-import com.tencent.tdsql.mysql.cj.exceptions.ClosedOnExpiredPasswordException;
-import com.tencent.tdsql.mysql.cj.exceptions.ExceptionFactory;
-import com.tencent.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.exceptions.PasswordExpiredException;
-import com.tencent.tdsql.mysql.cj.exceptions.PropertyNotModifiableException;
-import com.tencent.tdsql.mysql.cj.interceptors.QueryInterceptor;
-import com.tencent.tdsql.mysql.cj.jdbc.ClientInfoProvider;
-import com.tencent.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.ConnectionGroupManager;
-import com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlDataSource;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlPooledConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlXAConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlXADataSource;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlXid;
-import com.tencent.tdsql.mysql.cj.jdbc.NonRegisteringDriver;
-import com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.StatementImpl;
-import com.tencent.tdsql.mysql.cj.jdbc.SuspendableXAConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.SQLError;
-import com.tencent.tdsql.mysql.cj.jdbc.ha.LoadBalanceExceptionChecker;
-import com.tencent.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
-import com.tencent.tdsql.mysql.cj.jdbc.ha.RandomBalanceStrategy;
-import com.tencent.tdsql.mysql.cj.jdbc.ha.ReplicationConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionGroup;
-import com.tencent.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionGroupManager;
-import com.tencent.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionProxy;
-import com.tencent.tdsql.mysql.cj.jdbc.ha.SequentialBalanceStrategy;
-import com.tencent.tdsql.mysql.cj.jdbc.jmx.ReplicationGroupManagerMBean;
-import com.tencent.tdsql.mysql.cj.log.Log;
-import com.tencent.tdsql.mysql.cj.log.ProfilerEvent;
-import com.tencent.tdsql.mysql.cj.log.ProfilerEventImpl;
-import com.tencent.tdsql.mysql.cj.log.StandardLogger;
-import com.tencent.tdsql.mysql.cj.protocol.AuthenticationPlugin;
-import com.tencent.tdsql.mysql.cj.protocol.Message;
-import com.tencent.tdsql.mysql.cj.protocol.MessageReader;
-import com.tencent.tdsql.mysql.cj.protocol.MessageSender;
-import com.tencent.tdsql.mysql.cj.protocol.PacketReceivedTimeHolder;
-import com.tencent.tdsql.mysql.cj.protocol.PacketSentTimeHolder;
-import com.tencent.tdsql.mysql.cj.protocol.Resultset;
-import com.tencent.tdsql.mysql.cj.protocol.ServerSession;
-import com.tencent.tdsql.mysql.cj.protocol.StandardSocketFactory;
-import com.tencent.tdsql.mysql.cj.protocol.a.DebugBufferingPacketReader;
-import com.tencent.tdsql.mysql.cj.protocol.a.DebugBufferingPacketSender;
-import com.tencent.tdsql.mysql.cj.protocol.a.MultiPacketReader;
-import com.tencent.tdsql.mysql.cj.protocol.a.NativePacketHeader;
-import com.tencent.tdsql.mysql.cj.protocol.a.NativePacketPayload;
-import com.tencent.tdsql.mysql.cj.protocol.a.NativeProtocol;
-import com.tencent.tdsql.mysql.cj.protocol.a.NativeServerSession;
-import com.tencent.tdsql.mysql.cj.protocol.a.SimplePacketReader;
-import com.tencent.tdsql.mysql.cj.protocol.a.SimplePacketSender;
-import com.tencent.tdsql.mysql.cj.protocol.a.TimeTrackingPacketReader;
-import com.tencent.tdsql.mysql.cj.protocol.a.TimeTrackingPacketSender;
-import com.tencent.tdsql.mysql.cj.protocol.a.authentication.CachingSha2PasswordPlugin;
-import com.tencent.tdsql.mysql.cj.protocol.a.authentication.MysqlNativePasswordPlugin;
-import com.tencent.tdsql.mysql.cj.protocol.a.authentication.MysqlOldPasswordPlugin;
-import com.tencent.tdsql.mysql.cj.protocol.a.authentication.Sha256PasswordPlugin;
-import com.tencent.tdsql.mysql.cj.util.LogUtils;
-import com.tencent.tdsql.mysql.cj.util.StringUtils;
-import com.tencent.tdsql.mysql.cj.util.TimeUtil;
+import com.tencentcloud.tdsql.mysql.cj.CharsetMapping;
+import com.tencentcloud.tdsql.mysql.cj.Constants;
+import com.tencentcloud.tdsql.mysql.cj.Messages;
+import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
+import com.tencentcloud.tdsql.mysql.cj.NativeSession;
+import com.tencentcloud.tdsql.mysql.cj.Query;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.Session;
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionPropertiesTransform;
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
+import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.SslMode;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.ZeroDatetimeBehavior;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
+import com.tencentcloud.tdsql.mysql.cj.conf.url.ReplicationConnectionUrl;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ClosedOnExpiredPasswordException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.PasswordExpiredException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.PropertyNotModifiableException;
+import com.tencentcloud.tdsql.mysql.cj.interceptors.QueryInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ClientInfoProvider;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionGroupManager;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlDataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlPooledConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXAConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXADataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXid;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.NonRegisteringDriver;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.StatementImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.SuspendableXAConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalanceExceptionChecker;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.RandomBalanceStrategy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionGroup;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionGroupManager;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionProxy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.SequentialBalanceStrategy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.jmx.ReplicationGroupManagerMBean;
+import com.tencentcloud.tdsql.mysql.cj.log.Log;
+import com.tencentcloud.tdsql.mysql.cj.log.ProfilerEvent;
+import com.tencentcloud.tdsql.mysql.cj.log.ProfilerEventImpl;
+import com.tencentcloud.tdsql.mysql.cj.log.StandardLogger;
+import com.tencentcloud.tdsql.mysql.cj.protocol.AuthenticationPlugin;
+import com.tencentcloud.tdsql.mysql.cj.protocol.Message;
+import com.tencentcloud.tdsql.mysql.cj.protocol.MessageReader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.MessageSender;
+import com.tencentcloud.tdsql.mysql.cj.protocol.PacketReceivedTimeHolder;
+import com.tencentcloud.tdsql.mysql.cj.protocol.PacketSentTimeHolder;
+import com.tencentcloud.tdsql.mysql.cj.protocol.Resultset;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSession;
+import com.tencentcloud.tdsql.mysql.cj.protocol.StandardSocketFactory;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.DebugBufferingPacketReader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.DebugBufferingPacketSender;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.MultiPacketReader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativePacketHeader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativePacketPayload;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeProtocol;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeServerSession;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.SimplePacketReader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.SimplePacketSender;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.TimeTrackingPacketReader;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.TimeTrackingPacketSender;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.authentication.CachingSha2PasswordPlugin;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.authentication.MysqlNativePasswordPlugin;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.authentication.MysqlOldPasswordPlugin;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.authentication.Sha256PasswordPlugin;
+import com.tencentcloud.tdsql.mysql.cj.util.LogUtils;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
+import com.tencentcloud.tdsql.mysql.cj.util.TimeUtil;
 
 import testsuite.BaseQueryInterceptor;
 import testsuite.BaseTestCase;
@@ -704,14 +704,14 @@ public class ConnectionRegressionTest extends BaseTestCase {
                 assertTrue("08S01".equals(sqlEx.getSQLState()));
             }
 
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) failoverConnection).setFailedOver(true);
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) failoverConnection).setFailedOver(true);
 
             failoverConnection.setAutoCommit(true);
 
             String failedConnectionId = getSingleIndexedValueWithQuery(failoverConnection, 1, "SELECT CONNECTION_ID()").toString();
             System.out.println("Failed over connection id: " + failedConnectionId);
 
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) failoverConnection).setFailedOver(true);
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) failoverConnection).setFailedOver(true);
 
             for (int i = 0; i < 30; i++) {
                 failoverConnection.setAutoCommit(true);
@@ -769,7 +769,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
             String charsetToCheck = "ms932";
 
             assertEquals(charsetToCheck,
-                    ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(1).toLowerCase(Locale.ENGLISH));
+                    ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(1).toLowerCase(Locale.ENGLISH));
 
             try {
                 ms932Conn.createStatement().executeUpdate("drop table if exists testBug7607");
@@ -804,7 +804,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
             this.rs = shiftJisConn.createStatement().executeQuery("SELECT 'abc'");
             assertTrue(this.rs.next());
 
-            String charSetUC = ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(1).toUpperCase(Locale.US);
+            String charSetUC = ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(1).toUpperCase(Locale.US);
 
             props = new Properties();
             props.setProperty(PropertyKey.characterEncoding.getKeyName(), "WINDOWS-31J");
@@ -821,7 +821,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
             assertTrue(this.rs.next());
 
             assertEquals("windows-31j".toLowerCase(Locale.ENGLISH),
-                    ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(1).toLowerCase(Locale.ENGLISH));
+                    ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(1).toLowerCase(Locale.ENGLISH));
 
             props = new Properties();
             props.setProperty(PropertyKey.characterEncoding.getKeyName(), "CP943");
@@ -836,7 +836,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
             this.rs = cp943Conn.createStatement().executeQuery("SELECT 'abc'");
             assertTrue(this.rs.next());
 
-            charSetUC = ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(1).toUpperCase(Locale.US);
+            charSetUC = ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(1).toUpperCase(Locale.US);
 
             assertEquals("CP943", charSetUC);
 
@@ -900,13 +900,13 @@ public class ConnectionRegressionTest extends BaseTestCase {
 
         Connection bareConn = getConnectionWithProps(props);
 
-        int currentOpenStatements = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) bareConn).getActiveStatementCount();
+        int currentOpenStatements = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) bareConn).getActiveStatementCount();
 
         try {
             bareConn.prepareStatement("Boo!");
             fail("Should not've been able to prepare that one!");
         } catch (SQLException sqlEx) {
-            assertEquals(currentOpenStatements, ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) bareConn).getActiveStatementCount());
+            assertEquals(currentOpenStatements, ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) bareConn).getActiveStatementCount());
         } finally {
             bareConn.close();
         }
@@ -1838,7 +1838,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
     @Test
     public void testBug29852() throws Exception {
         Connection lbConn = getLoadBalancedConnection();
-        assertTrue(!lbConn.getClass().getName().startsWith("com.tencent.tdsql.mysql.cj.jdbc"));
+        assertTrue(!lbConn.getClass().getName().startsWith("com.tencentcloud.tdsql.mysql.cj.jdbc"));
         lbConn.close();
     }
 
@@ -1970,7 +1970,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
 
     @Test
     public void testBug34937() throws Exception {
-        com.tencent.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource ds = new com.tencent.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource();
+        com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource ds = new com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource();
         StringBuilder urlBuf = new StringBuilder();
         urlBuf.append(getSourceReplicaUrl());
         urlBuf.append("?");
@@ -2395,7 +2395,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
     private ReplicationGroupManagerMBean getReplicationMBean() throws Exception {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
 
-        ObjectName mbeanName = new ObjectName("com.tencent.tdsql.mysql.cj.jdbc.jmx:type=ReplicationGroupManager");
+        ObjectName mbeanName = new ObjectName("com.tencentcloud.tdsql.mysql.cj.jdbc.jmx:type=ReplicationGroupManager");
         return MBeanServerInvocationHandler.newProxyInstance(mbs, mbeanName, ReplicationGroupManagerMBean.class, false);
     }
 
@@ -2467,14 +2467,14 @@ public class ConnectionRegressionTest extends BaseTestCase {
     public void testBug45171() throws Exception {
         List<Statement> statementsToTest = new LinkedList<>();
         statementsToTest.add(this.conn.createStatement());
-        statementsToTest.add(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT 1"));
-        statementsToTest.add(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT 1", Statement.RETURN_GENERATED_KEYS));
-        statementsToTest.add(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT 1", new int[0]));
-        statementsToTest.add(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT 1", new String[0]));
-        statementsToTest.add(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("SELECT 1"));
-        statementsToTest.add(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("SELECT 1", Statement.RETURN_GENERATED_KEYS));
-        statementsToTest.add(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("SELECT 1", new int[0]));
-        statementsToTest.add(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("SELECT 1", new String[0]));
+        statementsToTest.add(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT 1"));
+        statementsToTest.add(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT 1", Statement.RETURN_GENERATED_KEYS));
+        statementsToTest.add(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT 1", new int[0]));
+        statementsToTest.add(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT 1", new String[0]));
+        statementsToTest.add(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("SELECT 1"));
+        statementsToTest.add(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("SELECT 1", Statement.RETURN_GENERATED_KEYS));
+        statementsToTest.add(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("SELECT 1", new int[0]));
+        statementsToTest.add(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("SELECT 1", new String[0]));
 
         for (Statement toTest : statementsToTest) {
             assertEquals(toTest.getResultSetType(), ResultSet.TYPE_FORWARD_ONLY);
@@ -2741,7 +2741,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
     public void testBug49700() throws Exception {
         Connection c = getConnectionWithProps("sessionVariables=@foo='bar'");
         assertEquals("bar", getSingleIndexedValueWithQuery(c, 1, "SELECT @foo"));
-        ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) c).resetServerState();
+        ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) c).resetServerState();
         assertEquals("bar", getSingleIndexedValueWithQuery(c, 1, "SELECT @foo"));
     }
 
@@ -2866,7 +2866,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
 
         @Override
-        public com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl pickConnection(InvocationHandler proxy, List<String> configuredHosts,
+        public com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl pickConnection(InvocationHandler proxy, List<String> configuredHosts,
                 Map<String, JdbcConnection> liveConnections, long[] responseTimes, int numRetries) throws SQLException {
             if (forcedFutureServer == null || forceFutureServerTimes == 0 || !configuredHosts.contains(forcedFutureServer)) {
                 return super.pickConnection(proxy, configuredHosts, liveConnections, responseTimes, numRetries);
@@ -2952,7 +2952,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         }
 
         @Override
-        public com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl pickConnection(InvocationHandler proxy, List<String> configuredHosts,
+        public com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl pickConnection(InvocationHandler proxy, List<String> configuredHosts,
                 Map<String, JdbcConnection> liveConnections, long[] responseTimes, int numRetries) throws SQLException {
             rebalancedTimes++;
             return super.pickConnection(proxy, configuredHosts, liveConnections, responseTimes, numRetries);
@@ -3100,7 +3100,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
             PrintStream printStream = new PrintStream(bOut);
             System.setErr(printStream);
 
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) c).setStatementComment("Hi there");
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) c).setStatementComment("Hi there");
             c.setAutoCommit(false);
 
             c.createStatement().execute("SELECT 1");
@@ -3164,12 +3164,12 @@ public class ConnectionRegressionTest extends BaseTestCase {
         Statement testStmt = testConn.createStatement();
 
         for (int i = 0; i < 500; i++) {
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) testConn).changeUser(props.getProperty(PropertyKey.USER.getKeyName()),
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) testConn).changeUser(props.getProperty(PropertyKey.USER.getKeyName()),
                     props.getProperty(PropertyKey.PASSWORD.getKeyName()));
 
             if (i % 10 == 0) {
                 try {
-                    ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) testConn).changeUser("bubba", props.getProperty(PropertyKey.PASSWORD.getKeyName()));
+                    ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) testConn).changeUser("bubba", props.getProperty(PropertyKey.PASSWORD.getKeyName()));
                 } catch (SQLException sqlEx) {
                     sqlEx.printStackTrace();
                     assertTrue(testConn.isClosed());
@@ -3204,7 +3204,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
             fail("Database " + databaseName + " is not found.");
         }
 
-        ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) con).changeUser(props.getProperty(PropertyKey.USER.getKeyName()),
+        ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) con).changeUser(props.getProperty(PropertyKey.USER.getKeyName()),
                 props.getProperty(PropertyKey.PASSWORD.getKeyName()));
 
         this.rs = con.createStatement().executeQuery("select DATABASE()");
@@ -3221,7 +3221,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
 
         try {
             newConn.close();
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) newConn).changeUser(props.getProperty(PropertyKey.USER.getKeyName()),
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) newConn).changeUser(props.getProperty(PropertyKey.USER.getKeyName()),
                     props.getProperty(PropertyKey.PASSWORD.getKeyName()));
             fail("Expected SQL Exception");
         } catch (SQLException ex) {
@@ -3259,7 +3259,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
 
             failoverConnection2 = getConnectionWithProps("jdbc:mysql://source:" + port + ",replica:" + port + "/", props);
 
-            assertTrue(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) failoverConnection1).isSourceConnection());
+            assertTrue(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) failoverConnection1).isSourceConnection());
 
             // Two different Connection objects should not equal each other:
             assertFalse(failoverConnection1.equals(failoverConnection2));
@@ -3276,7 +3276,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
                 }
             }
             // ensure we're now connected to the replica
-            assertFalse(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) failoverConnection1).isSourceConnection());
+            assertFalse(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) failoverConnection1).isSourceConnection());
 
             // ensure that hashCode() result is persistent across failover events when proxy state changes
             assertEquals(hc, failoverConnection1.hashCode());
@@ -3810,13 +3810,13 @@ public class ConnectionRegressionTest extends BaseTestCase {
 
     /**
      * This test requires two server instances:
-     * 1) main test server pointed by com.tencent.tdsql.mysql.cj.testsuite.url variable configured without RSA encryption support (sha256_password_private_key_path,
+     * 1) main test server pointed by com.tencentcloud.tdsql.mysql.cj.testsuite.url variable configured without RSA encryption support (sha256_password_private_key_path,
      * sha256_password_public_key_path, caching_sha2_password_private_key_path and caching_sha2_password_public_key_path config options are unset).
-     * 2) additional server instance pointed by com.tencent.tdsql.mysql.cj.testsuite.url.openssl variable configured with default-authentication-plugin=sha256_password and
+     * 2) additional server instance pointed by com.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl variable configured with default-authentication-plugin=sha256_password and
      * RSA encryption enabled.
      * 
      * To run this test please add this variable to ant call:
-     * -Dcom.tencent.tdsql.mysql.cj.testsuite.url.openssl=jdbc:mysql://localhost:3307/test?user=root&password=pwd
+     * -Dcom.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl=jdbc:mysql://localhost:3307/test?user=root&password=pwd
      * 
      * @throws Exception
      */
@@ -5193,9 +5193,9 @@ public class ConnectionRegressionTest extends BaseTestCase {
      */
     @Test
     public void testBug68400() throws Exception {
-        Field f = com.tencent.tdsql.mysql.cj.jdbc.AbandonedConnectionCleanupThread.class.getDeclaredField("connectionFinalizerPhantomRefs");
+        Field f = com.tencentcloud.tdsql.mysql.cj.jdbc.AbandonedConnectionCleanupThread.class.getDeclaredField("connectionFinalizerPhantomRefs");
         f.setAccessible(true);
-        Set<?> connectionTrackingSet = (Set<?>) f.get(com.tencent.tdsql.mysql.cj.jdbc.AbandonedConnectionCleanupThread.class);
+        Set<?> connectionTrackingSet = (Set<?>) f.get(com.tencentcloud.tdsql.mysql.cj.jdbc.AbandonedConnectionCleanupThread.class);
 
         Field referentField = java.lang.ref.Reference.class.getDeclaredField("referent");
         referentField.setAccessible(true);
@@ -5298,7 +5298,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
             if (finType == 1) {
                 connection.close();
             } else if (finType == 2) {
-                ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) connection).abortInternal();
+                ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) connection).abortInternal();
             }
             connection = null;
         }
@@ -5327,7 +5327,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
     private int countTestConnections(Set<?> connectionTrackingSet, Field referentField, boolean show, String attributValue) throws Exception {
         int connectionNumber = 0;
         for (Object o1 : connectionTrackingSet) {
-            com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection ctmp = (com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) referentField.get(o1);
+            com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection ctmp = (com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) referentField.get(o1);
             String atts = null;
             try {
                 if (ctmp != null) {
@@ -5546,7 +5546,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * This test requires additional server instance configured withm default-authentication-plugin=sha256_password and RSA encryption enabled.
      * 
      * To run this test please add this variable to ant call:
-     * -Dcom.tencent.tdsql.mysql.cj.testsuite.url.openssl=jdbc:mysql://localhost:3307/test?user=root&password=pwd
+     * -Dcom.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl=jdbc:mysql://localhost:3307/test?user=root&password=pwd
      * 
      * @throws Exception
      */
@@ -5644,7 +5644,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         for (int i = 0; i < testMemUnits.length; i++) {
             for (int j = 0; j < testMemUnits[i].length; j++) {
                 // testing with memory values under 2GB because higher values aren't supported.
-                connWithMemProps = (com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) getConnectionWithProps(
+                connWithMemProps = (com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) getConnectionWithProps(
                         String.format("blobSendChunkSize=1.2%1$s,largeRowSizeThreshold=1.4%1$s,locatorFetchBufferSize=1.6%1$s", testMemUnits[i][j]));
 
                 // test values of property 'blobSendChunkSize'
@@ -6148,7 +6148,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * This test requires additional server instance configured with default-authentication-plugin=sha256_password and RSA encryption enabled.
      * 
      * To run this test please add this variable to ant call:
-     * -Dcom.tencent.tdsql.mysql.cj.testsuite.url.openssl=jdbc:mysql://localhost:3307/test?user=root&password=pwd
+     * -Dcom.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl=jdbc:mysql://localhost:3307/test?user=root&password=pwd
      * 
      * @throws Exception
      */
@@ -7096,7 +7096,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * 1. Default connection string points to a server configured with both SSL *and* RSA encryption.
      * or
      * 2. Default connection string points to a server configured with SSL enabled but no RSA encryption *and* the property
-     * com.tencent.tdsql.mysql.cj.testsuite.url.openssl points to an additional server configured with
+     * com.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl points to an additional server configured with
      * default-authentication-plugin=sha256_password and RSA encryption.
      * 
      * If none of the servers has SSL and RSA encryption enabled then only 'mysql_native_password' and 'mysql_old_password' plugins are tested.
@@ -7339,7 +7339,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
                     case 3:
                         /*
                          * Test with an RSA encryption enabled connection, using public key retrieved from server.
-                         * Requires additional server instance pointed by 'com.tencent.tdsql.mysql.cj.testsuite.url.openssl'.
+                         * Requires additional server instance pointed by 'com.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl'.
                          * Can't be used with plugin 'cleartext_plugin_server'.
                          */
                         if (pluginName.equals("cleartext_plugin_server") || !rsaEnabled) {
@@ -7352,7 +7352,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
                     case 4:
                         /*
                          * Test with an RSA encryption enabled connection, using public key pointed by the property 'serverRSAPublicKeyFile'.
-                         * Requires additional server instance pointed by 'com.tencent.tdsql.mysql.cj.testsuite.url.openssl'.
+                         * Requires additional server instance pointed by 'com.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl'.
                          * Can't be used with plugin 'cleartext_plugin_server'.
                          */
                         if (pluginName.equals("cleartext_plugin_server") || !rsaEnabled) {
@@ -7417,7 +7417,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
     /**
      * Tests fix for BUG#75670 - Connection fails with "Public Key Retrieval is not allowed" for native auth.
      * 
-     * Requires additional server instance pointed by com.tencent.tdsql.mysql.cj.testsuite.url.openssl variable configured with default-authentication-plugin=sha256_password
+     * Requires additional server instance pointed by com.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl variable configured with default-authentication-plugin=sha256_password
      * and RSA encryption enabled.
      * 
      * @throws Exception
@@ -8050,8 +8050,8 @@ public class ConnectionRegressionTest extends BaseTestCase {
     /**
      * Tests fix for WL#8196, Support for TLSv1.2 Protocol.
      * 
-     * This test requires community server (preferably compiled with yaSSL) in -Dcom.tencent.tdsql.mysql.cj.testsuite.url and commercial server (with OpenSSL) in
-     * -Dcom.tencent.tdsql.mysql.cj.testsuite.url.openssl
+     * This test requires community server (preferably compiled with yaSSL) in -Dcom.tencentcloud.tdsql.mysql.cj.testsuite.url and commercial server (with OpenSSL) in
+     * -Dcom.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl
      * 
      * Test certificates from test/config/ssl-test-certs must be installed on both servers.
      * 
@@ -8123,8 +8123,8 @@ public class ConnectionRegressionTest extends BaseTestCase {
      * of TLSv1, TLSv1.1, or TLSv1.2 (comma-separated, no spaces), the default behavior restricting the TLS version based on JRE and MySQL Server version is
      * bypassed to enable or restrict specific TLS versions.
      * 
-     * This test requires community server (preferably compiled with yaSSL) in -Dcom.tencent.tdsql.mysql.cj.testsuite.url and commercial server (with OpenSSL) in
-     * -Dcom.tencent.tdsql.mysql.cj.testsuite.url.openssl
+     * This test requires community server (preferably compiled with yaSSL) in -Dcom.tencentcloud.tdsql.mysql.cj.testsuite.url and commercial server (with OpenSSL) in
+     * -Dcom.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl
      * 
      * Test certificates from testsuite/ssl-test-certs must be installed on both servers.
      * 
@@ -9805,14 +9805,14 @@ public class ConnectionRegressionTest extends BaseTestCase {
 
     /**
      * This test requires two server instances:
-     * 1) main test server pointed to by the com.tencent.tdsql.mysql.cj.testsuite.url variable configured without RSA encryption support (sha256_password_private_key_path,
+     * 1) main test server pointed to by the com.tencentcloud.tdsql.mysql.cj.testsuite.url variable configured without RSA encryption support (sha256_password_private_key_path,
      * sha256_password_public_key_path, caching_sha2_password_private_key_path and caching_sha2_password_public_key_path config options are unset).
-     * 2) additional server instance pointed to by the com.tencent.tdsql.mysql.cj.testsuite.url.openssl variable configured with
+     * 2) additional server instance pointed to by the com.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl variable configured with
      * default-authentication-plugin=sha256_password, RSA encryption enabled, and server configuration options "caching_sha2_password_private_key_path" and
      * "caching_sha2_password_public_key_path" set to the same values as "sha256_password_private_key_path" and "sha256_password_public_key_path" respectively.
      * 
      * To run this test, please add this variable to the ant call:
-     * -Dcom.tencent.tdsql.mysql.cj.testsuite.url.openssl=jdbc:mysql://localhost:3307/test?user=root&password=pwd
+     * -Dcom.tencentcloud.tdsql.mysql.cj.testsuite.url.openssl=jdbc:mysql://localhost:3307/test?user=root&password=pwd
      * 
      * @throws Exception
      */
@@ -11208,7 +11208,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
         Bug29329326QueryInterceptor qi = (Bug29329326QueryInterceptor) c.getQueryInterceptorsInstances().get(0);
         assertTrue(qi.cnt == 0, "SHOW PROCESSLIST was issued during connection establishing");
 
-        ((com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl) c).isServerLocal();
+        ((com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl) c).isServerLocal();
 
         String ps = ((MysqlConnection) c).getSession().getServerSession().getServerVariable("performance_schema");
         if (versionMeetsMinimum(5, 6, 0) // performance_schema.threads in MySQL 5.5 does not contain PROCESSLIST_HOST column
@@ -11356,8 +11356,8 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertEquals("testBug98445Data1", this.rs.getString(1));
         testConn1.close();
 
-        // clientInfoProvider=com.tencent.tdsql.mysql.cj.jdbc.ClientInfoProviderSP
-        testConn1 = getConnectionWithProps("clientInfoProvider=com.tencent.tdsql.mysql.cj.jdbc.ClientInfoProviderSP,clientInfoSetSPName=setCiTestBug98445");
+        // clientInfoProvider=com.tencentcloud.tdsql.mysql.cj.jdbc.ClientInfoProviderSP
+        testConn1 = getConnectionWithProps("clientInfoProvider=com.tencentcloud.tdsql.mysql.cj.jdbc.ClientInfoProviderSP,clientInfoSetSPName=setCiTestBug98445");
         testConn1.setClientInfo("testBug98445", "testBug98445Data2");
         testStmt = testConn1.createStatement();
         this.rs = testStmt.executeQuery("SELECT @testBug98445");
@@ -11382,8 +11382,8 @@ public class ConnectionRegressionTest extends BaseTestCase {
         assertTrue(newErr.toString().contains("testBug98445=testBug98445Data3"));
         newErr.reset();
 
-        // clientInfoProvider=com.tencent.tdsql.mysql.cj.jdbc.CommentClientInfoProvider
-        testConn1 = getConnectionWithProps("clientInfoProvider=com.tencent.tdsql.mysql.cj.jdbc.CommentClientInfoProvider,profileSQL=true");
+        // clientInfoProvider=com.tencentcloud.tdsql.mysql.cj.jdbc.CommentClientInfoProvider
+        testConn1 = getConnectionWithProps("clientInfoProvider=com.tencentcloud.tdsql.mysql.cj.jdbc.CommentClientInfoProvider,profileSQL=true");
         testConn1.setClientInfo("testBug98445", "testBug98445Data4");
         testStmt = testConn1.createStatement();
         this.rs = testStmt.executeQuery("SELECT 'testBug98445Data4'");
@@ -11422,7 +11422,7 @@ public class ConnectionRegressionTest extends BaseTestCase {
             return null;
         });
         assertEquals(SQLException.class, t.getCause().getClass());
-        assertEquals("Configured clientInfoProvider class 'java.lang.Object' does not implement com.tencent.tdsql.mysql.cj.jdbc.ClientInfoProvider.",
+        assertEquals("Configured clientInfoProvider class 'java.lang.Object' does not implement com.tencentcloud.tdsql.mysql.cj.jdbc.ClientInfoProvider.",
                 t.getCause().getMessage());
         testConn3.close();
     }

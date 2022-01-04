@@ -44,13 +44,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.conf.ConnectionUrl;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.CJCommunicationsException;
-import com.tencent.tdsql.mysql.cj.exceptions.WrongArgumentException;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocolError;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocolError;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
 
 /**
  * Tests for Session client side failover features.
@@ -215,7 +215,7 @@ public class SessionFailoverTest extends DevApiBaseTestCase {
      * is reached.
      * If default 10.77.77.77:37070 doesn't work in a particular testing setup (if the ip address is available)
      * please add this variable to ant call:
-     * -Dcom.tencent.tdsql.mysql.cj.testsuite.unavailable.host=unavailable_ip:port
+     * -Dcom.tencentcloud.tdsql.mysql.cj.testsuite.unavailable.host=unavailable_ip:port
      * 
      * @throws Exception
      */

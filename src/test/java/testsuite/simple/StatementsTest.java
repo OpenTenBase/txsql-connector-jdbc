@@ -77,22 +77,22 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.CharsetMapping;
-import com.tencent.tdsql.mysql.cj.MysqlConnection;
-import com.tencent.tdsql.mysql.cj.MysqlType;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.ParameterBindings;
-import com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLStatementCancelledException;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLTimeoutException;
-import com.tencent.tdsql.mysql.cj.jdbc.interceptors.ServerStatusDiffInterceptor;
-import com.tencent.tdsql.mysql.cj.util.LRUCache;
-import com.tencent.tdsql.mysql.cj.util.StringUtils;
-import com.tencent.tdsql.mysql.cj.util.TimeUtil;
+import com.tencentcloud.tdsql.mysql.cj.CharsetMapping;
+import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
+import com.tencentcloud.tdsql.mysql.cj.MysqlType;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ParameterBindings;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLStatementCancelledException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLTimeoutException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.interceptors.ServerStatusDiffInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.util.LRUCache;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
+import com.tencentcloud.tdsql.mysql.cj.util.TimeUtil;
 
 import testsuite.BaseTestCase;
 import testsuite.regression.ConnectionRegressionTest.CountingReBalanceStrategy;
@@ -637,7 +637,7 @@ public class StatementsTest extends BaseTestCase {
             assertTrue(this.rs.next());
             assertEquals(1, this.rs.getInt(1));
 
-            final PreparedStatement cancelClientPstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) cancelConn).clientPrepareStatement("SELECT SLEEP(30)");
+            final PreparedStatement cancelClientPstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) cancelConn).clientPrepareStatement("SELECT SLEEP(30)");
 
             cancelClientPstmt.setQueryTimeout(1);
 
@@ -785,7 +785,7 @@ public class StatementsTest extends BaseTestCase {
     @Test
     public void testEnableStreamingResults() throws Exception {
         Statement streamStmt = this.conn.createStatement();
-        ((com.tencent.tdsql.mysql.cj.jdbc.JdbcStatement) streamStmt).enableStreamingResults();
+        ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcStatement) streamStmt).enableStreamingResults();
         assertEquals(streamStmt.getFetchSize(), Integer.MIN_VALUE);
         assertEquals(streamStmt.getResultSetType(), ResultSet.TYPE_FORWARD_ONLY);
     }
@@ -836,14 +836,14 @@ public class StatementsTest extends BaseTestCase {
             this.rs.getInt(1);
             rs2.close();
 
-            pstmt2 = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) conn2).clientPrepareStatement("SELECT 1");
+            pstmt2 = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) conn2).clientPrepareStatement("SELECT 1");
             this.rs = pstmt2.executeQuery();
             this.rs.next();
             this.rs.getInt(1);
             pstmt2.close();
             this.rs.getInt(1);
 
-            pstmt2 = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) conn2).clientPrepareStatement("SELECT 1");
+            pstmt2 = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) conn2).clientPrepareStatement("SELECT 1");
             this.rs = pstmt2.executeQuery();
             this.rs.next();
             this.rs.getInt(1);
@@ -1871,7 +1871,7 @@ public class StatementsTest extends BaseTestCase {
         Statement testStmt = testConn.createStatement();
 
         try {
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcStatement) testStmt).setLocalInfileInputStream(stream);
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcStatement) testStmt).setLocalInfileInputStream(stream);
             testStmt.execute(
                     "LOAD DATA LOCAL INFILE 'bogusFileName' INTO TABLE localInfileHooked CHARACTER SET " + CharsetMapping.getMysqlCharsetForJavaEncoding(
                             ((MysqlConnection) this.conn).getPropertySet().getStringProperty(PropertyKey.characterEncoding).getValue(), this.serverVersion));
@@ -1884,7 +1884,7 @@ public class StatementsTest extends BaseTestCase {
             this.rs.next();
             assertEquals("ijkl", this.rs.getString(1));
         } finally {
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcStatement) testStmt).setLocalInfileInputStream(null);
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcStatement) testStmt).setLocalInfileInputStream(null);
             testConn.close();
         }
     }

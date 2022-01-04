@@ -114,13 +114,13 @@ For detailed information please visit the official
 
 %build
 COMMON_OPTIONS="\
-  -Dcom.tencent.tdsql.mysql.cj.build.dir.driver=build/driver
-  -Dcom.tencent.tdsql.mysql.cj.extra.libs=%{with_jardeps} \
-  -Dcom.tencent.tdsql.mysql.cj.build.driver.version.status=@MYSQL_CJ_VERSION_STATUS@ \
-  -Dcom.tencent.tdsql.mysql.cj.build.driver.version.extra=@MYSQL_CJ_VERSION_EXTRA@ \
-  -Dcom.tencent.tdsql.mysql.cj.build.driver.version.snapshot=@MYSQL_CJ_VERSION_SNAPSHOT@ \
-  -Dcom.tencent.tdsql.mysql.cj.build.driver.extraName=@MYSQL_CJ_EXTRA_NAME@ \
-  -Dcom.tencent.tdsql.mysql.cj.dist.licenseUrl=@MYSQL_CJ_LICENSEURL@ \
+  -Dcom.tencentcloud.tdsql.mysql.cj.build.dir.driver=build/driver
+  -Dcom.tencentcloud.tdsql.mysql.cj.extra.libs=%{with_jardeps} \
+  -Dcom.tencentcloud.tdsql.mysql.cj.build.driver.version.status=@MYSQL_CJ_VERSION_STATUS@ \
+  -Dcom.tencentcloud.tdsql.mysql.cj.build.driver.version.extra=@MYSQL_CJ_VERSION_EXTRA@ \
+  -Dcom.tencentcloud.tdsql.mysql.cj.build.driver.version.snapshot=@MYSQL_CJ_VERSION_SNAPSHOT@ \
+  -Dcom.tencentcloud.tdsql.mysql.cj.build.driver.extraName=@MYSQL_CJ_EXTRA_NAME@ \
+  -Dcom.tencentcloud.tdsql.mysql.cj.dist.licenseUrl=@MYSQL_CJ_LICENSEURL@ \
   -Djava.awt.headless=true"
 
 %if 0%{?with_ant:1}
@@ -135,11 +135,11 @@ export ANT_OPTS=-Xmx512M
 %if 0%{?with_java:1}
 export JAVA_HOME=%{with_java}
 export PATH=${JAVA_HOME}/bin:$PATH
-COMMON_OPTIONS="${COMMON_OPTIONS} -Dcom.tencent.tdsql.mysql.cj.build.jdk=${JAVA_HOME}"
+COMMON_OPTIONS="${COMMON_OPTIONS} -Dcom.tencentcloud.tdsql.mysql.cj.build.jdk=${JAVA_HOME}"
 %endif
 
 %if 0%{?commercial:1}
-COMMON_OPTIONS="${COMMON_OPTIONS} -Dcom.tencent.tdsql.mysql.cj.build.commercial=true"
+COMMON_OPTIONS="${COMMON_OPTIONS} -Dcom.tencentcloud.tdsql.mysql.cj.build.commercial=true"
 %endif
 
 # Get the file revision-info.properties again because it was excluded
