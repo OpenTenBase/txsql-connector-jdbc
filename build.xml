@@ -661,7 +661,7 @@
         <get src="${com.tencent.tdsql.mysql.cj.dist.licenseUrl}" dest="${com.tencent.tdsql.mysql.cj.build.dir.driver}/LICENSE" verbose="true" />
         <fixcrlf file="${com.tencent.tdsql.mysql.cj.build.dir.driver}/LICENSE" tab="remove" tablength="8" eol="lf" />
 
-        <copy file="${basedir}/README" tofile="${com.tencent.tdsql.mysql.cj.build.dir.driver}/README" overwrite="true" />
+        <!--<copy file="${basedir}/README" tofile="${com.tencent.tdsql.mysql.cj.build.dir.driver}/README" overwrite="true" />-->
     </target>
 
 
@@ -816,7 +816,7 @@
                 <file name="INFO_BIN" />
                 <file name="INFO_SRC" />
                 <file name="LICENSE" />
-                <file name="README" />
+                <!--<file name="README" />-->
             </filelist>
         </copy>
 

@@ -43,7 +43,7 @@ import java.security.ProviderException;
 public final class ScramShaSaslProvider extends Provider {
     private static final long serialVersionUID = 866717063477857937L;
 
-    private static final String INFO = "MySQL Connector/J SASL provider (implements client mechanisms for " + ScramSha1SaslClient.MECHANISM_NAME + " and "
+    private static final String INFO = "TDSQL-MySQL Connector/JAVA8 SASL provider (implements client mechanisms for " + ScramSha1SaslClient.MECHANISM_NAME + " and "
             + ScramSha256SaslClient.MECHANISM_NAME + ")";
 
     private static final class ProviderService extends Provider.Service {

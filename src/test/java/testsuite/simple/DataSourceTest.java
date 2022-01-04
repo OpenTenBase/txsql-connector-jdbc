@@ -202,7 +202,7 @@ public class DataSourceTest extends BaseTestCase {
         long testLong = 42L;
 
         // standard properties
-        assertEquals("MySQL Connector/J Data Source", ds.getDescription());
+        assertEquals("TDSQL-MySQL Connector/JAVA8 Data Source", ds.getDescription());
         ds.setDescription(testStr);
         assertEquals(testStr, ds.getDescription());
 

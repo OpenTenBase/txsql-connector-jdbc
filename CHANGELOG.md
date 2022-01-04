@@ -1,5 +1,17 @@
 # Changelog
 
+## Version 1.2.1
+
+- 针对TDSQL的Proxy协议进行了适配，修复了client deprecate eof问题；
+
+## Version 1.2.0
+
+- 对更低版本JAVA平台的兼容，兼容JAVA5或更高版本；
+- 优化Load Balance逻辑，同时支持连接收敛和非收敛两种实现；
+- 优化了负载均衡策略算法，并对它们进行了合并，保留一种负载均衡算法SED；
+- 加入了主动Heartbeat功能，与Blacklist功能结合优化高可用功能的实现逻辑；
+- 修改了驱动名和URL串的格式；
+
 ## Version 1.1.0
 
 - 新增了 SED 负载均衡算法
