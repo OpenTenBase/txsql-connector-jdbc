@@ -822,7 +822,7 @@ public class CompressionTest extends DevApiBaseTestCase {
         dropCollection("testBug99708");
         Collection col = this.schema.createCollection("testBug99708");
         String docId = "1";
-        DbDoc doc = JsonParser.parseDoc("{ \"product\": \"MySQL Connector/J\" }");
+        DbDoc doc = JsonParser.parseDoc("{ \"product\": \"TDSQL-MySQL Connector/JAVA8\" }");
         col.addOrReplaceOne(docId, doc);
 
         for (int i = 1; i <= 150; i++) {

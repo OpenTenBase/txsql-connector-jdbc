@@ -100,7 +100,7 @@ public class MysqlDataSource extends JdbcPropertySetImpl implements DataSource, 
     /** The profileSQL property */
     protected String profileSQLString = "false";
 
-    protected String description = "MySQL Connector/J Data Source";
+    protected String description = "TDSQL-MySQL Connector/JAVA8 Data Source";
 
     /**
      * Default no-arg constructor for Serialization
