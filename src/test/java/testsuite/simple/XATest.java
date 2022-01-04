@@ -49,9 +49,9 @@ import javax.transaction.xa.Xid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlXADataSource;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlXid;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXADataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXid;
 
 import testsuite.BaseTestCase;
 

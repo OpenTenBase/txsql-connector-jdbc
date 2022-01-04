@@ -29,7 +29,7 @@
 
 package testsuite.x.devapi;
 
-import static com.tencent.tdsql.mysql.cj.xdevapi.Expression.expr;
+import static com.tencentcloud.tdsql.mysql.cj.xdevapi.Expression.expr;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,23 +52,23 @@ import java.util.stream.Collectors;
 import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.exceptions.WrongArgumentException;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocolError;
-import com.tencent.tdsql.mysql.cj.xdevapi.Collection;
-import com.tencent.tdsql.mysql.cj.xdevapi.DbDoc;
-import com.tencent.tdsql.mysql.cj.xdevapi.DocResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.FindStatement;
-import com.tencent.tdsql.mysql.cj.xdevapi.FindStatementImpl;
-import com.tencent.tdsql.mysql.cj.xdevapi.JsonLiteral;
-import com.tencent.tdsql.mysql.cj.xdevapi.JsonNumber;
-import com.tencent.tdsql.mysql.cj.xdevapi.JsonString;
-import com.tencent.tdsql.mysql.cj.xdevapi.Row;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionFactory;
-import com.tencent.tdsql.mysql.cj.xdevapi.Statement;
-import com.tencent.tdsql.mysql.cj.xdevapi.Table;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocolError;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Collection;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DbDoc;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DocResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.FindStatement;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.FindStatementImpl;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonLiteral;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonNumber;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonString;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Row;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionFactory;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Statement;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Table;
 
 /**
  * @todo

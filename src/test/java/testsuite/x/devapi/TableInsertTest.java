@@ -39,14 +39,14 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.xdevapi.DbDoc;
-import com.tencent.tdsql.mysql.cj.xdevapi.DbDocImpl;
-import com.tencent.tdsql.mysql.cj.xdevapi.InsertResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.JsonParser;
-import com.tencent.tdsql.mysql.cj.xdevapi.JsonString;
-import com.tencent.tdsql.mysql.cj.xdevapi.Row;
-import com.tencent.tdsql.mysql.cj.xdevapi.RowResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.Table;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DbDoc;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DbDocImpl;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.InsertResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonParser;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonString;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Row;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.RowResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Table;
 
 /**
  * @todo

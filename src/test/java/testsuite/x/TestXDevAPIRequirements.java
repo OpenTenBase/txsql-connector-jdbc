@@ -39,13 +39,13 @@ import java.util.Properties;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.conf.ConnectionUrl;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.xdevapi.Collection;
-import com.tencent.tdsql.mysql.cj.xdevapi.Schema;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionImpl;
-import com.tencent.tdsql.mysql.cj.xdevapi.Table;
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Collection;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Schema;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionImpl;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Table;
 
 /**
  * Tests for X DevAPI requirements.

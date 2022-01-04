@@ -33,9 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.exceptions.WrongArgumentException;
-import com.tencent.tdsql.mysql.cj.util.SaslPrep;
-import com.tencent.tdsql.mysql.cj.util.SaslPrep.StringType;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
+import com.tencentcloud.tdsql.mysql.cj.util.SaslPrep;
+import com.tencentcloud.tdsql.mysql.cj.util.SaslPrep.StringType;
 
 import testsuite.BaseTestCase;
 

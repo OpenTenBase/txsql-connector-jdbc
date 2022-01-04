@@ -53,23 +53,23 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.Compression;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.CJException;
-import com.tencent.tdsql.mysql.cj.exceptions.WrongArgumentException;
-import com.tencent.tdsql.mysql.cj.protocol.x.SyncFlushDeflaterOutputStream;
-import com.tencent.tdsql.mysql.cj.xdevapi.AddResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.Collection;
-import com.tencent.tdsql.mysql.cj.xdevapi.DbDoc;
-import com.tencent.tdsql.mysql.cj.xdevapi.DocResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.JsonParser;
-import com.tencent.tdsql.mysql.cj.xdevapi.JsonString;
-import com.tencent.tdsql.mysql.cj.xdevapi.Row;
-import com.tencent.tdsql.mysql.cj.xdevapi.RowResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
-import com.tencent.tdsql.mysql.cj.xdevapi.SqlResult;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.Compression;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.SyncFlushDeflaterOutputStream;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.AddResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Collection;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DbDoc;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DocResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonParser;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonString;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Row;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.RowResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SqlResult;
 
 public class CompressionTest extends DevApiBaseTestCase {
     private final Properties compressFreeTestProperties = (Properties) this.testProperties.clone();
@@ -109,7 +109,7 @@ public class CompressionTest extends DevApiBaseTestCase {
             String classicUrl = System.getProperty(PropertyDefinitions.SYSP_testsuite_url);
             Driver driver = null;
             try {
-                driver = new com.tencent.tdsql.mysql.cj.jdbc.NonRegisteringDriver();
+                driver = new com.tencentcloud.tdsql.mysql.cj.jdbc.NonRegisteringDriver();
                 this.conn = driver.connect(classicUrl, null);
             } catch (SQLException e) {
                 fail(e.getMessage());

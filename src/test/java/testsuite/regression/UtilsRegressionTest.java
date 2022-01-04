@@ -42,11 +42,11 @@ import java.util.TimeZone;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.exceptions.CJException;
-import com.tencent.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.SQLError;
-import com.tencent.tdsql.mysql.cj.log.Log;
-import com.tencent.tdsql.mysql.cj.util.TimeUtil;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
+import com.tencentcloud.tdsql.mysql.cj.log.Log;
+import com.tencentcloud.tdsql.mysql.cj.util.TimeUtil;
 
 import testsuite.BaseTestCase;
 

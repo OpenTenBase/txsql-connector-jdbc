@@ -51,9 +51,9 @@ import java.util.concurrent.Callable;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.util.TimeUtil;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.util.TimeUtil;
 
 import testsuite.BaseTestCase;
 

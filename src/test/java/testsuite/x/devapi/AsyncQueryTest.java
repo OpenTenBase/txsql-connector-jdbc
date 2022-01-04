@@ -43,19 +43,19 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocolError;
-import com.tencent.tdsql.mysql.cj.xdevapi.AddResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.Collection;
-import com.tencent.tdsql.mysql.cj.xdevapi.DbDoc;
-import com.tencent.tdsql.mysql.cj.xdevapi.DocResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.JsonNumber;
-import com.tencent.tdsql.mysql.cj.xdevapi.JsonString;
-import com.tencent.tdsql.mysql.cj.xdevapi.Row;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionFactory;
-import com.tencent.tdsql.mysql.cj.xdevapi.SqlResult;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocolError;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.AddResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Collection;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DbDoc;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DocResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonNumber;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonString;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Row;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionFactory;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SqlResult;
 
 @Tag("Async")
 public class AsyncQueryTest extends BaseCollectionTestCase {

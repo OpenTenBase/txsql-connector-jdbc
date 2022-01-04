@@ -107,42 +107,42 @@ import javax.sql.XAConnection;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.CharsetMapping;
-import com.tencent.tdsql.mysql.cj.ClientPreparedQuery;
-import com.tencent.tdsql.mysql.cj.MysqlConnection;
-import com.tencent.tdsql.mysql.cj.Query;
-import com.tencent.tdsql.mysql.cj.ServerPreparedQuery;
-import com.tencent.tdsql.mysql.cj.Session;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.CJCommunicationsException;
-import com.tencent.tdsql.mysql.cj.exceptions.ExceptionFactory;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.exceptions.WrongArgumentException;
-import com.tencent.tdsql.mysql.cj.interceptors.QueryInterceptor;
-import com.tencent.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcPreparedStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlXADataSource;
-import com.tencent.tdsql.mysql.cj.jdbc.ParameterBindings;
-import com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.StatementImpl;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLTimeoutException;
-import com.tencent.tdsql.mysql.cj.jdbc.ha.ReplicationConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.interceptors.ResultSetScannerInterceptor;
-import com.tencent.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaData;
-import com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetInternalMethods;
-import com.tencent.tdsql.mysql.cj.log.Log;
-import com.tencent.tdsql.mysql.cj.protocol.ColumnDefinition;
-import com.tencent.tdsql.mysql.cj.protocol.Resultset;
-import com.tencent.tdsql.mysql.cj.protocol.ResultsetRows;
-import com.tencent.tdsql.mysql.cj.protocol.ServerSession;
-import com.tencent.tdsql.mysql.cj.util.LRUCache;
-import com.tencent.tdsql.mysql.cj.util.TimeUtil;
+import com.tencentcloud.tdsql.mysql.cj.CharsetMapping;
+import com.tencentcloud.tdsql.mysql.cj.ClientPreparedQuery;
+import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
+import com.tencentcloud.tdsql.mysql.cj.Query;
+import com.tencentcloud.tdsql.mysql.cj.ServerPreparedQuery;
+import com.tencentcloud.tdsql.mysql.cj.Session;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
+import com.tencentcloud.tdsql.mysql.cj.interceptors.QueryInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXADataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ParameterBindings;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.StatementImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLTimeoutException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.interceptors.ResultSetScannerInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaData;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetInternalMethods;
+import com.tencentcloud.tdsql.mysql.cj.log.Log;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ColumnDefinition;
+import com.tencentcloud.tdsql.mysql.cj.protocol.Resultset;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ResultsetRows;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSession;
+import com.tencentcloud.tdsql.mysql.cj.util.LRUCache;
+import com.tencentcloud.tdsql.mysql.cj.util.TimeUtil;
 
 import testsuite.BaseQueryInterceptor;
 import testsuite.BaseTestCase;
@@ -565,7 +565,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
             thaiStmt.executeUpdate("TRUNCATE TABLE testBug11540");
 
-            thaiPrepStmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) thaiConn).clientPrepareStatement("INSERT INTO testBug11540 VALUES (?,?)");
+            thaiPrepStmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) thaiConn).clientPrepareStatement("INSERT INTO testBug11540 VALUES (?,?)");
             thaiPrepStmt.setDate(1, origDate);
             thaiPrepStmt.setTimestamp(2, origTimestamp);
             thaiPrepStmt.executeUpdate();
@@ -598,7 +598,7 @@ public class StatementRegressionTest extends BaseTestCase {
      */
     @Test
     public void testBug11663() throws Exception {
-        if (((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getBooleanProperty(PropertyKey.useServerPrepStmts).getValue()) {
+        if (((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getBooleanProperty(PropertyKey.useServerPrepStmts).getValue()) {
             Connection testcaseGenCon = null;
             PrintStream oldErr = System.err;
 
@@ -798,7 +798,7 @@ public class StatementRegressionTest extends BaseTestCase {
             this.pstmt.close();
             this.pstmt = null;
 
-            this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("select {d '1997-05-24'} FROM testBug15141");
+            this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("select {d '1997-05-24'} FROM testBug15141");
             this.rs = this.pstmt.executeQuery();
             assertTrue(this.rs.next());
             assertEquals("1997-05-24", this.rs.getString(1));
@@ -1643,12 +1643,12 @@ public class StatementRegressionTest extends BaseTestCase {
      */
     @Test
     public void testBug4718() throws SQLException {
-        if (((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getBooleanProperty(PropertyKey.useServerPrepStmts).getValue()) {
+        if (((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getBooleanProperty(PropertyKey.useServerPrepStmts).getValue()) {
             this.pstmt = this.conn.prepareStatement("SELECT 1 LIMIT ?");
             assertTrue(this.pstmt instanceof ClientPreparedStatement);
 
             this.pstmt = this.conn.prepareStatement("SELECT 1 LIMIT 1");
-            assertTrue(this.pstmt instanceof com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement);
+            assertTrue(this.pstmt instanceof com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement);
 
             this.pstmt = this.conn.prepareStatement("SELECT 1 LIMIT 1, ?");
             assertTrue(this.pstmt instanceof ClientPreparedStatement);
@@ -2600,7 +2600,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testSetCharacterStream() throws Exception {
         try {
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getBooleanProperty(PropertyKey.traceProtocol).setValue(true);
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getBooleanProperty(PropertyKey.traceProtocol).setValue(true);
 
             this.stmt.executeUpdate("DROP TABLE IF EXISTS charStreamRegressTest");
             this.stmt.executeUpdate("CREATE TABLE charStreamRegressTest(field1 text)");
@@ -2673,7 +2673,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
             assertTrue(result.length() == charBuf.length, "Retrieved value of length " + result.length() + " != length of inserted value " + charBuf.length);
         } finally {
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getBooleanProperty(PropertyKey.traceProtocol).setValue(false);
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getBooleanProperty(PropertyKey.traceProtocol).setValue(false);
 
             if (this.rs != null) {
                 try {
@@ -2864,7 +2864,7 @@ public class StatementRegressionTest extends BaseTestCase {
         PreparedStatement pStmt = this.conn.prepareStatement("SELECT 1", Statement.RETURN_GENERATED_KEYS);
         assertNotNull(pStmt.getGeneratedKeys());
 
-        pStmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT 1", Statement.RETURN_GENERATED_KEYS);
+        pStmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT 1", Statement.RETURN_GENERATED_KEYS);
         assertNotNull(pStmt.getGeneratedKeys());
     }
 
@@ -2887,7 +2887,7 @@ public class StatementRegressionTest extends BaseTestCase {
                 assertEquals(MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, sqlEx.getSQLState());
             }
 
-            pStmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("INSERT INTO testBug17857 VALUES (?)");
+            pStmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("INSERT INTO testBug17857 VALUES (?)");
             pStmt.close();
             try {
                 pStmt.clearParameters();
@@ -2924,7 +2924,7 @@ public class StatementRegressionTest extends BaseTestCase {
         this.rs.close();
         this.stmt.executeUpdate("TRUNCATE TABLE testBug19615");
 
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("INSERT INTO testBug19615 VALUES (?)");
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("INSERT INTO testBug19615 VALUES (?)");
         this.pstmt.setObject(1, dec, Types.DECIMAL);
         this.pstmt.executeUpdate();
         this.pstmt.close();
@@ -2952,7 +2952,7 @@ public class StatementRegressionTest extends BaseTestCase {
             PreparedStatement toBeKilledPstmt = null;
 
             try {
-                toBeKilledPstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) toBeKilledConn).clientPrepareStatement("INSERT INTO testBug20029 VALUES (?)");
+                toBeKilledPstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) toBeKilledConn).clientPrepareStatement("INSERT INTO testBug20029 VALUES (?)");
 
                 for (int j = 0; j < 1000; j++) {
                     toBeKilledPstmt.setInt(1, j);
@@ -3118,7 +3118,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug20888() throws Exception {
         String s = "SELECT 'What do you think about D\\'Artanian''?', \"What do you think about D\\\"Artanian\"\"?\"";
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement(s);
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement(s);
 
         this.rs = this.pstmt.executeQuery();
         this.rs.next();
@@ -3151,7 +3151,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
         assertEquals(1, this.stmt.executeUpdate("insert into testBug21438 values (1,NOW());"));
 
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn)
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn)
                 .serverPrepareStatement("UPDATE testBug21438 SET test_date=ADDDATE(?,INTERVAL 1 YEAR) WHERE t_id=1;");
         Timestamp ts = new Timestamp(System.currentTimeMillis());
         ts.setNanos(999999999);
@@ -3218,7 +3218,7 @@ public class StatementRegressionTest extends BaseTestCase {
             assertEquals(this.pstmt.executeUpdate(), 1);
 
             assertEquals(this.stmt.executeUpdate("UPDATE testbug22290 SET cost='1.00'"), 1);
-            this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) configuredConn).clientPrepareStatement("update testbug22290 set cost = cost + ? where id = 1");
+            this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) configuredConn).clientPrepareStatement("update testbug22290 set cost = cost + ? where id = 1");
             this.pstmt.setBigDecimal(1, new BigDecimal("1.11"));
             assertEquals(this.pstmt.executeUpdate(), 1);
         } finally {
@@ -3230,7 +3230,7 @@ public class StatementRegressionTest extends BaseTestCase {
 
     @Test
     public void testClientPreparedSetBoolean() throws Exception {
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT ?");
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT ?");
         this.pstmt.setBoolean(1, false);
         assertEquals("SELECT 0", this.pstmt.toString().substring(this.pstmt.toString().indexOf("SELECT")));
         this.pstmt.setBoolean(1, true);
@@ -3337,11 +3337,11 @@ public class StatementRegressionTest extends BaseTestCase {
         multiStmt.addBatch("UPDATE testBug25073 SET field1=5 WHERE field1=1");
         multiStmt.addBatch("UPDATE testBug25073 SET field1=6 WHERE field1=2 OR field1=3");
 
-        int beforeOpenStatementCount = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
+        int beforeOpenStatementCount = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
 
         multiStmt.executeBatch();
 
-        int afterOpenStatementCount = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
+        int afterOpenStatementCount = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
 
         assertEquals(beforeOpenStatementCount, afterOpenStatementCount);
 
@@ -3358,11 +3358,11 @@ public class StatementRegressionTest extends BaseTestCase {
             multiStmt.addBatch("INSERT INTO testBug25073(field1) VALUES (" + i + ")");
         }
 
-        beforeOpenStatementCount = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
+        beforeOpenStatementCount = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
 
         multiStmt.executeBatch();
 
-        afterOpenStatementCount = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
+        afterOpenStatementCount = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
 
         assertEquals(beforeOpenStatementCount, afterOpenStatementCount);
 
@@ -3381,11 +3381,11 @@ public class StatementRegressionTest extends BaseTestCase {
             pStmt.addBatch();
         }
 
-        beforeOpenStatementCount = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
+        beforeOpenStatementCount = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
 
         pStmt.executeBatch();
 
-        afterOpenStatementCount = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
+        afterOpenStatementCount = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
 
         assertEquals(beforeOpenStatementCount, afterOpenStatementCount);
 
@@ -3403,11 +3403,11 @@ public class StatementRegressionTest extends BaseTestCase {
             pStmt.addBatch();
         }
 
-        beforeOpenStatementCount = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
+        beforeOpenStatementCount = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
 
         pStmt.executeBatch();
 
-        afterOpenStatementCount = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
+        afterOpenStatementCount = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) multiConn).getActiveStatementCount();
 
         assertEquals(beforeOpenStatementCount, afterOpenStatementCount);
     }
@@ -3534,7 +3534,7 @@ public class StatementRegressionTest extends BaseTestCase {
             this.conn.setReadOnly(true);
             this.stmt.execute("(SELECT 1) UNION (SELECT 2)");
             this.conn.prepareStatement("(SELECT 1) UNION (SELECT 2)").execute();
-            ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("(SELECT 1) UNION (SELECT 2)").execute();
+            ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("(SELECT 1) UNION (SELECT 2)").execute();
         } finally {
             this.conn.setReadOnly(false);
         }
@@ -3622,7 +3622,7 @@ public class StatementRegressionTest extends BaseTestCase {
      */
     @Test
     public void testBug28851() throws Exception {
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT 1/?");
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement("SELECT 1/?");
         this.pstmt.setInt(1, 1);
         this.rs = this.pstmt.executeQuery();
 
@@ -3642,7 +3642,7 @@ public class StatementRegressionTest extends BaseTestCase {
     public void testBug28596() throws Exception {
         String query = "SELECT #\n?, #\n? #?\r\n,-- abcdefg \n?";
 
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement(query);
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement(query);
         this.pstmt.setInt(1, 1);
         this.pstmt.setInt(2, 2);
         this.pstmt.setInt(3, 3);
@@ -3734,7 +3734,7 @@ public class StatementRegressionTest extends BaseTestCase {
         this.pstmt.executeUpdate();
         assertEquals("GENERATED_KEY", this.pstmt.getGeneratedKeys().getMetaData().getColumnName(1));
 
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("INSERT INTO testBustedGGKColumnNames VALUES (null)",
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("INSERT INTO testBustedGGKColumnNames VALUES (null)",
                 Statement.RETURN_GENERATED_KEYS);
         this.pstmt.executeUpdate();
         assertEquals("GENERATED_KEY", this.pstmt.getGeneratedKeys().getMetaData().getColumnName(1));
@@ -4918,14 +4918,14 @@ public class StatementRegressionTest extends BaseTestCase {
         Connection fetchConn = getConnectionWithProps("useCursorFetch=true");
         Statement fetchStmt = fetchConn.createStatement();
 
-        int stmtCount = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) fetchConn).getActiveStatementCount();
+        int stmtCount = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) fetchConn).getActiveStatementCount();
 
         fetchStmt.setFetchSize(100);
         this.rs = fetchStmt.executeQuery("SELECT 1");
 
-        assertEquals(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) fetchConn).getActiveStatementCount(), stmtCount + 1);
+        assertEquals(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) fetchConn).getActiveStatementCount(), stmtCount + 1);
         this.rs.close();
-        assertEquals(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) fetchConn).getActiveStatementCount(), stmtCount);
+        assertEquals(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) fetchConn).getActiveStatementCount(), stmtCount);
     }
 
     @Test
@@ -4961,7 +4961,7 @@ public class StatementRegressionTest extends BaseTestCase {
     @Test
     public void testBug35666() throws Exception {
         Connection loggingConn = getConnectionWithProps("logSlowQueries=true");
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) loggingConn).serverPrepareStatement("SELECT SLEEP(4)");
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) loggingConn).serverPrepareStatement("SELECT SLEEP(4)");
         this.pstmt.execute();
     }
 
@@ -5081,7 +5081,7 @@ public class StatementRegressionTest extends BaseTestCase {
                     for (int i = 0; i < 2; i++) {
                         createTable(tableName, "(k int primary key auto_increment, p varchar(4)) ENGINE=" + engineName);
 
-                        ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) twoConn).getPropertySet().getBooleanProperty(PropertyKey.rewriteBatchedStatements).setValue(i == 1);
+                        ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) twoConn).getPropertySet().getBooleanProperty(PropertyKey.rewriteBatchedStatements).setValue(i == 1);
 
                         this.pstmt = twoConn.prepareStatement("INSERT INTO " + tableName + " (p) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
                         this.pstmt.setString(1, "a");
@@ -5385,7 +5385,7 @@ public class StatementRegressionTest extends BaseTestCase {
             this.pstmt = this.conn.prepareStatement("INSERT INTO testBug44056 VALUES (null)", Statement.RETURN_GENERATED_KEYS);
             this.pstmt.executeUpdate();
             checkOpenResultsFor44056(this.pstmt);
-            this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("INSERT INTO testBug44056 VALUES (null)",
+            this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("INSERT INTO testBug44056 VALUES (null)",
                     Statement.RETURN_GENERATED_KEYS);
             this.pstmt.executeUpdate();
             checkOpenResultsFor44056(this.pstmt);
@@ -5396,9 +5396,9 @@ public class StatementRegressionTest extends BaseTestCase {
 
     private void checkOpenResultsFor44056(Statement newStmt) throws SQLException {
         this.rs = newStmt.getGeneratedKeys();
-        assertEquals(0, ((com.tencent.tdsql.mysql.cj.jdbc.JdbcStatement) newStmt).getOpenResultSetCount());
+        assertEquals(0, ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcStatement) newStmt).getOpenResultSetCount());
         this.rs.close();
-        assertEquals(0, ((com.tencent.tdsql.mysql.cj.jdbc.JdbcStatement) newStmt).getOpenResultSetCount());
+        assertEquals(0, ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcStatement) newStmt).getOpenResultSetCount());
     }
 
     /**
@@ -5913,7 +5913,7 @@ public class StatementRegressionTest extends BaseTestCase {
         this.rs = this.stmt.executeQuery(sql);
         this.stmt.cancel();
         this.stmt.execute(sql);
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement(sql);
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement(sql);
         this.pstmt.execute();
         this.pstmt.cancel();
         this.pstmt.execute();
@@ -5934,13 +5934,13 @@ public class StatementRegressionTest extends BaseTestCase {
         this.stmt.execute(sql);
         assertEquals(1, this.stmt.getUpdateCount());
 
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement(sql);
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement(sql);
         this.pstmt.execute();
         assertEquals(1, this.pstmt.getUpdateCount());
         this.pstmt.cancel();
         this.pstmt.close();
 
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement(sql);
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement(sql);
         assertEquals(1, this.pstmt.executeUpdate());
 
         this.pstmt.cancel();
@@ -10295,11 +10295,11 @@ public class StatementRegressionTest extends BaseTestCase {
         assertTrue(unwrappedTestConn.getClass().getName().matches("^(?:com\\.sun\\.proxy\\.)?\\$Proxy\\d*"));
         assertTrue(unwrappedTestConn.equals(unwrappedTestConn));
         this.stmt = testConn.createStatement();
-        Statement unwrappedStmt = this.stmt.unwrap(com.tencent.tdsql.mysql.cj.jdbc.JdbcStatement.class);
+        Statement unwrappedStmt = this.stmt.unwrap(com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcStatement.class);
         assertTrue(unwrappedStmt.getClass().getName().matches("^(?:com\\.sun\\.proxy\\.)?\\$Proxy\\d*"));
         assertTrue(unwrappedStmt.equals(unwrappedStmt));
         this.pstmt = testConn.prepareStatement("SELECT 'testBug78313'");
-        Statement unwrappedPstmt = this.pstmt.unwrap(com.tencent.tdsql.mysql.cj.jdbc.JdbcStatement.class);
+        Statement unwrappedPstmt = this.pstmt.unwrap(com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcStatement.class);
         assertTrue(unwrappedPstmt.getClass().getName().matches("^(?:com\\.sun\\.proxy\\.)?\\$Proxy\\d*"));
         assertTrue(unwrappedPstmt.equals(unwrappedPstmt));
         testConn.close();
@@ -10653,13 +10653,13 @@ public class StatementRegressionTest extends BaseTestCase {
                 System.out.println("'" + ps3 + "'");
 
                 if (useSPS) {
-                    assertEquals(ps1.toString(), "com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement[1]: Select 'aaaaaaaaa' from dual");
-                    assertEquals(ps2.toString(), "com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement[2]: insert into testBug26748909 values(** NOT SPECIFIED **)");
-                    assertEquals(ps3.toString(), "com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement[3]: select * from testBug26748909 where id=** NOT SPECIFIED **");
+                    assertEquals(ps1.toString(), "com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement[1]: Select 'aaaaaaaaa' from dual");
+                    assertEquals(ps2.toString(), "com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement[2]: insert into testBug26748909 values(** NOT SPECIFIED **)");
+                    assertEquals(ps3.toString(), "com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement[3]: select * from testBug26748909 where id=** NOT SPECIFIED **");
                 } else {
-                    assertEquals(ps1.toString(), "com.tencent.tdsql.mysql.cj.jdbc.ClientPreparedStatement: Select 'aaaaaaaaa' from dual");
-                    assertEquals(ps2.toString(), "com.tencent.tdsql.mysql.cj.jdbc.ClientPreparedStatement: insert into testBug26748909 values(** NOT SPECIFIED **)");
-                    assertEquals(ps3.toString(), "com.tencent.tdsql.mysql.cj.jdbc.ClientPreparedStatement: select * from testBug26748909 where id=** NOT SPECIFIED **");
+                    assertEquals(ps1.toString(), "com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement: Select 'aaaaaaaaa' from dual");
+                    assertEquals(ps2.toString(), "com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement: insert into testBug26748909 values(** NOT SPECIFIED **)");
+                    assertEquals(ps3.toString(), "com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement: select * from testBug26748909 where id=** NOT SPECIFIED **");
                 }
 
             } catch (Exception e) {
@@ -11214,7 +11214,7 @@ public class StatementRegressionTest extends BaseTestCase {
     }
 
     /**
-     * Tests fix for Bug#99713 (31418928), NPE DURING com.tencent.tdsql.mysql.CJ.SERVERPREPAREDQUERYBINDVALUE.STOREDATE().
+     * Tests fix for Bug#99713 (31418928), NPE DURING com.tencentcloud.tdsql.mysql.cj.SERVERPREPAREDQUERYBINDVALUE.STOREDATE().
      * 
      * @throws Exception
      */

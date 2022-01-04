@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.SQLError;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 
 import testsuite.BaseTestCase;
 
@@ -44,9 +44,9 @@ public class ExceptionSubclassesTest extends BaseTestCase {
         assertEquals("java.sql.SQLNonTransientConnectionException", SQLError.createSQLException("test", "08000", 0, false, null).getClass().getCanonicalName());
         assertEquals("java.sql.SQLSyntaxErrorException", SQLError.createSQLException("test", "42000", null).getClass().getCanonicalName());
         assertEquals("java.sql.SQLIntegrityConstraintViolationException", SQLError.createSQLException("test", "23000", null).getClass().getCanonicalName());
-        assertEquals("com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLTransactionRollbackException",
+        assertEquals("com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLTransactionRollbackException",
                 SQLError.createSQLException("test", "40000", null).getClass().getCanonicalName());
-        assertEquals("com.tencent.tdsql.mysql.cj.jdbc.exceptions.MySQLQueryInterruptedException",
+        assertEquals("com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLQueryInterruptedException",
                 SQLError.createSQLException("test", "70100", null).getClass().getCanonicalName());
     }
 }

@@ -65,13 +65,13 @@ import java.util.concurrent.Callable;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.CharsetMapping;
-import com.tencent.tdsql.mysql.cj.MysqlConnection;
-import com.tencent.tdsql.mysql.cj.MysqlType;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.NotUpdatable;
+import com.tencentcloud.tdsql.mysql.cj.CharsetMapping;
+import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
+import com.tencentcloud.tdsql.mysql.cj.MysqlType;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.NotUpdatable;
 
 import testsuite.BaseTestCase;
 
@@ -179,25 +179,25 @@ public class ResultSetTest extends BaseTestCase {
         while (this.rs.next()) {
             for (int i = 0; i < numCols; i++) {
                 assertEquals(numChars, this.rs.getString(i + 1).length(), "For column '" + this.rs.getMetaData().getColumnName(i + 1) + "' of collation "
-                        + ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
+                        + ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
             }
         }
 
-        this.rs = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) paddedConn).clientPrepareStatement(query).executeQuery();
+        this.rs = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) paddedConn).clientPrepareStatement(query).executeQuery();
 
         while (this.rs.next()) {
             for (int i = 0; i < numCols; i++) {
                 assertEquals(numChars, this.rs.getString(i + 1).length(), "For column '" + this.rs.getMetaData().getColumnName(i + 1) + "' of collation "
-                        + ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
+                        + ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
             }
         }
 
-        this.rs = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) paddedConn).serverPrepareStatement(query).executeQuery();
+        this.rs = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) paddedConn).serverPrepareStatement(query).executeQuery();
 
         while (this.rs.next()) {
             for (int i = 0; i < numCols; i++) {
                 assertEquals(numChars, this.rs.getString(i + 1).length(), "For column '" + this.rs.getMetaData().getColumnName(i + 1) + "' of collation "
-                        + ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
+                        + ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
             }
         }
 
@@ -207,38 +207,38 @@ public class ResultSetTest extends BaseTestCase {
             for (int i = 0; i < numCols; i++) {
                 if (this.rs.getRow() != 3) {
                     assertTrue(numChars != this.rs.getString(i + 1).length(), "For column '" + this.rs.getMetaData().getColumnName(i + 1) + "' of collation "
-                            + ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
+                            + ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
                 } else {
                     assertEquals(numChars, this.rs.getString(i + 1).length(), "For column '" + this.rs.getMetaData().getColumnName(i + 1) + "' of collation "
-                            + ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
+                            + ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
                 }
             }
         }
 
-        this.rs = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement(query).executeQuery();
+        this.rs = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement(query).executeQuery();
 
         while (this.rs.next()) {
             for (int i = 0; i < numCols; i++) {
                 if (this.rs.getRow() != 3) {
                     assertTrue(numChars != this.rs.getString(i + 1).length(), "For column '" + this.rs.getMetaData().getColumnName(i + 1) + "' of collation "
-                            + ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
+                            + ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
                 } else {
                     assertEquals(numChars, this.rs.getString(i + 1).length(), "For column '" + this.rs.getMetaData().getColumnName(i + 1) + "' of collation "
-                            + ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
+                            + ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
                 }
             }
         }
 
-        this.rs = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement(query).executeQuery();
+        this.rs = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement(query).executeQuery();
 
         while (this.rs.next()) {
             for (int i = 0; i < numCols; i++) {
                 if (this.rs.getRow() != 3) {
                     assertTrue(numChars != this.rs.getString(i + 1).length(), "For column '" + this.rs.getMetaData().getColumnName(i + 1) + "' of collation "
-                            + ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
+                            + ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
                 } else {
                     assertEquals(numChars, this.rs.getString(i + 1).length(), "For column '" + this.rs.getMetaData().getColumnName(i + 1) + "' of collation "
-                            + ((com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
+                            + ((com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData) this.rs.getMetaData()).getColumnCharacterEncoding(i + 1));
                 }
             }
         }

@@ -94,33 +94,33 @@ import javax.sql.rowset.CachedRowSet;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.Messages;
-import com.tencent.tdsql.mysql.cj.MysqlConnection;
-import com.tencent.tdsql.mysql.cj.MysqlType;
-import com.tencent.tdsql.mysql.cj.conf.DefaultPropertySet;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.CJCommunicationsException;
-import com.tencent.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
-import com.tencent.tdsql.mysql.cj.exceptions.ExceptionInterceptorChain;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlSQLXML;
-import com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.StatementImpl;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
-import com.tencent.tdsql.mysql.cj.jdbc.exceptions.NotUpdatable;
-import com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetImpl;
-import com.tencent.tdsql.mysql.cj.jdbc.result.UpdatableResultSet;
-import com.tencent.tdsql.mysql.cj.log.Log;
-import com.tencent.tdsql.mysql.cj.protocol.InternalDate;
-import com.tencent.tdsql.mysql.cj.protocol.a.result.NativeResultset;
-import com.tencent.tdsql.mysql.cj.protocol.a.result.ResultsetRowsCursor;
-import com.tencent.tdsql.mysql.cj.protocol.a.result.ResultsetRowsStreaming;
-import com.tencent.tdsql.mysql.cj.result.SqlDateValueFactory;
-import com.tencent.tdsql.mysql.cj.util.TimeUtil;
-import com.tencent.tdsql.mysql.cj.util.Util;
+import com.tencentcloud.tdsql.mysql.cj.Messages;
+import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
+import com.tencentcloud.tdsql.mysql.cj.MysqlType;
+import com.tencentcloud.tdsql.mysql.cj.conf.DefaultPropertySet;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptorChain;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlSQLXML;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.StatementImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.NotUpdatable;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.UpdatableResultSet;
+import com.tencentcloud.tdsql.mysql.cj.log.Log;
+import com.tencentcloud.tdsql.mysql.cj.protocol.InternalDate;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.result.NativeResultset;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.result.ResultsetRowsCursor;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.result.ResultsetRowsStreaming;
+import com.tencentcloud.tdsql.mysql.cj.result.SqlDateValueFactory;
+import com.tencentcloud.tdsql.mysql.cj.util.TimeUtil;
+import com.tencentcloud.tdsql.mysql.cj.util.Util;
 
 import testsuite.BaseTestCase;
 import testsuite.BufferingLogger;
@@ -2917,7 +2917,7 @@ public class ResultSetRegressionTest extends BaseTestCase {
         assertEquals(Types.VARBINARY, this.rs.getMetaData().getColumnType(1));
         assertEquals(Types.VARBINARY, this.rs.getMetaData().getColumnType(2));
 
-        this.rs = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn)
+        this.rs = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn)
                 .serverPrepareStatement("select t1.x t1x,(select x from testBug24710 t2 where t2.x=t1.x) t2x from testBug24710 t1").executeQuery();
 
         assertEquals(Types.VARBINARY, this.rs.getMetaData().getColumnType(1));
@@ -3620,7 +3620,7 @@ public class ResultSetRegressionTest extends BaseTestCase {
     public void testBug34913() throws Exception {
         Timestamp ts = new Timestamp(new Date(109, 5, 1).getTime());
 
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("SELECT 'abcdefghij', ?");
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("SELECT 'abcdefghij', ?");
         this.pstmt.setTimestamp(1, ts);
         this.rs = this.pstmt.executeQuery();
         this.rs.next();
@@ -3728,7 +3728,7 @@ public class ResultSetRegressionTest extends BaseTestCase {
 
         checkTimestampNanos();
 
-        this.rs = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("SELECT '2008-09-26 15:47:20.797283'").executeQuery();
+        this.rs = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).serverPrepareStatement("SELECT '2008-09-26 15:47:20.797283'").executeQuery();
         this.rs.next();
 
         checkTimestampNanos();
@@ -3784,7 +3784,7 @@ public class ResultSetRegressionTest extends BaseTestCase {
         checkRanges();
         this.rs.close();
 
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) c).serverPrepareStatement("SELECT int_field, long_field, double_field, string_field FROM testRanges");
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) c).serverPrepareStatement("SELECT int_field, long_field, double_field, string_field FROM testRanges");
         this.rs = this.pstmt.executeQuery();
         this.rs.next();
         checkRanges();
@@ -3796,7 +3796,7 @@ public class ResultSetRegressionTest extends BaseTestCase {
         checkRanges();
         this.rs.close();
 
-        this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) c).clientPrepareStatement("SELECT int_field, long_field, double_field, string_field FROM testRanges");
+        this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) c).clientPrepareStatement("SELECT int_field, long_field, double_field, string_field FROM testRanges");
         this.rs = this.pstmt.executeQuery();
         assertTrue(this.rs.next());
         checkRanges();
@@ -3960,7 +3960,7 @@ public class ResultSetRegressionTest extends BaseTestCase {
             createTable("bug32525", "(field1 date, field2 timestamp)");
             st.executeUpdate("INSERT INTO bug32525 VALUES ('0000-00-00', '0000-00-00 00:00:00')");
 
-            this.rs = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) noStringSyncConn).serverPrepareStatement("SELECT field1, field2 FROM bug32525").executeQuery();
+            this.rs = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) noStringSyncConn).serverPrepareStatement("SELECT field1, field2 FROM bug32525").executeQuery();
             this.rs.next();
             assertEquals("0000-00-00", this.rs.getString(1));
             assertEquals("0000-00-00 00:00:00", this.rs.getString(2));
@@ -5523,14 +5523,14 @@ public class ResultSetRegressionTest extends BaseTestCase {
         rs1.updateByte(18, (byte) 0); // f17 BIT
         rs1.updateString(19, "y");
         rs1.updateString(20, "b");
-        rs1.updateBlob(21, new com.tencent.tdsql.mysql.cj.jdbc.Blob("2".getBytes(), null));
-        rs1.updateClob(22, new com.tencent.tdsql.mysql.cj.jdbc.Clob("2", null));
+        rs1.updateBlob(21, new com.tencentcloud.tdsql.mysql.cj.jdbc.Blob("2".getBytes(), null));
+        rs1.updateClob(22, new com.tencentcloud.tdsql.mysql.cj.jdbc.Clob("2", null));
         rs1.updateBlob(23, new ByteArrayInputStream(new byte[] { 50 }));
         rs1.updateClob(24, new StringReader("2"));
         rs1.updateBlob(25, new ByteArrayInputStream(new byte[] { 50, 51, 52 }), 1);
         rs1.updateClob(26, new StringReader("2222"), 1);
         rs1.updateObject(27, "2", MysqlType.BLOB);
-        rs1.updateNClob(28, new com.tencent.tdsql.mysql.cj.jdbc.NClob("2", null));
+        rs1.updateNClob(28, new com.tencentcloud.tdsql.mysql.cj.jdbc.NClob("2", null));
         rs1.updateString(29, "2");
         rs1.updateBytes(30, new byte[] { 50 });
 

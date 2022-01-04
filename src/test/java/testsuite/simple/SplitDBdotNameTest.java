@@ -37,7 +37,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.util.StringUtils;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 
 import testsuite.BaseTestCase;
 

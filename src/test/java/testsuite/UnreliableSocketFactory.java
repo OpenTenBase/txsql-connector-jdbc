@@ -46,9 +46,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.conf.PropertySet;
-import com.tencent.tdsql.mysql.cj.protocol.StandardSocketFactory;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
+import com.tencentcloud.tdsql.mysql.cj.protocol.StandardSocketFactory;
 
 /**
  * Configure "socketFactory" to use this class in your JDBC URL, and it will operate as normal, unless you map some host aliases to actual IP addresses, and

@@ -39,9 +39,9 @@ import java.util.Properties;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 
 import testsuite.BaseTestCase;
 

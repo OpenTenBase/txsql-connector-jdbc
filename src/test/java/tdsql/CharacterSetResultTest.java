@@ -11,7 +11,7 @@ public class CharacterSetResultTest {
     public static Connection getConn() {
         Connection conn = null;
         try {
-            Class.forName("com.tencent.tdsql.mysql.cj.jdbc.Driver");
+            Class.forName("com.tencentcloud.tdsql.mysql.cj.jdbc.Driver");
             String proxyUrl = "jdbc:tdsql-mysql://9.135.146.159:15002/db20211125?useConfigs=maxPerformance&useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true";
             String dbUrl = "jdbc:tdsql-mysql://9.135.144.125:4002/db20211125?useConfigs=maxPerformance&useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true";
             try {

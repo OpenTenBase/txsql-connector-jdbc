@@ -34,7 +34,7 @@ import java.util.Random;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
-import com.tencent.tdsql.mysql.cj.xdevapi.Collection;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Collection;
 
 public class BaseCollectionTestCase extends DevApiBaseTestCase {
     /** Collection for testing. */

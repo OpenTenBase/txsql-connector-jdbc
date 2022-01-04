@@ -33,13 +33,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.xdevapi.DeleteStatement;
-import com.tencent.tdsql.mysql.cj.xdevapi.Result;
-import com.tencent.tdsql.mysql.cj.xdevapi.RowResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionFactory;
-import com.tencent.tdsql.mysql.cj.xdevapi.Table;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DeleteStatement;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Result;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.RowResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionFactory;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Table;
 
 /**
  * @todo

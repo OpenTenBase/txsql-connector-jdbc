@@ -31,9 +31,9 @@ package testsuite.x;
 
 import java.util.Properties;
 
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionFactory;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionFactory;
 
 public abstract class BaseXDevAPITestCase {
     protected String baseUrl = System.getProperty(PropertyDefinitions.SYSP_testsuite_url_mysqlx);

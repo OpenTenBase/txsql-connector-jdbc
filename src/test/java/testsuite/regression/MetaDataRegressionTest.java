@@ -64,19 +64,19 @@ import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 
-import com.tencent.tdsql.mysql.cj.CharsetMapping;
-import com.tencent.tdsql.mysql.cj.Constants;
-import com.tencent.tdsql.mysql.cj.MysqlConnection;
-import com.tencent.tdsql.mysql.cj.Query;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.Driver;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.NonRegisteringDriver;
-import com.tencent.tdsql.mysql.cj.protocol.Resultset;
-import com.tencent.tdsql.mysql.cj.util.StringUtils;
+import com.tencentcloud.tdsql.mysql.cj.CharsetMapping;
+import com.tencentcloud.tdsql.mysql.cj.Constants;
+import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
+import com.tencentcloud.tdsql.mysql.cj.Query;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.Driver;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.NonRegisteringDriver;
+import com.tencentcloud.tdsql.mysql.cj.protocol.Resultset;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 
 import testsuite.BaseQueryInterceptor;
 import testsuite.BaseTestCase;
@@ -807,8 +807,8 @@ public class MetaDataRegressionTest extends BaseTestCase {
      */
     @Test
     public void testBug8800() throws Exception {
-        assertEquals(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).lowerCaseTableNames(), !this.conn.getMetaData().supportsMixedCaseIdentifiers());
-        assertEquals(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).lowerCaseTableNames(), !this.conn.getMetaData().supportsMixedCaseQuotedIdentifiers());
+        assertEquals(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).lowerCaseTableNames(), !this.conn.getMetaData().supportsMixedCaseIdentifiers());
+        assertEquals(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).lowerCaseTableNames(), !this.conn.getMetaData().supportsMixedCaseQuotedIdentifiers());
 
     }
 
@@ -964,7 +964,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
             this.stmt.executeUpdate("DROP DATABASE IF EXISTS " + dbname);
             this.stmt.executeUpdate("CREATE DATABASE " + dbname);
 
-            boolean defaultDbConfig = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getBooleanProperty(PropertyKey.nullDatabaseMeansCurrent)
+            boolean defaultDbConfig = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getPropertySet().getBooleanProperty(PropertyKey.nullDatabaseMeansCurrent)
                     .getValue();
             assertEquals(false, defaultDbConfig);
 
@@ -1068,7 +1068,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
         String db = ((JdbcConnection) this.conn).getPropertySet().<DatabaseTerm>getEnumProperty(PropertyKey.databaseTerm).getValue() == DatabaseTerm.SCHEMA
                 ? this.conn.getSchema()
                 : this.conn.getCatalog();
-        this.rs = ((com.tencent.tdsql.mysql.cj.jdbc.DatabaseMetaData) this.conn.getMetaData()).extractForeignKeyFromCreateTable(db, "app tab");
+        this.rs = ((com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaData) this.conn.getMetaData()).extractForeignKeyFromCreateTable(db, "app tab");
         assertTrue(this.rs.next(), "must return a row");
 
         assertEquals(("comment; APPFK(`C1`) REFER `" + db + "`/ `app tab` (`C1`)").toUpperCase(), this.rs.getString(3).toUpperCase());
@@ -1332,8 +1332,8 @@ public class MetaDataRegressionTest extends BaseTestCase {
     }
 
     private void checkRsmdForBug13277(ResultSetMetaData rsmd) throws SQLException {
-        int i = ((com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl) this.conn).getSession().getServerSession().getMaxBytesPerChar(CharsetMapping
-                .getJavaEncodingForMysqlCharset(((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getSession().getServerSession().getServerDefaultCharset()));
+        int i = ((com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl) this.conn).getSession().getServerSession().getMaxBytesPerChar(CharsetMapping
+                .getJavaEncodingForMysqlCharset(((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getSession().getServerSession().getServerDefaultCharset()));
         if (i == 1) {
             // This is INT field but still processed in
             // ResultsetMetaData.getColumnDisplaySize
@@ -1504,7 +1504,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
 
             assertNull(rsmd);
 
-            this.pstmt = ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement(query);
+            this.pstmt = ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).clientPrepareStatement(query);
             rsmd = this.pstmt.getMetaData();
 
             assertNull(rsmd);
@@ -1750,9 +1750,9 @@ public class MetaDataRegressionTest extends BaseTestCase {
                     }
 
                     if ("CHAR_OCTET_LENGTH".equals(metadataExpected.getColumnName(i + 1))) {
-                        if (((com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl) this.conn).getSession().getServerSession()
+                        if (((com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl) this.conn).getSession().getServerSession()
                                 .getMaxBytesPerChar(CharsetMapping.getJavaEncodingForMysqlCharset(
-                                        ((com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getSession().getServerSession().getServerDefaultCharset())) > 1) {
+                                        ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection) this.conn).getSession().getServerSession().getServerDefaultCharset())) > 1) {
                             continue; // SHOW CREATE and CHAR_OCT *will* differ
                         }
                     }
@@ -3223,7 +3223,7 @@ public class MetaDataRegressionTest extends BaseTestCase {
 
             // 2. extractForeignKeyFromCreateTable(...)
             try {
-                this.rs = ((com.tencent.tdsql.mysql.cj.jdbc.DatabaseMetaData) conn1.getMetaData()).extractForeignKeyFromCreateTable(unquotedDbName, unquotedTableName);
+                this.rs = ((com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaData) conn1.getMetaData()).extractForeignKeyFromCreateTable(unquotedDbName, unquotedTableName);
                 if (!this.rs.next()) {
                     failedTests.append("conn.getMetaData.extractForeignKeyFromCreateTable(unquotedDbName, unquotedTableName);\n");
                 }

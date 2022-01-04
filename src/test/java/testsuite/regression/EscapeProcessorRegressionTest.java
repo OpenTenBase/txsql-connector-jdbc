@@ -38,8 +38,8 @@ import java.util.TimeZone;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.MysqlConnection;
-import com.tencent.tdsql.mysql.cj.util.TimeUtil;
+import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
+import com.tencentcloud.tdsql.mysql.cj.util.TimeUtil;
 
 import testsuite.BaseTestCase;
 

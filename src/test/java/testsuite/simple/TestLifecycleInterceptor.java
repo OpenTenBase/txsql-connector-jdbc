@@ -33,9 +33,9 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.util.Properties;
 
-import com.tencent.tdsql.mysql.cj.MysqlConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor;
-import com.tencent.tdsql.mysql.cj.log.Log;
+import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.log.Log;
 
 public class TestLifecycleInterceptor implements ConnectionLifecycleInterceptor {
     static int transactionsBegun = 0;

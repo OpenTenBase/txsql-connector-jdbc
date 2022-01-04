@@ -42,23 +42,23 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.Messages;
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.exceptions.WrongArgumentException;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocolError;
-import com.tencent.tdsql.mysql.cj.xdevapi.Collection;
-import com.tencent.tdsql.mysql.cj.xdevapi.DatabaseObject;
-import com.tencent.tdsql.mysql.cj.xdevapi.DatabaseObject.DbObjectStatus;
-import com.tencent.tdsql.mysql.cj.xdevapi.Schema;
-import com.tencent.tdsql.mysql.cj.xdevapi.Schema.CreateCollectionOptions;
-import com.tencent.tdsql.mysql.cj.xdevapi.Schema.ModifyCollectionOptions;
-import com.tencent.tdsql.mysql.cj.xdevapi.Schema.Validation;
-import com.tencent.tdsql.mysql.cj.xdevapi.Schema.Validation.ValidationLevel;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionImpl;
-import com.tencent.tdsql.mysql.cj.xdevapi.SqlResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.Table;
+import com.tencentcloud.tdsql.mysql.cj.Messages;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocolError;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Collection;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DatabaseObject;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DatabaseObject.DbObjectStatus;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Schema;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Schema.CreateCollectionOptions;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Schema.ModifyCollectionOptions;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Schema.Validation;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Schema.Validation.ValidationLevel;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionImpl;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SqlResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Table;
 
 public class SchemaTest extends DevApiBaseTestCase {
     @BeforeEach

@@ -54,18 +54,18 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.conf.BooleanPropertyDefinition;
-import com.tencent.tdsql.mysql.cj.conf.EnumPropertyDefinition;
-import com.tencent.tdsql.mysql.cj.conf.IntegerPropertyDefinition;
-import com.tencent.tdsql.mysql.cj.conf.LongPropertyDefinition;
-import com.tencent.tdsql.mysql.cj.conf.MemorySizePropertyDefinition;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinition;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.conf.StringPropertyDefinition;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlDataSource;
-import com.tencent.tdsql.mysql.cj.jdbc.MysqlXADataSource;
+import com.tencentcloud.tdsql.mysql.cj.conf.BooleanPropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.EnumPropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.IntegerPropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.LongPropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.MemorySizePropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.conf.StringPropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlDataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXADataSource;
 
 import testsuite.BaseTestCase;
 import testsuite.MockJndiContextFactory;
@@ -89,7 +89,7 @@ public class DataSourceTest extends BaseTestCase {
         env.put(Context.INITIAL_CONTEXT_FACTORY, MockJndiContextFactory.class.getName());
         this.ctx = new InitialContext(env);
         assertNotNull(this.ctx, "Naming Context not created");
-        ds = new com.tencent.tdsql.mysql.cj.jdbc.MysqlDataSource();
+        ds = new com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlDataSource();
         ds.setUrl(dbUrl); // from BaseTestCase
         this.ctx.bind("_test", ds);
     }
@@ -195,7 +195,7 @@ public class DataSourceTest extends BaseTestCase {
 
     @Test
     public void testPropertyGettersSetters() throws Exception {
-        com.tencent.tdsql.mysql.cj.jdbc.MysqlDataSource ds = new com.tencent.tdsql.mysql.cj.jdbc.MysqlDataSource();
+        com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlDataSource ds = new com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlDataSource();
 
         String testStr = "Test value";
         int testInt = 42;

@@ -42,14 +42,14 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.ConnectionImpl;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcConnection;
-import com.tencent.tdsql.mysql.cj.jdbc.JdbcStatement;
-import com.tencent.tdsql.mysql.cj.jdbc.StatementImpl;
-import com.tencent.tdsql.mysql.cj.jdbc.ha.MultiHostConnectionProxy;
-import com.tencent.tdsql.mysql.cj.jdbc.result.ResultSetImpl;
-import com.tencent.tdsql.mysql.cj.util.Util;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.StatementImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.MultiHostConnectionProxy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetImpl;
+import com.tencentcloud.tdsql.mysql.cj.util.Util;
 
 import testsuite.BaseTestCase;
 
@@ -86,13 +86,13 @@ public class UtilsTest extends BaseTestCase {
         assertTrue(Util.isJdbcPackage("java.sql"));
         assertTrue(Util.isJdbcPackage("javax.sql"));
         assertTrue(Util.isJdbcPackage("javax.sql.rowset"));
-        assertTrue(Util.isJdbcPackage("com.tencent.tdsql.mysql.cj.jdbc"));
-        assertTrue(Util.isJdbcPackage("com.tencent.tdsql.mysql.cj.jdbc.admin"));
-        assertTrue(Util.isJdbcPackage("com.tencent.tdsql.mysql.cj.jdbc.exceptions"));
-        assertTrue(Util.isJdbcPackage("com.tencent.tdsql.mysql.cj.jdbc.ha"));
-        assertTrue(Util.isJdbcPackage("com.tencent.tdsql.mysql.cj.jdbc.interceptors"));
-        assertTrue(Util.isJdbcPackage("com.tencent.tdsql.mysql.cj.jdbc.jxm"));
-        assertTrue(Util.isJdbcPackage("com.tencent.tdsql.mysql.cj.jdbc.util"));
+        assertTrue(Util.isJdbcPackage("com.tencentcloud.tdsql.mysql.cj.jdbc"));
+        assertTrue(Util.isJdbcPackage("com.tencentcloud.tdsql.mysql.cj.jdbc.admin"));
+        assertTrue(Util.isJdbcPackage("com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions"));
+        assertTrue(Util.isJdbcPackage("com.tencentcloud.tdsql.mysql.cj.jdbc.ha"));
+        assertTrue(Util.isJdbcPackage("com.tencentcloud.tdsql.mysql.cj.jdbc.interceptors"));
+        assertTrue(Util.isJdbcPackage("com.tencentcloud.tdsql.mysql.cj.jdbc.jxm"));
+        assertTrue(Util.isJdbcPackage("com.tencentcloud.tdsql.mysql.cj.jdbc.util"));
 
         // Non-JDBC packages.
         assertFalse(Util.isJdbcPackage("java"));

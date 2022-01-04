@@ -36,12 +36,12 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.x.protobuf.MysqlxResultset.ColumnMetaData;
-import com.tencent.tdsql.mysql.cj.xdevapi.Column;
-import com.tencent.tdsql.mysql.cj.xdevapi.RowResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.Table;
-import com.tencent.tdsql.mysql.cj.xdevapi.Type;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.x.protobuf.MysqlxResultset.ColumnMetaData;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Column;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.RowResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Table;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Type;
 
 /**
  * Tests for "Column" table metadata API.

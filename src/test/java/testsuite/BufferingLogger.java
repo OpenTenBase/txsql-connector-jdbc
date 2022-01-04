@@ -29,7 +29,7 @@
 
 package testsuite;
 
-import com.tencent.tdsql.mysql.cj.log.StandardLogger;
+import com.tencentcloud.tdsql.mysql.cj.log.StandardLogger;
 
 /**
  * Provides logging facilities for those platforms that don't have built-in facilities. Simply logs messages to STDERR.

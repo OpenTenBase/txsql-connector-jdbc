@@ -44,9 +44,9 @@ import java.util.concurrent.Callable;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.util.LazyString;
-import com.tencent.tdsql.mysql.cj.util.StringUtils;
-import com.tencent.tdsql.mysql.cj.util.StringUtils.SearchMode;
+import com.tencentcloud.tdsql.mysql.cj.util.LazyString;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils.SearchMode;
 
 import testsuite.BaseTestCase;
 

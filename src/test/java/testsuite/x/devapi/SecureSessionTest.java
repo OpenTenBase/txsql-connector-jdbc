@@ -48,25 +48,25 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.CoreSession;
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.AuthMech;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.SslMode;
-import com.tencent.tdsql.mysql.cj.conf.PropertyDefinitions.XdevapiSslMode;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.conf.PropertySet;
-import com.tencent.tdsql.mysql.cj.exceptions.CJCommunicationsException;
-import com.tencent.tdsql.mysql.cj.exceptions.WrongArgumentException;
-import com.tencent.tdsql.mysql.cj.protocol.x.XAuthenticationProvider;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocol;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocolError;
-import com.tencent.tdsql.mysql.cj.xdevapi.Client;
-import com.tencent.tdsql.mysql.cj.xdevapi.ClientFactory;
-import com.tencent.tdsql.mysql.cj.xdevapi.Row;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionImpl;
-import com.tencent.tdsql.mysql.cj.xdevapi.SqlResult;
+import com.tencentcloud.tdsql.mysql.cj.CoreSession;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.AuthMech;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.SslMode;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.XdevapiSslMode;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XAuthenticationProvider;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocol;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocolError;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Client;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.ClientFactory;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Row;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionImpl;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SqlResult;
 
 public class SecureSessionTest extends DevApiBaseTestCase {
     final String trustStoreUrl = "file:src/test/config/ssl-test-certs/ca-truststore";
@@ -788,14 +788,14 @@ public class SecureSessionTest extends DevApiBaseTestCase {
      * Tests TLSv1.2
      * 
      * This test requires two server instances:
-     * 1) main xplugin server pointed to by the com.tencent.tdsql.mysql.cj.testsuite.mysqlx.url variable,
+     * 1) main xplugin server pointed to by the com.tencentcloud.tdsql.mysql.cj.testsuite.mysqlx.url variable,
      * compiled with yaSSL
-     * 2) additional xplugin server instance pointed to by com.tencent.tdsql.mysql.cj.testsuite.mysqlx.url.openssl,
+     * 2) additional xplugin server instance pointed to by com.tencentcloud.tdsql.mysql.cj.testsuite.mysqlx.url.openssl,
      * variable compiled with OpenSSL.
      * 
      * For example, add these variables to the ant call:
-     * -Dcom.tencent.tdsql.mysql.cj.testsuite.mysqlx.url=mysqlx://localhost:33060/cjtest_5_1?user=root&password=pwd
-     * -Dcom.tencent.tdsql.mysql.cj.testsuite.mysqlx.url.openssl=mysqlx://localhost:33070/cjtest_5_1?user=root&password=pwd
+     * -Dcom.tencentcloud.tdsql.mysql.cj.testsuite.mysqlx.url=mysqlx://localhost:33060/cjtest_5_1?user=root&password=pwd
+     * -Dcom.tencentcloud.tdsql.mysql.cj.testsuite.mysqlx.url.openssl=mysqlx://localhost:33070/cjtest_5_1?user=root&password=pwd
      * 
      * @throws Exception
      */

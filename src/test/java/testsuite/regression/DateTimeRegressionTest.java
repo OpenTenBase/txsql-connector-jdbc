@@ -37,8 +37,8 @@ import java.util.Properties;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.MysqlType;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.MysqlType;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 
 import testsuite.BaseTestCase;
 
@@ -736,7 +736,7 @@ public class DateTimeRegressionTest extends BaseTestCase {
         this.pstmt.setObject(1, val, targetType);
         String query = this.pstmt.toString().replace(".0)", ")");
 
-        assertEquals((useSSPS ? "com.tencent.tdsql.mysql.cj.jdbc.ServerPreparedStatement[1]: " : "com.tencent.tdsql.mysql.cj.jdbc.ClientPreparedStatement: ")
+        assertEquals((useSSPS ? "com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement[1]: " : "com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement: ")
                 + "insert into testBug20391832 values(" + (targetType == MysqlType.YEAR ? exp : "'" + exp + "'") + ")", query);
     }
 

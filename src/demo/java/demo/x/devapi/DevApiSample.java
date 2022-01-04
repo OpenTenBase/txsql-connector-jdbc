@@ -29,7 +29,7 @@
 
 package demo.x.devapi;
 
-import com.tencent.tdsql.mysql.cj.xdevapi.*;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.*;
 
 /*
  * Sample program showing how to use Connector/J's Dev API support.

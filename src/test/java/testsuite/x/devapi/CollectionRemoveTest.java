@@ -37,16 +37,16 @@ import java.util.concurrent.Callable;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.xdevapi.Collection;
-import com.tencent.tdsql.mysql.cj.xdevapi.DocResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.JsonNumber;
-import com.tencent.tdsql.mysql.cj.xdevapi.RemoveStatement;
-import com.tencent.tdsql.mysql.cj.xdevapi.RemoveStatementImpl;
-import com.tencent.tdsql.mysql.cj.xdevapi.Result;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionFactory;
-import com.tencent.tdsql.mysql.cj.xdevapi.XDevAPIError;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Collection;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DocResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonNumber;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.RemoveStatement;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.RemoveStatementImpl;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Result;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionFactory;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.XDevAPIError;
 
 /**
  * @todo

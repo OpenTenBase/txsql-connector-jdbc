@@ -51,23 +51,23 @@ import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.CoreSession;
-import com.tencent.tdsql.mysql.cj.ServerVersion;
-import com.tencent.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencent.tdsql.mysql.cj.exceptions.DataConversionException;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocol;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocolError;
-import com.tencent.tdsql.mysql.cj.xdevapi.Column;
-import com.tencent.tdsql.mysql.cj.xdevapi.Row;
-import com.tencent.tdsql.mysql.cj.xdevapi.RowResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.SelectStatement;
-import com.tencent.tdsql.mysql.cj.xdevapi.Session;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionFactory;
-import com.tencent.tdsql.mysql.cj.xdevapi.SessionImpl;
-import com.tencent.tdsql.mysql.cj.xdevapi.SqlResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.Statement;
-import com.tencent.tdsql.mysql.cj.xdevapi.Table;
-import com.tencent.tdsql.mysql.cj.xdevapi.Type;
+import com.tencentcloud.tdsql.mysql.cj.CoreSession;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.DataConversionException;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocol;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocolError;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Column;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Row;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.RowResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SelectStatement;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionFactory;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionImpl;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SqlResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Statement;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Table;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Type;
 
 /**
  * @todo
@@ -281,7 +281,7 @@ public class TableSelectTest extends BaseTableTestCase {
             }
         });
 
-        assertThrows(DataConversionException.class, "Unsupported conversion from BIT to com.tencent.tdsql.mysql.cj.xdevapi.DbDoc", new Callable<Void>() {
+        assertThrows(DataConversionException.class, "Unsupported conversion from BIT to com.tencentcloud.tdsql.mysql.cj.xdevapi.DbDoc", new Callable<Void>() {
             public Void call() throws Exception {
                 row.getDbDoc("c1");
                 return null;

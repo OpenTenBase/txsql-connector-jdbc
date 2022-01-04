@@ -32,12 +32,12 @@ package testsuite;
 import java.util.Properties;
 import java.util.function.Supplier;
 
-import com.tencent.tdsql.mysql.cj.MysqlConnection;
-import com.tencent.tdsql.mysql.cj.Query;
-import com.tencent.tdsql.mysql.cj.interceptors.QueryInterceptor;
-import com.tencent.tdsql.mysql.cj.log.Log;
-import com.tencent.tdsql.mysql.cj.protocol.Resultset;
-import com.tencent.tdsql.mysql.cj.protocol.ServerSession;
+import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
+import com.tencentcloud.tdsql.mysql.cj.Query;
+import com.tencentcloud.tdsql.mysql.cj.interceptors.QueryInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.log.Log;
+import com.tencentcloud.tdsql.mysql.cj.protocol.Resultset;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSession;
 
 public class BaseQueryInterceptor implements QueryInterceptor {
 

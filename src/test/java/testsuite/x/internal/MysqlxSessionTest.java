@@ -45,22 +45,22 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.tencent.tdsql.mysql.cj.MysqlxSession;
-import com.tencent.tdsql.mysql.cj.conf.DefaultPropertySet;
-import com.tencent.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencent.tdsql.mysql.cj.protocol.x.XMessage;
-import com.tencent.tdsql.mysql.cj.protocol.x.XMessageBuilder;
-import com.tencent.tdsql.mysql.cj.protocol.x.XProtocolError;
-import com.tencent.tdsql.mysql.cj.result.IntegerValueFactory;
-import com.tencent.tdsql.mysql.cj.result.StringValueFactory;
-import com.tencent.tdsql.mysql.cj.result.ValueFactory;
-import com.tencent.tdsql.mysql.cj.xdevapi.DatabaseObject;
-import com.tencent.tdsql.mysql.cj.xdevapi.DatabaseObject.DbObjectType;
-import com.tencent.tdsql.mysql.cj.xdevapi.DocFilterParams;
-import com.tencent.tdsql.mysql.cj.xdevapi.DocResult;
-import com.tencent.tdsql.mysql.cj.xdevapi.FilterParams;
-import com.tencent.tdsql.mysql.cj.xdevapi.StreamingDocResultBuilder;
-import com.tencent.tdsql.mysql.cj.xdevapi.UpdateResultBuilder;
+import com.tencentcloud.tdsql.mysql.cj.MysqlxSession;
+import com.tencentcloud.tdsql.mysql.cj.conf.DefaultPropertySet;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XMessage;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XMessageBuilder;
+import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocolError;
+import com.tencentcloud.tdsql.mysql.cj.result.IntegerValueFactory;
+import com.tencentcloud.tdsql.mysql.cj.result.StringValueFactory;
+import com.tencentcloud.tdsql.mysql.cj.result.ValueFactory;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DatabaseObject;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DatabaseObject.DbObjectType;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DocFilterParams;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DocResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.FilterParams;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.StreamingDocResultBuilder;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.UpdateResultBuilder;
 
 /**
  * Tests for (internal) session-level APIs against X Plugin via X Protocol.
@@ -131,8 +131,8 @@ public class MysqlxSessionTest extends InternalXBaseTestCase {
 
         Set<String> strTypes = Arrays.stream(new DbObjectType[] { DbObjectType.COLLECTION }).map(DatabaseObject.DbObjectType::toString)
                 .collect(Collectors.toSet());
-        Predicate<com.tencent.tdsql.mysql.cj.result.Row> rowFiler = r -> (strTypes).contains(r.getValue(1, svf));
-        Function<com.tencent.tdsql.mysql.cj.result.Row, String> rowToName = r -> r.getValue(0, svf);
+        Predicate<com.tencentcloud.tdsql.mysql.cj.result.Row> rowFiler = r -> (strTypes).contains(r.getValue(1, svf));
+        Function<com.tencentcloud.tdsql.mysql.cj.result.Row, String> rowToName = r -> r.getValue(0, svf);
 
         List<String> collNames = this.session.query(builder.buildListObjects(getTestDatabase(), null), rowFiler, rowToName, Collectors.toList());
         assertTrue(collNames.contains(collName));
