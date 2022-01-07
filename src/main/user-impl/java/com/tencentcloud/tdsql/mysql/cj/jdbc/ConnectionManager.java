@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,15 @@ public class ConnectionManager {
         synchronized (map) {
             l = this.hostConnectionMap.containsKey(host) ? this.hostConnectionMap.get(host)
                     : new ArrayList<Connection>();
+            for (Connection c : l) {
+                try {
+                    if (c.isClosed()) {
+                        l.remove(c);
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
             l.add(conn);
             this.hostConnectionMap.put(host, l);
         }
@@ -98,10 +108,13 @@ public class ConnectionManager {
                             int k = 0;
                             List<Connection> list = scons;
                             synchronized (list) {
-                                for (Connection scon : scons) {
+                                Iterator<Connection> iterator = scons.iterator();
+                                while (iterator.hasNext()) {
+                                    Connection scon = iterator.next();
                                     if (!scon.isClosed()) {
                                         continue;
                                     }
+                                    iterator.remove();
                                     ++k;
                                 }
                                 if (k == scons.size()) {
