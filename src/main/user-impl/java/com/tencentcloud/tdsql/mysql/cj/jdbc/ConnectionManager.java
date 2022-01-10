@@ -66,7 +66,7 @@ public class ConnectionManager {
                     e.printStackTrace();
                 }
             }
-            ConnectionManager.this.log(conn, host + " remove " + count);
+            ConnectionManager.this.log(conn, "1." + host + " remove " + count);
             l.add(conn);
             this.hostConnectionMap.put(host, l);
         }
@@ -120,6 +120,7 @@ public class ConnectionManager {
                                     iterator.remove();
                                     ++k;
                                 }
+                                ConnectionManager.this.log(newConn, "2." + host + " remove " + k);
                                 if (k == scons.size()) {
                                     break;
                                 }
