@@ -55,15 +55,18 @@ public class ConnectionManager {
         synchronized (map) {
             l = this.hostConnectionMap.containsKey(host) ? this.hostConnectionMap.get(host)
                     : new ArrayList<Connection>();
+            int count = 0;
             for (Connection c : l) {
                 try {
-                    if (c.isClosed()) {
+                    if (c == null || c.isClosed()) {
                         l.remove(c);
+                        count++;
                     }
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
             }
+            ConnectionManager.this.log(conn, host + " remove " + count);
             l.add(conn);
             this.hostConnectionMap.put(host, l);
         }
@@ -128,6 +131,7 @@ public class ConnectionManager {
                             }
                             ConnectionManager.this.blackList.add(ht);
                             ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(ht);
+                            System.out.println("......");
                             ConnectionManager.this.log(newConn, "add ip [" + ht + "] to blacklist");
                             ConnectionManager.this.log(newConn, "current black list [" + ConnectionManager.this.blackList + "]");
                             BlackListTask blackListTask = new BlackListTask(hostInfo, ht, haLoadBalanceBlacklistTimeout);
