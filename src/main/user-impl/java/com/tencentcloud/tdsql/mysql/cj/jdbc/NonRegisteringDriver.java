@@ -272,12 +272,12 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 } else {
                     ConnectionManager.getInstance().getPropMap().put(host, info);
                     java.sql.Connection conn = this.chargeConnection(hostInfoMap, host, true);
-                    if (conn != null) {
+                    if (conn != null && !conn.isClosed()) {
                         ((MysqlConnection) conn).getSession().getLog().logInfo(host + " - " + ConnectionManager.HOST_CONNECTION_COUNT_MAP.get(host));
                         return conn;
                     }
                     hostList.remove(host);
-                    ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(host);
+//                    ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(host);
                     System.out.println("3......");
                     --i;
                 }
