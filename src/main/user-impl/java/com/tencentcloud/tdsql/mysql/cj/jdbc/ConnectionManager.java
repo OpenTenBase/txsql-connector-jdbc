@@ -54,7 +54,9 @@ public class ConnectionManager {
         synchronized (map) {
             List<Connection> l = this.hostConnectionMap.containsKey(host) ? this.hostConnectionMap.get(host)
                     : new ArrayList<Connection>();
-            for (Connection c : l) {
+            Iterator<Connection> iterator = l.iterator();
+            while (iterator.hasNext()) {
+                Connection c = iterator.next();
                 try {
                     if (c == null || c.isClosed()) {
                         l.remove(c);
