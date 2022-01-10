@@ -33,7 +33,6 @@ import static com.tencentcloud.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
 
 import com.tencentcloud.tdsql.mysql.cj.Constants;
 import com.tencentcloud.tdsql.mysql.cj.Messages;
-import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl.Type;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
@@ -55,7 +54,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -266,19 +264,15 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 }
                 if (ConnectionManager.getInstance().blackList.contains(host)) {
                     ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(host);
-                    System.out.println("2......");
                     hostList.remove(host);
                     --i;
                 } else {
                     ConnectionManager.getInstance().getPropMap().put(host, info);
                     java.sql.Connection conn = this.chargeConnection(hostInfoMap, host, true);
                     if (conn != null && !conn.isClosed()) {
-                        ((MysqlConnection) conn).getSession().getLog().logInfo(host + " - " + ConnectionManager.HOST_CONNECTION_COUNT_MAP.get(host));
                         return conn;
                     }
                     hostList.remove(host);
-//                    ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(host);
-                    System.out.println("3......");
                     --i;
                 }
                 ++i;
@@ -370,7 +364,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
     }
 
     private String choice() {
-        List<Map.Entry<String, Integer>> list = new ArrayList<Entry<String, Integer>>(ConnectionManager.HOST_CONNECTION_COUNT_MAP.entrySet());
+        List<Map.Entry<String, Integer>> list = new ArrayList<>(ConnectionManager.HOST_CONNECTION_COUNT_MAP.entrySet());
         Map<String, Integer> wfMap = ConnectionManager.getInstance().getWeightFactor();
 
         for (int i = 0; i < list.size(); i++) {

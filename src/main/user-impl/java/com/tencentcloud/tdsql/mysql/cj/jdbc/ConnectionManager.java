@@ -18,16 +18,16 @@ import java.util.concurrent.TimeUnit;
 
 public class ConnectionManager {
 
-    public Set<String> blackList = new LinkedHashSet<String>();
-    public static final ConcurrentHashMap<String, Integer> HOST_CONNECTION_COUNT_MAP = new ConcurrentHashMap<String, Integer>();
-    private final Map<String, Connection> heartbeatMap = new ConcurrentHashMap<String, Connection>();
-    private final Map<String, List<Connection>> hostConnectionMap = new ConcurrentHashMap<String, List<Connection>>();
+    public Set<String> blackList = new LinkedHashSet<>();
+    public static final ConcurrentHashMap<String, Integer> HOST_CONNECTION_COUNT_MAP = new ConcurrentHashMap<>();
+    private final Map<String, Connection> heartbeatMap = new ConcurrentHashMap<>();
+    private final Map<String, List<Connection>> hostConnectionMap = new ConcurrentHashMap<>();
 
-    private final Map<String, Properties> propMap = new HashMap<String, Properties>();
+    private final Map<String, Properties> propMap = new HashMap<>();
     private Properties props = null;
     private static final ConnectionManager CONNECTION_MANAGER = new ConnectionManager();
-    private final Set<String> hosts = new LinkedHashSet<String>();
-    private final Map<String, Integer> weightFactor = new HashMap<String, Integer>();
+    private final Set<String> hosts = new LinkedHashSet<>();
+    private final Map<String, Integer> weightFactor = new HashMap<>();
     private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(10);
 
     private int haLoadBalanceMaximumErrorRetries = 0;
@@ -53,7 +53,7 @@ public class ConnectionManager {
         Map<String, List<Connection>> map = this.hostConnectionMap;
         synchronized (map) {
             List<Connection> l = this.hostConnectionMap.containsKey(host) ? this.hostConnectionMap.get(host)
-                    : new ArrayList<Connection>();
+                    : new ArrayList<>();
             Iterator<Connection> iterator = l.iterator();
             while (iterator.hasNext()) {
                 Connection c = iterator.next();
@@ -67,7 +67,6 @@ public class ConnectionManager {
             }
             l.add(conn);
             this.hostConnectionMap.put(host, l);
-            ConnectionManager.this.log(conn, "1." + host + " has " + l.size());
         }
         final String ht = host;
         Thread haLoadBalanceHeartbeatMonitor = new Thread() {
@@ -83,7 +82,7 @@ public class ConnectionManager {
                                 Properties prop = ((com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl) (ConnectionManager.this.hostConnectionMap.get(
                                         ht)).get(0)).getProperties();
                                 ConnectionManager.getInstance().setProps(prop);
-                                newConn = ConnectionManager.this.copyConn(hostInfo, ht);
+                                newConn = ConnectionImpl.getInstance(hostInfo);
                                 ConnectionManager.this.heartbeatMap.put(ht, newConn);
                                 break;
                             }
@@ -119,7 +118,6 @@ public class ConnectionManager {
                                     iterator.remove();
                                     ++k;
                                 }
-                                ConnectionManager.this.log(newConn, "2." + host + " has " + scons.size());
                                 if (k == scons.size()) {
                                     break;
                                 }
@@ -132,10 +130,11 @@ public class ConnectionManager {
                             }
                             ConnectionManager.this.blackList.add(ht);
                             ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(ht);
-                            System.out.println("1......");
                             ConnectionManager.this.log(newConn, "add ip [" + ht + "] to blacklist");
-                            ConnectionManager.this.log(newConn, "current black list [" + ConnectionManager.this.blackList + "]");
-                            BlackListTask blackListTask = new BlackListTask(hostInfo, ht, haLoadBalanceBlacklistTimeout);
+                            ConnectionManager.this.log(newConn,
+                                    "current black list [" + ConnectionManager.this.blackList + "]");
+                            BlackListTask blackListTask = new BlackListTask(hostInfo, ht,
+                                    haLoadBalanceBlacklistTimeout);
                             ConnectionManager.this.executor.schedule(blackListTask, haLoadBalanceBlacklistTimeout,
                                     TimeUnit.MILLISECONDS);
                             ConnectionManager.this.heartbeatMap.remove(ht);
@@ -155,22 +154,6 @@ public class ConnectionManager {
             haLoadBalanceHeartbeatMonitor.setDaemon(true);
             haLoadBalanceHeartbeatMonitor.start();
         }
-    }
-
-    private Connection copyConn(HostInfo hostInfo, String host) throws SQLException {
-        return ConnectionImpl.getInstance(hostInfo);
-        /*Properties prop = this.props;
-        if (this.props == null) {
-            return null;
-        }
-        int connectionTimeout = Integer.parseInt(prop.getProperty("connectionTimeout", "1200"));
-        int socketTimeout = Integer.parseInt(prop.getProperty("socketTimeout", "3000"));
-        connectionTimeout = connectionTimeout == 0 ? 1200 : connectionTimeout;
-        socketTimeout = socketTimeout == 0 ? 3000 : socketTimeout;
-        String url = "jdbc:tdsql-mysql://" + host + "/?useSSL=false&connectTimeout=" + connectionTimeout + "&socketTimeout=" + socketTimeout;
-        int port = Integer.parseInt(prop.getProperty("PORT", "3306"));
-        String db = prop.getProperty("DBNAME", "");
-        return null ConnectionImpl.getInstance(host, port, prop, db, url);*/
     }
 
     public synchronized void addAllHost(List<String> l) {
@@ -224,8 +207,8 @@ public class ConnectionManager {
             if (ConnectionManager.getInstance().blackList.contains(this.bl)) {
                 Connection conn = null;
                 try {
-                    conn = ConnectionManager.this.copyConn(this.hostInfo, this.bl);
-                    if (conn != null) {
+                    conn = ConnectionImpl.getInstance(this.hostInfo);
+                    if (!conn.isClosed()) {
                         Set<String> set = ConnectionManager.getInstance().blackList;
                         synchronized (set) {
                             if (ConnectionManager.getInstance().blackList.contains(this.bl)) {
