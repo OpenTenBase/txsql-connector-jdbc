@@ -33,6 +33,7 @@ import static com.tencentcloud.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
 
 import com.tencentcloud.tdsql.mysql.cj.Constants;
 import com.tencentcloud.tdsql.mysql.cj.Messages;
+import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl.Type;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
@@ -271,6 +272,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
                     ConnectionManager.getInstance().getPropMap().put(host, info);
                     java.sql.Connection conn = this.chargeConnection(hostInfoMap, host, true);
                     if (conn != null) {
+                        ((MysqlConnection) conn).getSession().getLog().logInfo(host + " - " + ConnectionManager.HOST_CONNECTION_COUNT_MAP.get(host));
                         return conn;
                     }
                     hostList.remove(host);
