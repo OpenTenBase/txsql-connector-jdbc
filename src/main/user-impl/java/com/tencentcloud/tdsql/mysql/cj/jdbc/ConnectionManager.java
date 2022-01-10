@@ -59,7 +59,7 @@ public class ConnectionManager {
                 Connection c = iterator.next();
                 try {
                     if (c == null || c.isClosed()) {
-                        l.remove(c);
+                        iterator.remove();
                     }
                 } catch (SQLException e) {
                     e.printStackTrace();
