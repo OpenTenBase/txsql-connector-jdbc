@@ -50,17 +50,14 @@ public class ConnectionManager {
     }
 
     public void addConnection(HostInfo hostInfo, final String host, Connection conn) {
-        List<Connection> l;
         Map<String, List<Connection>> map = this.hostConnectionMap;
         synchronized (map) {
-            l = this.hostConnectionMap.containsKey(host) ? this.hostConnectionMap.get(host)
+            List<Connection> l = this.hostConnectionMap.containsKey(host) ? this.hostConnectionMap.get(host)
                     : new ArrayList<Connection>();
-            int count = 0;
             for (Connection c : l) {
                 try {
                     if (c == null || c.isClosed()) {
                         l.remove(c);
-                        count++;
                     }
                 } catch (SQLException e) {
                     e.printStackTrace();
@@ -127,6 +124,7 @@ public class ConnectionManager {
                                 continue;
                             }
                         } catch (Exception e) {
+                            e.printStackTrace();
                             if (++attempts < haLoadBalanceMaximumErrorRetries) {
                                 continue;
                             }
