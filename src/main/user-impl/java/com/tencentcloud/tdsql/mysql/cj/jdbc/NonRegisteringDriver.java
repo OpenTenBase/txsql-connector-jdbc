@@ -266,7 +266,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 }
                 if (ConnectionManager.getInstance().blackList.contains(host)) {
                     ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(host);
-                    System.out.println("......");
+                    System.out.println("2......");
                     hostList.remove(host);
                     --i;
                 } else {
@@ -278,7 +278,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
                     }
                     hostList.remove(host);
                     ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(host);
-                    System.out.println("......");
+                    System.out.println("3......");
                     --i;
                 }
                 ++i;

@@ -132,7 +132,7 @@ public class ConnectionManager {
                             }
                             ConnectionManager.this.blackList.add(ht);
                             ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(ht);
-                            System.out.println("......");
+                            System.out.println("1......");
                             ConnectionManager.this.log(newConn, "add ip [" + ht + "] to blacklist");
                             ConnectionManager.this.log(newConn, "current black list [" + ConnectionManager.this.blackList + "]");
                             BlackListTask blackListTask = new BlackListTask(hostInfo, ht, haLoadBalanceBlacklistTimeout);
