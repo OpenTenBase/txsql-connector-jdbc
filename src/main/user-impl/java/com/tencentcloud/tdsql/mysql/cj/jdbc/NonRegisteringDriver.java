@@ -400,14 +400,12 @@ public class NonRegisteringDriver implements java.sql.Driver {
         try {
             HostInfo hostInfo = hostInfoMap.get(hostPortPair);
             conn = ConnectionImpl.getInstance(hostInfo);
-            if (conn != null && !conn.isClosed()) {
-                if (flag) {
-                    ConnectionManager.getInstance().addConnection(hostInfo, hostPortPair, conn);
-                }
-                return conn;
+            if (flag) {
+                ConnectionManager.getInstance().addConnection(hostInfo, hostPortPair, conn);
             }
             return conn;
         } catch (Exception e) {
+            e.printStackTrace();
             return conn;
         }
         /*java.sql.Connection conn = null;

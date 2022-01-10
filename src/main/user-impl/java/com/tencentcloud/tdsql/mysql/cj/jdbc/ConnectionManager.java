@@ -66,9 +66,9 @@ public class ConnectionManager {
                     e.printStackTrace();
                 }
             }
-            ConnectionManager.this.log(conn, "1." + host + " remove " + count);
             l.add(conn);
             this.hostConnectionMap.put(host, l);
+            ConnectionManager.this.log(conn, "1." + host + " has " + l.size());
         }
         final String ht = host;
         Thread haLoadBalanceHeartbeatMonitor = new Thread() {
@@ -120,7 +120,7 @@ public class ConnectionManager {
                                     iterator.remove();
                                     ++k;
                                 }
-                                ConnectionManager.this.log(newConn, "2." + host + " remove " + k);
+                                ConnectionManager.this.log(newConn, "2." + host + " has " + scons.size());
                                 if (k == scons.size()) {
                                     break;
                                 }
