@@ -56,7 +56,7 @@ public class LoadBalanceTest {
         ds.setMaxLifetime(30000);
         ds.setJdbcUrl(
                 "jdbc:tdsql-mysql:loadbalance://9.134.209.89:3357,9.134.209.89:3358,9.134.209.89:3359,9.134.209.89:3360/jdbc_test_db"
-                        + "?useSSL=false&useUnicode=true&characterEncoding=UTF-8&socketTimeout=3000&connectTimeout=1200"
+                        + "?useSSL=false&useUnicode=true&characterEncoding=UTF-8&socketTimeout=3000&connectTimeout=10000"
                         + "&haLoadBalanceStrategy=sed"
                         + "&haLoadBalanceWeightFactor=1,1,1,1"
                         + "&haLoadBalanceBlacklistTimeout=5000"

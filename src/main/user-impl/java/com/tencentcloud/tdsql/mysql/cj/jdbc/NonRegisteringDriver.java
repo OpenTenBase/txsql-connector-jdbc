@@ -54,7 +54,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -270,11 +269,10 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 } else {
                     ConnectionManager.getInstance().getPropMap().put(host, info);
                     java.sql.Connection conn = this.chargeConnection(hostInfoMap, host, true);
-                    if (conn != null) {
+                    if (conn != null && !conn.isClosed()) {
                         return conn;
                     }
                     hostList.remove(host);
-                    ConnectionManager.HOST_CONNECTION_COUNT_MAP.remove(host);
                     --i;
                 }
                 ++i;
@@ -366,7 +364,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
     }
 
     private String choice() {
-        List<Map.Entry<String, Integer>> list = new ArrayList<Entry<String, Integer>>(ConnectionManager.HOST_CONNECTION_COUNT_MAP.entrySet());
+        List<Map.Entry<String, Integer>> list = new ArrayList<>(ConnectionManager.HOST_CONNECTION_COUNT_MAP.entrySet());
         Map<String, Integer> wfMap = ConnectionManager.getInstance().getWeightFactor();
 
         for (int i = 0; i < list.size(); i++) {
@@ -396,14 +394,12 @@ public class NonRegisteringDriver implements java.sql.Driver {
         try {
             HostInfo hostInfo = hostInfoMap.get(hostPortPair);
             conn = ConnectionImpl.getInstance(hostInfo);
-            if (conn != null && !conn.isClosed()) {
-                if (flag) {
-                    ConnectionManager.getInstance().addConnection(hostInfo, hostPortPair, conn);
-                }
-                return conn;
+            if (flag) {
+                ConnectionManager.getInstance().addConnection(hostInfo, hostPortPair, conn);
             }
             return conn;
         } catch (Exception e) {
+            e.printStackTrace();
             return conn;
         }
         /*java.sql.Connection conn = null;
