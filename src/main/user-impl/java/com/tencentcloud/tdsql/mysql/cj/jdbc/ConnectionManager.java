@@ -62,7 +62,6 @@ public class ConnectionManager {
                         iterator.remove();
                     }
                 } catch (SQLException e) {
-                    e.printStackTrace();
                 }
             }
             l.add(conn);

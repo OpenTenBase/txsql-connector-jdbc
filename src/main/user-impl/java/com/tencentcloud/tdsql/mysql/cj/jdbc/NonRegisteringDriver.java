@@ -399,7 +399,6 @@ public class NonRegisteringDriver implements java.sql.Driver {
             }
             return conn;
         } catch (Exception e) {
-            e.printStackTrace();
             return conn;
         }
         /*java.sql.Connection conn = null;
