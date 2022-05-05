@@ -43,6 +43,7 @@ import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.UnableToConnectException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.UnsupportedConnectionStringException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlDirectConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.FailoverConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionProxy;
@@ -220,6 +221,9 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 case REPLICATION_CONNECTION:
                 case REPLICATION_DNS_SRV_CONNECTION:
                     return ReplicationConnectionProxy.createProxyInstance(conStr);
+
+                case DIRECT_CONNECTION:
+                    return TdsqlDirectConnectionProxy.createProxyInstance(conStr);
 
                 default:
                     return null;

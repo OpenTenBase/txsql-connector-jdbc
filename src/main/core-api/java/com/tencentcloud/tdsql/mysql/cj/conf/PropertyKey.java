@@ -277,7 +277,12 @@ public enum PropertyKey {
     haLoadBalanceBlacklistTimeout("haLoadBalanceBlacklistTimeout", true),
     haLoadBalanceHeartbeatMonitor("haLoadBalanceHeartbeatMonitor", true),
     haLoadBalanceHeartbeatIntervalTime("haLoadBalanceHeartbeatIntervalTime", true),
-    haLoadBalanceMaximumErrorRetries("haLoadBalanceMaximumErrorRetries", true)
+    haLoadBalanceMaximumErrorRetries("haLoadBalanceMaximumErrorRetries", true),
+
+    // direct
+    tdsqlReadWriteMode("tdsqlReadWriteMode", true),
+    tdsqlMaxSlaveDelay("tdsqlMaxSlaveDelay", true),
+    tdsqlProxyTopoRefreshInterval("tdsqlProxyTopoRefreshInterval", true)
     ;
 
     private String keyName;
@@ -298,7 +303,7 @@ public enum PropertyKey {
 
     /**
      * Initializes each enum element with the proper key name to be used in the connection string or properties maps.
-     * 
+     *
      * @param keyName
      *            the key name for the enum element.
      * @param isCaseSensitive
@@ -311,7 +316,7 @@ public enum PropertyKey {
 
     /**
      * Initializes each enum element with the proper key name to be used in the connection string or properties maps.
-     * 
+     *
      * @param keyName
      *            the key name for the enum element.
      * @param alias
@@ -331,7 +336,7 @@ public enum PropertyKey {
 
     /**
      * Gets the key name of this enum element.
-     * 
+     *
      * @return
      *         the key name associated with the enum element.
      */
@@ -341,7 +346,7 @@ public enum PropertyKey {
 
     /**
      * Gets the camel-case alias key name of this enum element.
-     * 
+     *
      * @return
      *         the camel-case alias key name associated with the enum element or null.
      */
@@ -351,7 +356,7 @@ public enum PropertyKey {
 
     /**
      * Looks for a {@link PropertyKey} that matches the given value as key name.
-     * 
+     *
      * @param value
      *            the key name to look for.
      * @return
@@ -374,7 +379,7 @@ public enum PropertyKey {
 
     /**
      * Helper method that normalizes the case of the given key, if it is one of {@link PropertyKey} elements.
-     * 
+     *
      * @param keyName
      *            the key name to normalize.
      * @return
