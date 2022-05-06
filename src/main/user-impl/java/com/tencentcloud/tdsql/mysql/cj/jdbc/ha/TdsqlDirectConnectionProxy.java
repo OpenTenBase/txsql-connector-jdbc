@@ -6,7 +6,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectConnectionManager;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectTopoServer;
 import java.sql.SQLException;
-import java.util.ArrayList;
 
 /**
  * <p></p>
@@ -15,12 +14,19 @@ import java.util.ArrayList;
  */
 public final class TdsqlDirectConnectionProxy {
 
-    public synchronized static JdbcConnection createProxyInstance(ConnectionUrl connectionUrl) throws SQLException {
-        TdsqlDirectTopoServer.getInstance().initialize(connectionUrl);
-        TdsqlLoadBalanceStrategy balancer = new TdsqlDirectLoadBalanceStrategy();
-        HostInfo choice = balancer.choice(new ArrayList<HostInfo>() {{
-            add(connectionUrl.getMainHost());
-        }});
-        return TdsqlDirectConnectionManager.getInstance().pickNewConnection(choice);
+    public static JdbcConnection createProxyInstance(ConnectionUrl connectionUrl) throws SQLException {
+        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+        JdbcConnection newConnection;
+
+        topoServer.initialize(connectionUrl);
+
+        topoServer.lock.lock();
+        try {
+            HostInfo choice = new TdsqlDirectLoadBalanceStrategy().choice();
+            newConnection = TdsqlDirectConnectionManager.getInstance().pickNewConnection(choice);
+        } finally {
+            topoServer.lock.unlock();
+        }
+        return newConnection;
     }
 }

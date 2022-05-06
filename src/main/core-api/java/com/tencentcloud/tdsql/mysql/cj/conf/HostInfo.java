@@ -185,6 +185,10 @@ public class HostInfo implements DatabaseUrlContainer {
         return isNullOrEmpty(database) ? "" : database;
     }
 
+    public DatabaseUrlContainer getOriginalUrl() {
+        return originalUrl;
+    }
+
     /**
      * Exposes this host info as a single properties instance. The values for host, port, user and password are added to the properties map with their standard
      * keys.
