@@ -5,8 +5,16 @@ import com.tencentcloud.tdsql.mysql.cj.conf.DatabaseUrlContainer;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCache;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCluster;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.FailoverConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlConst;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlUtil;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +37,7 @@ public final class TdsqlDirectTopoServer {
     private Integer tdsqlProxyTopoRefreshInterval = TdsqlConst.TDSQL_PROXY_TOPO_REFRESH_INTERVAL_DEFAULT_VALUE;
     private final ConcurrentHashMap<TdsqlHostInfo, Long> scheduleQueue = new ConcurrentHashMap<>();
     public ReentrantLock lock = new ReentrantLock();
+    private Connection tdsqlConnection;
 
     private TdsqlDirectTopoServer() {
     }
@@ -37,7 +46,7 @@ public final class TdsqlDirectTopoServer {
         return SingletonInstance.INSTANCE;
     }
 
-    public synchronized void initialize(ConnectionUrl connectionUrl) {
+    public synchronized void initialize(ConnectionUrl connectionUrl) throws SQLException {
         JdbcPropertySetImpl connProps = new JdbcPropertySetImpl();
         connProps.initializeProperties(connectionUrl.getConnectionArgumentsAsProperties());
 
@@ -77,6 +86,12 @@ public final class TdsqlDirectTopoServer {
             initializeScheduler(connectionUrl);
             topoServerSchedulerInitialized = true;
         }
+
+        tdsqlConnection = FailoverConnectionProxy.createProxyInstance(connectionUrl);
+
+        if (!DataSetCache.SingletonInstance.INSTANCE.waitCached(1, 60)) {
+            throw new SQLException("wait tdsql topology timeout");
+        }
     }
 
     private void getTopology(ConnectionUrl connectionUrl, Boolean firstInitialize) {
@@ -91,6 +106,15 @@ public final class TdsqlDirectTopoServer {
                 e.printStackTrace();
             }
         }
+    }
+
+    private void getTopology() throws SQLException {
+        List<DataSetCluster> dataSetClusters = TdsqlUtil.showRoutes(tdsqlConnection);
+        if(dataSetClusters.size() == 0) {
+            return;
+        }
+        DataSetCache.SingletonInstance.INSTANCE.setMasters(Arrays.asList(dataSetClusters.get(0).getMaster()));
+        DataSetCache.SingletonInstance.INSTANCE.setSlaves(dataSetClusters.get(0).getSlaves());
     }
 
     public void refreshTopology(ConnectionUrl connectionUrl) {
@@ -157,7 +181,7 @@ public final class TdsqlDirectTopoServer {
         public void run() {
             // TODO: Refresh topology structure logic.
             try {
-                TdsqlDirectTopoServer.getInstance().getTopology(connectionUrl, false);
+                TdsqlDirectTopoServer.getInstance().getTopology();
             } catch (Exception e) {
                 e.printStackTrace();
             }

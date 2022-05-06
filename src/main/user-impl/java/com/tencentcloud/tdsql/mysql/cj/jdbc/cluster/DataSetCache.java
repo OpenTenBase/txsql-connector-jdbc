@@ -57,6 +57,9 @@ public class DataSetCache {
         if(!masters.equals(this.masters)) {
             propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, this.masters, masters);
             this.masters = masters;
+            if(!isCached()) {
+                setCached(true);
+            }
         }
     }
 
@@ -68,6 +71,9 @@ public class DataSetCache {
         if(!slaves.equals(this.slaves)) {
             propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, this.slaves, slaves);
             this.slaves = slaves;
+            if(!isCached()) {
+                setCached(true);
+            }
         }
     }
 
@@ -79,8 +85,8 @@ public class DataSetCache {
         this.cached = cached;
     }
 
-    private static class SingletonInstance {
+    public static class SingletonInstance {
 
-        private static final DataSetCache INSTANCE = new DataSetCache();
+        public static final DataSetCache INSTANCE = new DataSetCache();
     }
 }
