@@ -13,7 +13,7 @@ public class DataSetInfo {
     // 权重, 0-100
     private Integer weight = 0;
     // 是否存活
-    private Boolean active = true;
+    private Boolean alive = true;
     // true: 是监听节点, false: 正常节点
     private Boolean watch = false;
     // 数据同步延迟, >= 0的整数
@@ -48,12 +48,12 @@ public class DataSetInfo {
         this.weight = weight;
     }
 
-    public Boolean getActive() {
-        return active;
+    public Boolean getAlive() {
+        return alive;
     }
 
-    public void setActive(Boolean active) {
-        this.active = active;
+    public void setAlive(Boolean alive) {
+        this.alive = alive;
     }
 
     public Boolean getWatch() {
