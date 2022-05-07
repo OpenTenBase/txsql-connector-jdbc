@@ -2,27 +2,23 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.ha;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
-import java.util.List;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 
 /**
  * <p></p>
  *
  * @author dorianzhang@tencent.com
  */
-public abstract class TdsqlLoadBalanceStrategy {
+public interface TdsqlLoadBalanceStrategy {
 
     /**
      * <p>
      * 从连接信息列表中，根据具体负载均衡算法策略的实现逻辑，选取一个连接信息
      * </p>
      *
+     * @param scheduleQueue 连接信息列表
      * @return 选择后的连接信息
      * @see HostInfo
      */
-    abstract HostInfo choice();
-
-    protected TdsqlHostInfo getRandom(List<TdsqlHostInfo> hostInfoList) {
-        int random = (int) Math.floor((Math.random() * hostInfoList.size()));
-        return hostInfoList.get(random);
-    }
+    HostInfo choice(TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue);
 }
