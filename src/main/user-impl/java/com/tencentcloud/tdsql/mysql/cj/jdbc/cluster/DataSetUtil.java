@@ -1,5 +1,8 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.cluster;
 
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
+import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
+import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.TDSQLRouteParseException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlConst;
 import java.sql.SQLException;
@@ -96,6 +99,13 @@ public class DataSetUtil {
             throw new TDSQLRouteParseException("Invalid port value in endpoint: " + str);
         }
         return res;
+    }
+
+    public static TdsqlHostInfo convertDataSetInfo(DataSetInfo dataSetInfo, ConnectionUrl connectionUrl) {
+        HostInfo mainHost = connectionUrl.getMainHost();
+        return new TdsqlHostInfo(
+                new HostInfo(mainHost.getOriginalUrl(), dataSetInfo.getIP(), Integer.parseInt(dataSetInfo.getPort()),
+                        mainHost.getUser(), mainHost.getPassword(), mainHost.getHostProperties()));
     }
 
 }

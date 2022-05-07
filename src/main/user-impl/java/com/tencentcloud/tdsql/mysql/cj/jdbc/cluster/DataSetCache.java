@@ -19,8 +19,8 @@ public class DataSetCache {
     private List<DataSetInfo> slaves = new ArrayList<>();
     private boolean cached = false;
 
-    private static final String MASTERS_PROPERTY_NAME = "masters";
-    private static final String SLAVES_PROPERTY_NAME = "slaves";
+    public static final String MASTERS_PROPERTY_NAME = "masters";
+    public static final String SLAVES_PROPERTY_NAME = "slaves";
 
     public DataSetCache() {
     }

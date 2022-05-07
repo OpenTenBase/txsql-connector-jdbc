@@ -77,7 +77,8 @@ public abstract class TdsqlBaseTest {
     protected void printScheduleQueue() {
         long total = 0;
         System.out.println("------------------------------ printScheduleQueue ------------------------------");
-        for (Entry<TdsqlHostInfo, Long> entry : TdsqlDirectTopoServer.getInstance().getScheduleQueue().entrySet()) {
+        for (Entry<TdsqlHostInfo, Long> entry : TdsqlDirectTopoServer.getInstance().getScheduleQueue().asMap()
+                .entrySet()) {
             total += entry.getValue();
             System.out.println("Host:Count = " + entry.getKey() + ": " + entry.getValue());
         }

@@ -29,6 +29,7 @@
 
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlDirectConnectionProxy;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationHandler;
@@ -716,6 +717,9 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
             }
 
             realClose(true, true, false, null);
+            if (TdsqlDirectConnectionProxy.directMode) {
+                TdsqlDirectConnectionProxy.closeProxyInstance(this, origHostInfo);
+            }
         }
     }
 

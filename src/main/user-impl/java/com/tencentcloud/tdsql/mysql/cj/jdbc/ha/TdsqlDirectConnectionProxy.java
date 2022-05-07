@@ -2,10 +2,13 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.ha;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
+import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectConnectionManager;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectTopoServer;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 import java.sql.SQLException;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * <p></p>
@@ -14,19 +17,35 @@ import java.sql.SQLException;
  */
 public final class TdsqlDirectConnectionProxy {
 
-    public static JdbcConnection createProxyInstance(ConnectionUrl connectionUrl) throws SQLException {
-        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
-        JdbcConnection newConnection;
+    public static boolean directMode = false;
 
+    private TdsqlDirectConnectionProxy() {
+    }
+
+    public static JdbcConnection createProxyInstance(ConnectionUrl connectionUrl) throws SQLException {
+        directMode = true;
+        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+        ReentrantReadWriteLock refreshLock = topoServer.getRefreshLock();
         topoServer.initialize(connectionUrl);
 
-        topoServer.lock.lock();
+        refreshLock.readLock().lock();
+        JdbcConnection newConnection;
         try {
-            HostInfo choice = new TdsqlDirectLoadBalanceStrategy().choice();
-            newConnection = TdsqlDirectConnectionManager.getInstance().pickNewConnection(choice);
+            newConnection = TdsqlDirectConnectionManager.getInstance()
+                    .pickNewConnection(new TdsqlDirectLoadBalanceStrategy());
         } finally {
-            topoServer.lock.unlock();
+            refreshLock.readLock().unlock();
         }
         return newConnection;
+    }
+
+    public static void closeProxyInstance(JdbcConnection jdbcConnection, HostInfo hostInfo) {
+        TdsqlHostInfo tdsqlHostInfo = new TdsqlHostInfo(hostInfo);
+        TdsqlDirectConnectionManager.getInstance().getConnectionList(tdsqlHostInfo)
+                .removeIf(cachedConnection -> cachedConnection.equals(jdbcConnection));
+        TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = TdsqlDirectTopoServer.getInstance().getScheduleQueue();
+        if (scheduleQueue.containsKey(tdsqlHostInfo)) {
+            scheduleQueue.decrementAndGet(tdsqlHostInfo);
+        }
     }
 }
