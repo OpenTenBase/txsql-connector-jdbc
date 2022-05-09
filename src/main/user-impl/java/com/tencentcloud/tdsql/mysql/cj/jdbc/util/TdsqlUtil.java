@@ -25,7 +25,7 @@ public class TdsqlUtil {
                 while (rs.next()) {
                     String clusterName = rs.getString(1);
                     String master = rs.getString(2);
-                    String slaves = rs.getString(3);
+                    String slaves = rs.getString(4);
                     DataSetCluster dataSetCluster = new DataSetCluster(clusterName);
                     dataSetCluster.setMaster(DataSetUtil.parseMaster(master));
                     dataSetCluster.setSlaves(DataSetUtil.parseSlaveList(slaves));
