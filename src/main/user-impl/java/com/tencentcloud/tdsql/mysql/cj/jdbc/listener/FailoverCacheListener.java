@@ -53,7 +53,7 @@ public class FailoverCacheListener implements PropertyChangeListener {
         onlineSlaves.removeAll(oldSlaves);
 
         if(offLineSlaves.size() > 0) {
-            List<String> toCloseList = offLineSlaves.stream().map(d -> String.format("%s:%s", d.getIP(), d.getPort())).toList();
+            List<String> toCloseList = offLineSlaves.stream().map(d -> String.format("%s:%s", d.getIP(), d.getPort())).collect(Collectors.toList());
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.valueOf(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_OFFLINE, toCloseList);
         }
