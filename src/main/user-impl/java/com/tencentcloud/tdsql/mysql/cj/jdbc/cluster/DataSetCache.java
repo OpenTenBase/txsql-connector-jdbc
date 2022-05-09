@@ -1,11 +1,13 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.cluster;
 
 import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectTopoServer;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.WaitUtil;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 
@@ -68,6 +70,9 @@ public class DataSetCache {
     }
 
     public void setSlaves(List<DataSetInfo> slaves) {
+        if(TdsqlDirectTopoServer.getInstance().getTdsqlMaxSlaveDelay() > 0) {
+            slaves.removeIf(dataSetInfo -> dataSetInfo.getDelay() > TdsqlDirectTopoServer.getInstance().getTdsqlMaxSlaveDelay());
+        }
         if(!slaves.equals(this.slaves)) {
             propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, this.slaves, slaves);
             this.slaves = slaves;
