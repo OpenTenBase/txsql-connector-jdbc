@@ -37,7 +37,6 @@ public final class TdsqlDirectConnectionManager {
         TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = topoServer.getScheduleQueue();
 
         HostInfo hostInfo = balancer.choice(scheduleQueue);
-        System.out.println("hostInfo = " + hostInfo);
         JdbcConnection connection = ConnectionImpl.getInstance(hostInfo);
         TdsqlHostInfo tdsqlHostInfo = new TdsqlHostInfo(hostInfo);
 

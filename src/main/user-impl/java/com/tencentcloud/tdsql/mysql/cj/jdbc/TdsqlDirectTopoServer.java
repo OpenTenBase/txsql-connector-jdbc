@@ -13,18 +13,17 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCache;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCluster;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.TDSQLSyncBackendTopoException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlDirectFailoverOperator;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.listener.FailoverCacheListener;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.listener.UpdateSchedulingQueueCacheListener;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlConst;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlUtil;
-
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Arrays;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlDirectFailoverOperator;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -100,7 +99,8 @@ public final class TdsqlDirectTopoServer {
             initializeScheduler();
             topoServerSchedulerInitialized = true;
             tdsqlConnection = LoadBalancedConnectionProxy.createProxyInstance(connectionUrl);
-            DataSetCache.getInstance().addListener(new UpdateSchedulingQueueCacheListener(tdsqlReadWriteMode, scheduleQueue, connectionUrl));
+            DataSetCache.getInstance().addListener(
+                    new UpdateSchedulingQueueCacheListener(tdsqlReadWriteMode, scheduleQueue, connectionUrl));
             DataSetCache.getInstance().addListener(new FailoverCacheListener(tdsqlReadWriteMode));
         }
         if (!DataSetCache.getInstance().waitCached(1, 60)) {
@@ -108,30 +108,16 @@ public final class TdsqlDirectTopoServer {
         }
     }
 
-//    private void getTopology(Boolean firstInitialize) {
-//        if (firstInitialize) {
-//            scheduleQueue.clear();
-//            refreshTopology(true);
-//        } else {
-//            // TODO: 模拟建连、获取返回值、比较等操作，如发现拓扑变化，再调用 refreshTopology() 方法
-//            try {
-//                TimeUnit.MILLISECONDS.sleep(500);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
-
     private void getTopology() throws SQLException {
         if(tdsqlConnection == null) {
             return;
         }
         List<DataSetCluster> dataSetClusters = TdsqlUtil.showRoutes(tdsqlConnection);
-        if(dataSetClusters.size() == 0) {
+        if (dataSetClusters.size() == 0) {
             throw new TDSQLSyncBackendTopoException("No backend cluster found with command: /*proxy*/ show routes");
         }
-        if(dataSetClusters.get(0).getMaster() != null) {
-            DataSetCache.getInstance().setMasters(Arrays.asList(dataSetClusters.get(0).getMaster()));
+        if (dataSetClusters.get(0).getMaster() != null) {
+            DataSetCache.getInstance().setMasters(Collections.singletonList(dataSetClusters.get(0).getMaster()));
         } else {
             DataSetCache.getInstance().setMasters(new ArrayList<>());
         }
@@ -195,14 +181,9 @@ public final class TdsqlDirectTopoServer {
     private void initializeScheduler() {
         topoServerScheduler = new ScheduledThreadPoolExecutor(1,
                 new TdsqlThreadFactoryBuilder().setNameFormat("TopoServer-pool-").build());
-        topoServerScheduler.scheduleAtFixedRate(new TopoRefreshTask(connectionUrl, scheduleQueue), 0L,
-                tdsqlProxyTopoRefreshInterval, TimeUnit.MILLISECONDS);
+        topoServerScheduler.scheduleAtFixedRate(new TopoRefreshTask(), 0L, tdsqlProxyTopoRefreshInterval,
+                TimeUnit.MILLISECONDS);
     }
-
-    // -----------------------------------------------------------------------------------------------------------------
-    // TODO: other methods
-    // ......
-    // -----------------------------------------------------------------------------------------------------------------
 
     public String getTdsqlReadWriteMode() {
         return tdsqlReadWriteMode;
@@ -226,17 +207,8 @@ public final class TdsqlDirectTopoServer {
 
     private static class TopoRefreshTask implements Runnable {
 
-        private final ConnectionUrl connectionUrl;
-        private final TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue;
-
-        public TopoRefreshTask(ConnectionUrl connectionUrl, TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue) {
-            this.connectionUrl = connectionUrl;
-            this.scheduleQueue = scheduleQueue;
-        }
-
         @Override
         public void run() {
-            // TODO: Refresh topology structure logic.
             try {
                 TdsqlDirectTopoServer.getInstance().getTopology();
             } catch (Exception e) {

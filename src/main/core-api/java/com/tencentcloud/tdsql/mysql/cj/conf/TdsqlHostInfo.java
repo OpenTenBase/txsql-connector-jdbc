@@ -10,7 +10,6 @@ import java.util.Objects;
  */
 public final class TdsqlHostInfo extends HostInfo {
 
-    private final String originalUrl;
     private final String host;
     private final int port;
     private final String user;
@@ -21,7 +20,6 @@ public final class TdsqlHostInfo extends HostInfo {
     public TdsqlHostInfo(HostInfo hostInfo) {
         super(hostInfo.getOriginalUrl(), hostInfo.getHost(), hostInfo.getPort(), hostInfo.getUser(),
                 hostInfo.getPassword(), hostInfo.getHostProperties());
-        this.originalUrl = hostInfo.getDatabaseUrl();
         this.host = hostInfo.getHost();
         this.port = hostInfo.getPort();
         this.user = hostInfo.getUser();
