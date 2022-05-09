@@ -31,7 +31,7 @@ public class FailoverCacheListener implements PropertyChangeListener {
     @SuppressWarnings("unchecked")
     private void handleMaster(PropertyChangeEvent evt) {
         List<DataSetInfo> newMasters = (List<DataSetInfo>) evt.getNewValue();
-        TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.valueOf(tdsqlReadWriteMode),
+        TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                 TdsqlDirectMasterSlaveSwitchMode.MASTER_SLAVE_SWITCH, null);
     }
 
@@ -52,13 +52,13 @@ public class FailoverCacheListener implements PropertyChangeListener {
         if (offLineSlaves.size() > 0) {
             List<String> toCloseList = offLineSlaves.stream().map(d -> String.format("%s:%s", d.getIP(), d.getPort()))
                     .collect(Collectors.toList());
-            TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.valueOf(tdsqlReadWriteMode),
+            TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_OFFLINE, toCloseList);
         }
 
         if (onlineSlaves.size() > 0) {
             List<String> toCloseList = new ArrayList<>();
-            TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.valueOf(tdsqlReadWriteMode),
+            TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_ONLINE, toCloseList);
         }
     }
