@@ -52,6 +52,7 @@ import com.tencentcloud.tdsql.mysql.cj.util.Util;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,7 +60,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -111,8 +111,6 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
 
     private static Class<?>[] INTERFACES_TO_PROXY = new Class<?>[]{LoadBalancedConnection.class, JdbcConnection.class};
 
-    private static boolean isAdvancedAlgorithmActivated = false;
-
     /**
      * Static factory to create {@link LoadBalancedConnection} instances.
      *
@@ -122,8 +120,8 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
      */
     public static LoadBalancedConnection createProxyInstance(ConnectionUrl connectionUrl) throws SQLException {
         LoadBalancedConnectionProxy connProxy = new LoadBalancedConnectionProxy(connectionUrl);
-        return (LoadBalancedConnection) java.lang.reflect.Proxy
-                .newProxyInstance(LoadBalancedConnection.class.getClassLoader(), INTERFACES_TO_PROXY, connProxy);
+        return (LoadBalancedConnection) java.lang.reflect.Proxy.newProxyInstance(
+                LoadBalancedConnection.class.getClassLoader(), INTERFACES_TO_PROXY, connProxy);
     }
 
     /**
@@ -156,8 +154,8 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
             }
             this.connectionGroupProxyID = this.connectionGroup.registerConnectionProxy(this,
                     ((LoadBalanceConnectionUrl) connectionUrl).getHostInfoListAsHostPortPairs());
-            hosts = ((LoadBalanceConnectionUrl) connectionUrl)
-                    .getHostInfoListFromHostPortPairs(this.connectionGroup.getInitialHosts());
+            hosts = ((LoadBalanceConnectionUrl) connectionUrl).getHostInfoListFromHostPortPairs(
+                    this.connectionGroup.getInitialHosts());
         } else {
             hosts = connectionUrl.getHostsList();
         }
@@ -193,8 +191,8 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
                     MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, null);
         }
 
-        String hostRemovalGracePeriodAsString = props
-                .getProperty(PropertyKey.loadBalanceHostRemovalGracePeriod.getKeyName(), "15000");
+        String hostRemovalGracePeriodAsString = props.getProperty(
+                PropertyKey.loadBalanceHostRemovalGracePeriod.getKeyName(), "15000");
         try {
             this.hostRemovalGracePeriod = Integer.parseInt(hostRemovalGracePeriodAsString);
         } catch (NumberFormatException nfe) {
@@ -207,14 +205,6 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
         String strategy = props.getProperty(PropertyKey.ha_loadBalanceStrategy.getKeyName(), "random");
         try {
             switch (strategy) {
-                case "sed":
-                    isAdvancedAlgorithmActivated = true;
-                    this.balancer = new ShortestExpectDelayStrategy(props);
-                    break;
-                case "nq":
-                    isAdvancedAlgorithmActivated = true;
-                    this.balancer = new NeverQueueStrategy(props);
-                    break;
                 case "random":
                     this.balancer = new RandomBalanceStrategy();
                     break;
@@ -233,8 +223,8 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
                     MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, t, null);
         }
 
-        String autoCommitSwapThresholdAsString = props
-                .getProperty(PropertyKey.loadBalanceAutoCommitStatementThreshold.getKeyName(), "0");
+        String autoCommitSwapThresholdAsString = props.getProperty(
+                PropertyKey.loadBalanceAutoCommitStatementThreshold.getKeyName(), "0");
         try {
             Integer.parseInt(autoCommitSwapThresholdAsString);
         } catch (NumberFormatException nfe) {
@@ -244,8 +234,8 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
                     MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, null);
         }
 
-        String autoCommitSwapRegex = props
-                .getProperty(PropertyKey.loadBalanceAutoCommitStatementRegex.getKeyName(), "");
+        String autoCommitSwapRegex = props.getProperty(PropertyKey.loadBalanceAutoCommitStatementRegex.getKeyName(),
+                "");
         if (!("".equals(autoCommitSwapRegex))) {
             try {
                 "".matches(autoCommitSwapRegex);
@@ -260,9 +250,9 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
         try {
             String lbExceptionChecker = props.getProperty(PropertyKey.loadBalanceExceptionChecker.getKeyName(),
                     StandardLoadBalanceExceptionChecker.class.getName());
-            this.exceptionChecker = (LoadBalanceExceptionChecker) Util
-                    .getInstance(lbExceptionChecker, new Class<?>[0], new Object[0], null,
-                            Messages.getString("InvalidLoadBalanceExceptionChecker"));
+            this.exceptionChecker = (LoadBalanceExceptionChecker) Util.getInstance(lbExceptionChecker, new Class<?>[0],
+                    new Object[0], null,
+                    Messages.getString("InvalidLoadBalanceExceptionChecker"));
             this.exceptionChecker.init(props);
 
         } catch (CJException e) {
@@ -360,18 +350,13 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
             return;
         }
 
-        List<String> hostPortList = Collections
-                .unmodifiableList(this.hostsList.stream().map(HostInfo::getHostPortPair).collect(Collectors.toList()));
+        List<String> hostPortList = Collections.unmodifiableList(
+                this.hostsList.stream().map(hi -> hi.getHostPortPair()).collect(Collectors.toList()));
 
-        // startup
-        if (this.currentConnection == null) {
-            this.currentConnection = this.balancer
-                    .pickConnection(this, hostPortList, Collections.unmodifiableMap(this.liveConnections),
-                            this.responseTimes.clone(), this.retriesAllDown);
-            return;
-        }
-
-        if (isAdvancedAlgorithmActivated) {
+        if (this.currentConnection == null) { // startup
+            this.currentConnection = this.balancer.pickConnection(this, hostPortList,
+                    Collections.unmodifiableMap(this.liveConnections),
+                    this.responseTimes.clone(), this.retriesAllDown);
             return;
         }
 
@@ -387,9 +372,9 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
         for (int hostsTried = 0, hostsToTry = this.hostsList.size(); hostsTried < hostsToTry; hostsTried++) {
             ConnectionImpl newConn = null;
             try {
-                newConn = (ConnectionImpl) this.balancer
-                        .pickConnection(this, hostPortList, Collections.unmodifiableMap(this.liveConnections),
-                                this.responseTimes.clone(), this.retriesAllDown);
+                newConn = (ConnectionImpl) this.balancer.pickConnection(this, hostPortList,
+                        Collections.unmodifiableMap(this.liveConnections),
+                        this.responseTimes.clone(), this.retriesAllDown);
 
                 if (this.currentConnection != null) {
                     if (pingBeforeReturn) {
@@ -482,15 +467,12 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
      * Closes all live connections.
      */
     private synchronized void closeAllConnections() {
-        GlobalConnectionScheduler scheduler = GlobalConnectionScheduler.getInstance();
-        try {
-            // close all underlying connections
-            for (Entry<String, ConnectionImpl> entry : this.liveConnections.entrySet()) {
-                scheduler.getCounter().decrementAndGet(entry.getKey());
-                entry.getValue().close();
+        // close all underlying connections
+        for (Connection c : this.liveConnections.values()) {
+            try {
+                c.close();
+            } catch (SQLException e) {
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
 
         if (!this.isClosed) {
@@ -516,15 +498,12 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
      */
     @Override
     synchronized void doAbortInternal() {
-        GlobalConnectionScheduler scheduler = GlobalConnectionScheduler.getInstance();
-        try {
-            // abort all underlying connections
-            for (Entry<String, ConnectionImpl> entry : this.liveConnections.entrySet()) {
-                scheduler.getCounter().decrementAndGet(entry.getKey());
-                entry.getValue().abortInternal();
+        // abort all underlying connections
+        for (JdbcConnection c : this.liveConnections.values()) {
+            try {
+                c.abortInternal();
+            } catch (SQLException e) {
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
 
         if (!this.isClosed) {
@@ -542,15 +521,12 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
      */
     @Override
     synchronized void doAbort(Executor executor) {
-        GlobalConnectionScheduler scheduler = GlobalConnectionScheduler.getInstance();
-        try {
-            // close all underlying connections
-            for (Entry<String, ConnectionImpl> entry : this.liveConnections.entrySet()) {
-                scheduler.getCounter().decrementAndGet(entry.getKey());
-                entry.getValue().abort(executor);
+        // close all underlying connections
+        for (Connection c : this.liveConnections.values()) {
+            try {
+                c.abort(executor);
+            } catch (SQLException e) {
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
 
         if (!this.isClosed) {
@@ -826,7 +802,7 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
         Set<String> keys = blocklistClone.keySet();
 
         // We're only interested in blocklisted hosts that are in the hostList
-        keys.retainAll(this.hostsList.stream().map(HostInfo::getHostPortPair).collect(Collectors.toList()));
+        keys.retainAll(this.hostsList.stream().map(hi -> hi.getHostPortPair()).collect(Collectors.toList()));
 
         // Don't need to synchronize here as we using a local copy
         for (Iterator<String> i = keys.iterator(); i.hasNext(); ) {
@@ -1015,10 +991,10 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            SQLException exceptionToThrow = SQLError
-                    .createSQLException(Messages.getString("LoadBalancedConnectionProxy.unusableConnection"),
-                            MysqlErrorNumbers.SQL_STATE_INVALID_TRANSACTION_STATE,
-                            MysqlErrorNumbers.ERROR_CODE_NULL_LOAD_BALANCED_CONNECTION, true, null);
+            SQLException exceptionToThrow = SQLError.createSQLException(
+                    Messages.getString("LoadBalancedConnectionProxy.unusableConnection"),
+                    MysqlErrorNumbers.SQL_STATE_INVALID_TRANSACTION_STATE,
+                    MysqlErrorNumbers.ERROR_CODE_NULL_LOAD_BALANCED_CONNECTION, true, null);
             Class<?>[] declaredException = method.getExceptionTypes();
             for (Class<?> declEx : declaredException) {
                 if (declEx.isAssignableFrom(exceptionToThrow.getClass())) {
@@ -1033,9 +1009,9 @@ public class LoadBalancedConnectionProxy extends MultiHostConnectionProxy implem
 
     static synchronized LoadBalancedConnection getNullLoadBalancedConnectionInstance() {
         if (nullLBConnectionInstance == null) {
-            nullLBConnectionInstance = (LoadBalancedConnection) java.lang.reflect.Proxy
-                    .newProxyInstance(LoadBalancedConnection.class.getClassLoader(),
-                            INTERFACES_TO_PROXY, new NullLoadBalancedConnectionProxy());
+            nullLBConnectionInstance = (LoadBalancedConnection) java.lang.reflect.Proxy.newProxyInstance(
+                    LoadBalancedConnection.class.getClassLoader(),
+                    INTERFACES_TO_PROXY, new NullLoadBalancedConnectionProxy());
         }
         return nullLBConnectionInstance;
     }
