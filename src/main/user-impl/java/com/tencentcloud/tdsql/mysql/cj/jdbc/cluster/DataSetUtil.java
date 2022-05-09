@@ -14,8 +14,18 @@ public class DataSetUtil {
     private static final String separator = "@";
     private static final String endpointSeparator = ":";
     private static final String listSeparator = ",";
+    private static final String emptyStr = "";
+    private static final Integer zero = 0;
+    private static final Long zeroLong = 0L;
+
+    public static boolean isEmpty(String str) {
+        return str == null || str.equals(emptyStr);
+    }
 
     public static DataSetInfo parseMaster(String masterString) throws SQLException {
+        if(isEmpty(masterString)) {
+            return null;
+        }
         String[] masterSplit = masterString.split(separator);
         if(masterSplit.length < 3) {
             throw new TDSQLRouteParseException("Invalid master info length: " + masterString);
@@ -28,6 +38,9 @@ public class DataSetUtil {
     }
 
     public static DataSetInfo parseSlave(String slaveString) throws SQLException {
+        if(isEmpty(slaveString)) {
+            return null;
+        }
         String[] slaveSplit = slaveString.split(separator);
         if(slaveSplit.length < 4) {
             throw new TDSQLRouteParseException("Invalid slave info length: " + slaveString);
@@ -41,6 +54,9 @@ public class DataSetUtil {
     }
 
     public static List<DataSetInfo> parseSlaveList(String slaveListString) throws SQLException {
+        if(isEmpty(slaveListString)) {
+            return new ArrayList<>();
+        }
         List<DataSetInfo> dataSetInfos = new ArrayList<>();
         String[] slaveListSplit = slaveListString.split(listSeparator);
         for (String s : slaveListSplit) {
@@ -65,14 +81,23 @@ public class DataSetUtil {
     }
 
     private static boolean parseAlive(String str){
+        if(isEmpty(str)) {
+            return false;
+        }
         return str.trim().equals(TdsqlConst.TDSQL_ROUTE_ACTIVE_TRUE);
     }
 
     private static boolean parseWatch(String str){
+        if(isEmpty(str)) {
+            return false;
+        }
         return str.trim().equals(TdsqlConst.TDSQL_ROUTE_WATCH_TRUE);
     }
 
     private static Integer parseWeight(String str) throws SQLException {
+        if(isEmpty(str)){
+            return zero;
+        }
         try {
             return Integer.parseInt(str.trim());
         } catch (NumberFormatException ex) {
@@ -81,6 +106,9 @@ public class DataSetUtil {
     }
 
     private static Long parseDelay(String str) throws SQLException {
+        if(isEmpty(str)) {
+            return zeroLong;
+        }
         try {
             return Long.parseLong(str.trim());
         } catch (NumberFormatException ex) {
@@ -89,6 +117,9 @@ public class DataSetUtil {
     }
 
     private static String[] parseEndpoint(String str) throws SQLException {
+        if(isEmpty(str)) {
+            throw new TDSQLRouteParseException("empty endpoint");
+        }
         String[] res =str.trim().split(endpointSeparator);
         if(res.length < 2) {
             throw new TDSQLRouteParseException("Invalid endpoint: " + str);

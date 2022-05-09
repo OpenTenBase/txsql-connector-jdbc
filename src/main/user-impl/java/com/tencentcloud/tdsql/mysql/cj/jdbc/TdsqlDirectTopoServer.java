@@ -11,7 +11,8 @@ import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCache;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCluster;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.FailoverConnectionProxy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.TDSQLSyncBackendTopoException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.listener.FailoverCacheListener;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.listener.UpdateSchedulingQueueCacheListener;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlConst;
@@ -95,40 +96,44 @@ public final class TdsqlDirectTopoServer {
         }
 
         if (!topoServerSchedulerInitialized) {
-            getTopology(true);
+//            getTopology(true);
             initializeScheduler();
             topoServerSchedulerInitialized = true;
+            tdsqlConnection = LoadBalancedConnectionProxy.createProxyInstance(connectionUrl);
+            DataSetCache.getInstance().addListener(new UpdateSchedulingQueueCacheListener(tdsqlReadWriteMode, scheduleQueue, connectionUrl));
+            DataSetCache.getInstance().addListener(new FailoverCacheListener(tdsqlReadWriteMode));
         }
-
-        tdsqlConnection = FailoverConnectionProxy.createProxyInstance(connectionUrl);
-        DataSetCache.SingletonInstance.INSTANCE.addListener(new UpdateSchedulingQueueCacheListener(tdsqlReadWriteMode, scheduleQueue, connectionUrl));
-        DataSetCache.SingletonInstance.INSTANCE.addListener(new FailoverCacheListener(tdsqlReadWriteMode));
-        if (!DataSetCache.SingletonInstance.INSTANCE.waitCached(1, 60)) {
+        if (!DataSetCache.getInstance().waitCached(1, 60)) {
             throw new SQLException("wait tdsql topology timeout");
         }
     }
 
-    private void getTopology(Boolean firstInitialize) {
-        if (firstInitialize) {
-            scheduleQueue.clear();
-            refreshTopology(true);
-        } else {
-            // TODO: 模拟建连、获取返回值、比较等操作，如发现拓扑变化，再调用 refreshTopology() 方法
-            try {
-                TimeUnit.MILLISECONDS.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
+//    private void getTopology(Boolean firstInitialize) {
+//        if (firstInitialize) {
+//            scheduleQueue.clear();
+//            refreshTopology(true);
+//        } else {
+//            // TODO: 模拟建连、获取返回值、比较等操作，如发现拓扑变化，再调用 refreshTopology() 方法
+//            try {
+//                TimeUnit.MILLISECONDS.sleep(500);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//    }
 
     private void getTopology() throws SQLException {
         List<DataSetCluster> dataSetClusters = TdsqlUtil.showRoutes(tdsqlConnection);
         if(dataSetClusters.size() == 0) {
-            return;
+            throw new TDSQLSyncBackendTopoException("No backend cluster found with command: /*proxy*/ show routes");
         }
-        DataSetCache.SingletonInstance.INSTANCE.setMasters(Arrays.asList(dataSetClusters.get(0).getMaster()));
-        DataSetCache.SingletonInstance.INSTANCE.setSlaves(dataSetClusters.get(0).getSlaves());
+        if(dataSetClusters.get(0).getMaster() != null) {
+            DataSetCache.getInstance().setMasters(Arrays.asList(dataSetClusters.get(0).getMaster()));
+        } else {
+            DataSetCache.getInstance().setMasters(new ArrayList<>());
+        }
+
+        DataSetCache.getInstance().setSlaves(dataSetClusters.get(0).getSlaves());
     }
 
     int cnt = 0;

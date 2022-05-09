@@ -22,7 +22,7 @@ public class DataSetCache {
     public static final String MASTERS_PROPERTY_NAME = "masters";
     public static final String SLAVES_PROPERTY_NAME = "slaves";
 
-    public DataSetCache() {
+    private DataSetCache() {
     }
 
     /**
@@ -85,8 +85,12 @@ public class DataSetCache {
         this.cached = cached;
     }
 
-    public static class SingletonInstance {
+    private static class SingletonInstance {
 
         public static final DataSetCache INSTANCE = new DataSetCache();
+    }
+
+    public static DataSetCache getInstance(){
+        return SingletonInstance.INSTANCE;
     }
 }

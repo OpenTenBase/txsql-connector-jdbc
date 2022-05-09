@@ -2,6 +2,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.listener;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectTopoServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCache;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetUtil;
@@ -66,10 +67,15 @@ public class FailoverCacheListener implements PropertyChangeListener {
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
-        if(evt.getPropertyName().equals(DataSetCache.MASTERS_PROPERTY_NAME)){
-            handleMaster(evt);
-        } else if(evt.getPropertyName().equals(DataSetCache.SLAVES_PROPERTY_NAME)) {
-            handleSlave(evt);
+        TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
+        try {
+            if(evt.getPropertyName().equals(DataSetCache.MASTERS_PROPERTY_NAME)){
+                handleMaster(evt);
+            } else if(evt.getPropertyName().equals(DataSetCache.SLAVES_PROPERTY_NAME)) {
+                handleSlave(evt);
+            }
+        } finally {
+            TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().unlock();
         }
     }
 }

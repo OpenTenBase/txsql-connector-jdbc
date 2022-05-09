@@ -2,6 +2,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.listener;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectTopoServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCache;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetUtil;
@@ -27,24 +28,15 @@ public class UpdateSchedulingQueueCacheListener implements PropertyChangeListene
     /**
      * 主库变化
      * 1. 如果当前模式是RW, 将新主库加到schedulingQueue
-     * 2. 如果当前模式是RO, 将新主库和所有从库加到schedulingQueue
+     * 2. 如果当前模式是RO, 将新主库加到schedulingQueue
      * @param evt 属性变化事件
      */
     private void handleMaster(PropertyChangeEvent evt) {
         List<DataSetInfo> newMasters = (List<DataSetInfo>)evt.getNewValue();
-        if(tdsqlReadWriteMode.equals(TdsqlDirectReadWriteMode.RW.name())) {
-            scheduleQueue.clear();
-            for (DataSetInfo newMaster : newMasters) {
-                scheduleQueue.put(DataSetUtil.convertDataSetInfo(newMaster, connectionUrl), 0L);
-            }
-        }
-        if(tdsqlReadWriteMode.equals(TdsqlDirectReadWriteMode.RO.name())) {
-            scheduleQueue.clear();
-            for (DataSetInfo newMaster : newMasters) {
-                scheduleQueue.put(DataSetUtil.convertDataSetInfo(newMaster, connectionUrl), 0L);
-            }
-            for (DataSetInfo slave : DataSetCache.SingletonInstance.INSTANCE.getSlaves()) {
-                scheduleQueue.put(DataSetUtil.convertDataSetInfo(slave, connectionUrl), 0L);
+        for (DataSetInfo newMaster : newMasters) {
+            TdsqlHostInfo tdsqlHostInfo = DataSetUtil.convertDataSetInfo(newMaster, connectionUrl);
+            if(!scheduleQueue.containsKey(tdsqlHostInfo)) {
+                scheduleQueue.put(tdsqlHostInfo, 0L);
             }
         }
     }
@@ -61,19 +53,26 @@ public class UpdateSchedulingQueueCacheListener implements PropertyChangeListene
             // ignored
         }
         if(tdsqlReadWriteMode.equals(TdsqlDirectReadWriteMode.RO.name())) {
-            scheduleQueue.clear();
             for (DataSetInfo slave : newSlaves) {
-                scheduleQueue.put(DataSetUtil.convertDataSetInfo(slave, connectionUrl), 0L);
+                TdsqlHostInfo tdsqlHostInfo = DataSetUtil.convertDataSetInfo(slave, connectionUrl);
+                if(scheduleQueue.containsKey(tdsqlHostInfo)) {
+                    scheduleQueue.put(tdsqlHostInfo, 0L);
+                }
             }
         }
     }
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
-        if(evt.getPropertyName().equals(DataSetCache.MASTERS_PROPERTY_NAME)){
-            handleMaster(evt);
-        } else if(evt.getPropertyName().equals(DataSetCache.SLAVES_PROPERTY_NAME)) {
-            handleSlave(evt);
+        TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
+        try {
+            if(evt.getPropertyName().equals(DataSetCache.MASTERS_PROPERTY_NAME)){
+                handleMaster(evt);
+            } else if(evt.getPropertyName().equals(DataSetCache.SLAVES_PROPERTY_NAME)) {
+                handleSlave(evt);
+            }
+        } finally {
+            TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().unlock();
         }
     }
 }

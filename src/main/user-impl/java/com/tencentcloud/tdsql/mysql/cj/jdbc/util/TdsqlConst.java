@@ -13,4 +13,7 @@ public final class TdsqlConst {
     public static final String TDSQL_SHOW_ROUTES_SQL = "/*proxy*/ show routes";
     public static final String TDSQL_ROUTE_ACTIVE_TRUE = "0";
     public static final String TDSQL_ROUTE_WATCH_TRUE = "1";
+
+    public static final Integer TDSQL_SHOW_ROUTES_TIMEOUT_SECONDS = 15;
+    public static final Integer TDSQL_SHOW_ROUTES_CONN_TIMEOUT = TDSQL_SHOW_ROUTES_TIMEOUT_SECONDS * 2 * 1000;
 }
