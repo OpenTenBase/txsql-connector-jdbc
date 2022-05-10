@@ -108,6 +108,9 @@ public final class TdsqlDirectTopoServer {
     }
 
     private void getTopology() throws SQLException {
+        if(tdsqlConnection == null) {
+            return;
+        }
         List<DataSetCluster> dataSetClusters = TdsqlUtil.showRoutes(tdsqlConnection);
         if (dataSetClusters.isEmpty()) {
             throw new TDSQLSyncBackendTopoException("No backend cluster found with command: /*proxy*/ show routes");
