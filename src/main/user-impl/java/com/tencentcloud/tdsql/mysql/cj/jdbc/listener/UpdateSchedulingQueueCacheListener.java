@@ -34,10 +34,12 @@ public class UpdateSchedulingQueueCacheListener extends AbstractCacheListener im
     @Override
     public void handleMaster(PropertyChangeEvent evt) {
         List<DataSetInfo> newMasters = (List<DataSetInfo>) evt.getNewValue();
-        for (DataSetInfo newMaster : newMasters) {
-            TdsqlHostInfo tdsqlHostInfo = DataSetUtil.convertDataSetInfo(newMaster, connectionUrl);
-            if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
-                scheduleQueue.put(tdsqlHostInfo, 0L);
+        if (TdsqlDirectReadWriteMode.RW.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode))) {
+            for (DataSetInfo newMaster : newMasters) {
+                TdsqlHostInfo tdsqlHostInfo = DataSetUtil.convertDataSetInfo(newMaster, connectionUrl);
+                if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
+                    scheduleQueue.put(tdsqlHostInfo, 0L);
+                }
             }
         }
     }
