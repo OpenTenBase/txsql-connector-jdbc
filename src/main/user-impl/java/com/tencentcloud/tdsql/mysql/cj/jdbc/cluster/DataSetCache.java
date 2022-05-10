@@ -15,7 +15,8 @@ public class DataSetCache {
     private final PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
     private List<DataSetInfo> masters = new ArrayList<>();
     private List<DataSetInfo> slaves = new ArrayList<>();
-    private boolean cached = false;
+    private boolean masterCached = false;
+    private boolean slaveCached = false;
 
     public static final String MASTERS_PROPERTY_NAME = "masters";
     public static final String SLAVES_PROPERTY_NAME = "slaves";
@@ -56,8 +57,8 @@ public class DataSetCache {
         if (!masters.equals(this.masters)) {
             propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, this.masters, masters);
             this.masters = masters;
-            if (!isCached()) {
-                setCached(true);
+            if (!masterCached) {
+                masterCached = true;
             }
         }
     }
@@ -74,18 +75,14 @@ public class DataSetCache {
         if (!slaves.equals(this.slaves)) {
             propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, this.slaves, slaves);
             this.slaves = slaves;
-            if (!isCached()) {
-                setCached(true);
+            if (!slaveCached) {
+                slaveCached = true;
             }
         }
     }
 
     public boolean isCached() {
-        return cached;
-    }
-
-    public void setCached(boolean cached) {
-        this.cached = cached;
+        return masterCached && slaveCached;
     }
 
     private static class SingletonInstance {
