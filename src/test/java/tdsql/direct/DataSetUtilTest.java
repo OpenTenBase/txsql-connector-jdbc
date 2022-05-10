@@ -1,4 +1,4 @@
-package tdsql;
+package tdsql.direct;
 
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetUtil;
