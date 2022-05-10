@@ -95,10 +95,9 @@ public final class TdsqlDirectTopoServer {
         }
 
         if (!topoServerSchedulerInitialized) {
-//            getTopology(true);
-            initializeScheduler();
             topoServerSchedulerInitialized = true;
             tdsqlConnection = LoadBalancedConnectionProxy.createProxyInstance(connectionUrl);
+            initializeScheduler();
             DataSetCache.getInstance().addListener(
                     new UpdateSchedulingQueueCacheListener(tdsqlReadWriteMode, scheduleQueue, connectionUrl));
             DataSetCache.getInstance().addListener(new FailoverCacheListener(tdsqlReadWriteMode));
@@ -113,7 +112,7 @@ public final class TdsqlDirectTopoServer {
             return;
         }
         List<DataSetCluster> dataSetClusters = TdsqlUtil.showRoutes(tdsqlConnection);
-        if (dataSetClusters.size() == 0) {
+        if (dataSetClusters.isEmpty()) {
             throw new TDSQLSyncBackendTopoException("No backend cluster found with command: /*proxy*/ show routes");
         }
         if (dataSetClusters.get(0).getMaster() != null) {

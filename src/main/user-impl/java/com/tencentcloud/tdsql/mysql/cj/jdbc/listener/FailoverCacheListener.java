@@ -1,7 +1,5 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.listener;
 
-import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectTopoServer;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCache;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlDirectFailoverOperator;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectMasterSlaveSwitchMode;
@@ -15,7 +13,7 @@ import java.util.stream.Collectors;
 /**
  * 监听DataSetCache中的主从变化, 执行相应的failover操作.
  */
-public class FailoverCacheListener implements PropertyChangeListener {
+public class FailoverCacheListener extends AbstractCacheListener implements PropertyChangeListener {
 
     private final String tdsqlReadWriteMode;
 
@@ -29,7 +27,8 @@ public class FailoverCacheListener implements PropertyChangeListener {
      * @param evt 属性变化事件
      */
     @SuppressWarnings("unchecked")
-    private void handleMaster(PropertyChangeEvent evt) {
+    @Override
+    public void handleMaster(PropertyChangeEvent evt) {
         List<DataSetInfo> newMasters = (List<DataSetInfo>) evt.getNewValue();
         TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                 TdsqlDirectMasterSlaveSwitchMode.MASTER_SLAVE_SWITCH, null);
@@ -41,7 +40,8 @@ public class FailoverCacheListener implements PropertyChangeListener {
      * @param evt 属性变化事件
      */
     @SuppressWarnings("unchecked")
-    private void handleSlave(PropertyChangeEvent evt) {
+    @Override
+    public void handleSlave(PropertyChangeEvent evt) {
         List<DataSetInfo> oldSlaves = (List<DataSetInfo>) evt.getOldValue();
         List<DataSetInfo> newSlaves = (List<DataSetInfo>) evt.getNewValue();
         List<DataSetInfo> offLineSlaves = new ArrayList<>(oldSlaves);
@@ -60,20 +60,6 @@ public class FailoverCacheListener implements PropertyChangeListener {
             List<String> toCloseList = new ArrayList<>();
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_ONLINE, toCloseList);
-        }
-    }
-
-    @Override
-    public void propertyChange(PropertyChangeEvent evt) {
-        TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
-        try {
-            if (evt.getPropertyName().equals(DataSetCache.MASTERS_PROPERTY_NAME)) {
-                handleMaster(evt);
-            } else if (evt.getPropertyName().equals(DataSetCache.SLAVES_PROPERTY_NAME)) {
-                handleSlave(evt);
-            }
-        } finally {
-            TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().unlock();
         }
     }
 }
