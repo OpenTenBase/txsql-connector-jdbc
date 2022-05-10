@@ -59,7 +59,7 @@ public class UpdateSchedulingQueueCacheListener extends AbstractCacheListener im
         if (TdsqlDirectReadWriteMode.RO.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode))) {
             for (DataSetInfo slave : newSlaves) {
                 TdsqlHostInfo tdsqlHostInfo = DataSetUtil.convertDataSetInfo(slave, connectionUrl);
-                if (scheduleQueue.containsKey(tdsqlHostInfo)) {
+                if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
                     scheduleQueue.put(tdsqlHostInfo, 0L);
                 }
             }
