@@ -18,6 +18,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.listener.FailoverCacheListener;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.listener.UpdateSchedulingQueueCacheListener;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlConst;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlUtil;
 import java.sql.Connection;
@@ -97,6 +98,9 @@ public final class TdsqlDirectTopoServer {
         if (!topoServerSchedulerInitialized) {
             topoServerSchedulerInitialized = true;
             tdsqlConnection = LoadBalancedConnectionProxy.createProxyInstance(connectionUrl);
+            if (!tdsqlConnection.isClosed()) {
+                TdsqlDirectLoggerFactory.setLogger(((JdbcConnection) tdsqlConnection).getSession().getLog());
+            }
             initializeScheduler();
             DataSetCache.getInstance().addListener(
                     new UpdateSchedulingQueueCacheListener(tdsqlReadWriteMode, scheduleQueue, connectionUrl));
@@ -120,7 +124,6 @@ public final class TdsqlDirectTopoServer {
         } else {
             DataSetCache.getInstance().setMasters(new ArrayList<>());
         }
-
         DataSetCache.getInstance().setSlaves(dataSetClusters.get(0).getSlaves());
     }
 
@@ -179,7 +182,7 @@ public final class TdsqlDirectTopoServer {
 
     private void initializeScheduler() {
         topoServerScheduler = new ScheduledThreadPoolExecutor(1,
-                new TdsqlThreadFactoryBuilder().setNameFormat("TopoServer-pool-").build());
+                new TdsqlThreadFactoryBuilder().setNameFormat("TopoServer-pool-%d").build());
         topoServerScheduler.scheduleAtFixedRate(new TopoRefreshTask(), 0L, tdsqlProxyTopoRefreshInterval,
                 TimeUnit.MILLISECONDS);
     }
