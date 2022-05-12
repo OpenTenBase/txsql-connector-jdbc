@@ -46,7 +46,7 @@ public final class TdsqlDirectTopoServer {
     private Integer tdsqlMaxSlaveDelay = TdsqlConst.TDSQL_MAX_SLAVE_DELAY_DEFAULT_VALUE;
     public ReentrantLock lock = new ReentrantLock();
     private Connection tdsqlConnection;
-    private Integer tdsqlProxyTopoRefreshInterval = TdsqlConst.TDSQL_PROXY_TOPO_REFRESH_INTERVAL_DEFAULT_VALUE * 100000;
+    private Integer tdsqlProxyTopoRefreshInterval = TdsqlConst.TDSQL_PROXY_TOPO_REFRESH_INTERVAL_DEFAULT_VALUE * 5;
     private ConnectionUrl connectionUrl = null;
     private final TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = TdsqlAtomicLongMap.create();
     private final ReentrantReadWriteLock refreshLock = new ReentrantReadWriteLock();
