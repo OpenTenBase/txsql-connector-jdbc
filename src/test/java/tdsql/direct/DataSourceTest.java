@@ -1,15 +1,23 @@
 package tdsql.direct;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.pool.DruidDataSourceFactory;
+import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlDataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectConnectionManager;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectTopoServer;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import javax.sql.DataSource;
@@ -97,11 +105,39 @@ public class DataSourceTest {
     @Test
     public void testHikariDataSource() throws InterruptedException {
         HikariDataSource hikariDs = (HikariDataSource) createHikariDataSource(DEFAULT_URL + "?tdsqlReadWriteMode=ro");
-        TimeUnit.SECONDS.sleep(5000);
-        Assertions.assertEquals(10, hikariDs.getHikariPoolMXBean().getTotalConnections());
-        System.out.println(
-                "TdsqlDirectTopoServer.getInstance().getScheduleQueue() = " + TdsqlDirectTopoServer.getInstance()
-                        .getScheduleQueue());
+        TimeUnit.SECONDS.sleep(5);
+        assertEquals(10, hikariDs.getHikariPoolMXBean().getTotalConnections());
+
+        TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = TdsqlDirectTopoServer.getInstance().getScheduleQueue();
+        assertEquals(2, scheduleQueue.size());
+
+        for (Entry<TdsqlHostInfo, Long> entry : scheduleQueue.asMap().entrySet()) {
+            assertEquals(5, entry.getValue());
+        }
+
+        for (Entry<TdsqlHostInfo, List<JdbcConnection>> entry : TdsqlDirectConnectionManager.getInstance()
+                .getAllConnection().entrySet()) {
+            assertEquals(5, entry.getValue().size());
+        }
+    }
+
+    @Test
+    public void testDruidDataSource() throws Exception {
+        DruidDataSource druidDs = (DruidDataSource) createDruidDataSource(DEFAULT_URL + "?tdsqlReadWriteMode=ro");
+        TimeUnit.SECONDS.sleep(5);
+        assertEquals(10, druidDs.getConnectCount());
+
+        TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = TdsqlDirectTopoServer.getInstance().getScheduleQueue();
+        assertEquals(2, scheduleQueue.size());
+
+        for (Entry<TdsqlHostInfo, Long> entry : scheduleQueue.asMap().entrySet()) {
+            assertEquals(10, entry.getValue());
+        }
+
+        for (Entry<TdsqlHostInfo, List<JdbcConnection>> entry : TdsqlDirectConnectionManager.getInstance()
+                .getAllConnection().entrySet()) {
+            assertEquals(10, entry.getValue().size());
+        }
     }
 
     private DataSource createMysqlDataSource() {
@@ -130,9 +166,9 @@ public class DataSourceTest {
         prop.setProperty(DruidDataSourceFactory.PROP_URL, url);
         prop.setProperty(DruidDataSourceFactory.PROP_USERNAME, "test");
         prop.setProperty(DruidDataSourceFactory.PROP_PASSWORD, "test");
-        prop.setProperty(DruidDataSourceFactory.PROP_INITIALSIZE, "1");
-        prop.setProperty(DruidDataSourceFactory.PROP_MAXACTIVE, "20");
-        prop.setProperty(DruidDataSourceFactory.PROP_MINIDLE, "1");
+        prop.setProperty(DruidDataSourceFactory.PROP_INITIALSIZE, "10");
+        prop.setProperty(DruidDataSourceFactory.PROP_MAXACTIVE, "10");
+        prop.setProperty(DruidDataSourceFactory.PROP_MINIDLE, "10");
         prop.setProperty(DruidDataSourceFactory.PROP_MAXWAIT, "6000");
         return DruidDataSourceFactory.createDataSource(prop);
     }
