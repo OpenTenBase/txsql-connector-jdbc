@@ -1,6 +1,7 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.cluster;
 
 import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectTopoServer;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.WaitUtil;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -36,6 +37,9 @@ public class DataSetCache {
             WaitUtil.waitFor(interval, count, this::isCached);
         } catch (InterruptedException ignored) {
         }
+        if(isCached()) {
+            TdsqlDirectLoggerFactory.getLogger().logDebug("TDSQL data set cached.");
+        }
         return isCached();
     }
 
@@ -55,6 +59,7 @@ public class DataSetCache {
 
     public void setMasters(List<DataSetInfo> masters) {
         if (!masters.equals(this.masters)) {
+            TdsqlDirectLoggerFactory.getLogger().logDebug("DataSet master have change");
             propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, this.masters, masters);
             this.masters = masters;
             if (!masterCached) {
@@ -73,6 +78,7 @@ public class DataSetCache {
                     .getTdsqlMaxSlaveDelay());
         }
         if (!slaves.equals(this.slaves)) {
+            TdsqlDirectLoggerFactory.getLogger().logDebug("DataSet slave have change");
             propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, this.slaves, slaves);
             this.slaves = slaves;
             if (!slaveCached) {

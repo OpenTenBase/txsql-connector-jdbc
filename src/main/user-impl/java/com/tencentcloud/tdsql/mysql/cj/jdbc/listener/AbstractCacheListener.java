@@ -5,11 +5,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCache;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
-/**
- * <p></p>
- *
- * @author dorianzhang@tencent.com
- */
+
 public abstract class AbstractCacheListener implements PropertyChangeListener {
 
     abstract void handleMaster(PropertyChangeEvent evt);

@@ -10,7 +10,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.List;
 
-public class UpdateSchedulingQueueCacheListener extends AbstractCacheListener implements PropertyChangeListener {
+public class UpdateSchedulingQueueCacheListener extends AbstractCacheListener {
 
     private final TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue;
     private final String tdsqlReadWriteMode;

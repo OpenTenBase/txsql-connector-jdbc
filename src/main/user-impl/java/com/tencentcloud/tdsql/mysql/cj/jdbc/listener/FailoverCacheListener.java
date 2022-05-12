@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 /**
  * 监听DataSetCache中的主从变化, 执行相应的failover操作.
  */
-public class FailoverCacheListener extends AbstractCacheListener implements PropertyChangeListener {
+public class FailoverCacheListener extends AbstractCacheListener {
 
     private final String tdsqlReadWriteMode;
 
