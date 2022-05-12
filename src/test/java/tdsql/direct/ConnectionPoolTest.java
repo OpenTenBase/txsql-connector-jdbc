@@ -15,9 +15,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
-import tdsql.base.TdsqlBaseTest;
+import tdsql.base.BaseTest;
 
-public class ConnectionPoolTest extends TdsqlBaseTest {
+public class ConnectionPoolTest extends BaseTest {
 
     private static HikariDataSource ds;
 
