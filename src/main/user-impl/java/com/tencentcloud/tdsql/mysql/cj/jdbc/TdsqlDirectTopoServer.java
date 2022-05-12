@@ -9,6 +9,7 @@ import com.tencentcloud.tdsql.mysql.cj.conf.DatabaseUrlContainer;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.conf.url.LoadBalanceConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCache;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCluster;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.TDSQLSyncBackendTopoException;
@@ -23,10 +24,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlUtil;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -97,10 +95,7 @@ public final class TdsqlDirectTopoServer {
 
         if (!topoServerSchedulerInitialized) {
             topoServerSchedulerInitialized = true;
-            tdsqlConnection = LoadBalancedConnectionProxy.createProxyInstance(connectionUrl);
-            if (!tdsqlConnection.isClosed()) {
-                TdsqlDirectLoggerFactory.setLogger(((JdbcConnection) tdsqlConnection).getSession().getLog());
-            }
+            initTdsqlConnection();
             initializeScheduler();
             DataSetCache.getInstance().addListener(
                     new UpdateSchedulingQueueCacheListener(tdsqlReadWriteMode, scheduleQueue, connectionUrl));
@@ -108,6 +103,19 @@ public final class TdsqlDirectTopoServer {
         }
         if (!DataSetCache.getInstance().waitCached(1, 60)) {
             throw new SQLException("wait tdsql topology timeout");
+        }
+    }
+
+    private void initTdsqlConnection() throws SQLException {
+        if(tdsqlConnection != null) {
+            return;
+        }
+        Map<String, String> config = new HashMap<>();
+        config.put("'autoReconnect'", "true");
+        LoadBalanceConnectionUrl myConnUrl = new LoadBalanceConnectionUrl(connectionUrl.getHostsList(), config);
+        tdsqlConnection = LoadBalancedConnectionProxy.createProxyInstance(myConnUrl);
+        if (!tdsqlConnection.isClosed()) {
+            TdsqlDirectLoggerFactory.setLogger(((JdbcConnection) tdsqlConnection).getSession().getLog());
         }
     }
 
