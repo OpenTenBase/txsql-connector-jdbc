@@ -84,4 +84,13 @@ public class DataSetInfo {
     public int hashCode() {
         return Objects.hash(IP, port);
     }
+
+    public DataSetInfo copy(){
+        DataSetInfo res = new DataSetInfo(this.getIP(), this.getPort());
+        res.setWeight(this.getWeight());
+        res.setWatch(this.getWatch());
+        res.setDelay(this.getDelay());
+        res.setAlive(this.getAlive());
+        return res;
+    }
 }

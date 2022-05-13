@@ -54,11 +54,12 @@ public class DataSetCache {
         return masters;
     }
 
-    public synchronized void setMasters(List<DataSetInfo> masters) {
-        if (!masters.equals(this.masters)) {
-            TdsqlDirectLoggerFactory.getLogger().logDebug("DataSet master have change, old: " + DataSetUtil.dataSetList2String(this.masters) + ", new: " + DataSetUtil.dataSetList2String(masters));
-            propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, this.masters, masters);
-            this.masters = masters;
+    public synchronized void setMasters(List<DataSetInfo> newMasters) {
+        if (!newMasters.equals(this.masters)) {
+            TdsqlDirectLoggerFactory.getLogger().logDebug("DataSet master have change, old: " + DataSetUtil.dataSetList2String(this.masters) + ", new: " + DataSetUtil.dataSetList2String(newMasters));
+            propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.masters), DataSetUtil.copyDataSetList(newMasters));
+            this.masters.clear();
+            this.masters.addAll(newMasters);
             if (!masterCached) {
                 masterCached = true;
             }
@@ -69,15 +70,16 @@ public class DataSetCache {
         return slaves;
     }
 
-    public synchronized void setSlaves(List<DataSetInfo> slaves) {
+    public synchronized void setSlaves(List<DataSetInfo> newSlaves) {
         if (TdsqlDirectTopoServer.getInstance().getTdsqlMaxSlaveDelay() > 0) {
             slaves.removeIf(dataSetInfo -> dataSetInfo.getDelay() > TdsqlDirectTopoServer.getInstance()
                     .getTdsqlMaxSlaveDelay());
         }
-        if (!slaves.equals(this.slaves)) {
-            TdsqlDirectLoggerFactory.getLogger().logDebug(", old: " + DataSetUtil.dataSetList2String(this.slaves) + ", new: " + DataSetUtil.dataSetList2String(slaves));
-            propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, this.slaves, slaves);
-            this.slaves = slaves;
+        if (!newSlaves.equals(this.slaves)) {
+            TdsqlDirectLoggerFactory.getLogger().logDebug(", old: " + DataSetUtil.dataSetList2String(this.slaves) + ", new: " + DataSetUtil.dataSetList2String(newSlaves));
+            propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.slaves), DataSetUtil.copyDataSetList(newSlaves));
+            this.slaves.clear();
+            this.slaves.addAll(newSlaves);
             if (!slaveCached) {
                 slaveCached = true;
             }

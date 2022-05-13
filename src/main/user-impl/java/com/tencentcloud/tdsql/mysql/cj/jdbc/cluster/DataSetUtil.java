@@ -153,4 +153,15 @@ public class DataSetUtil {
         return sb.toString();
     }
 
+    public static List<DataSetInfo> copyDataSetList(List<DataSetInfo> dataSetInfos) {
+        List<DataSetInfo> res = new ArrayList<>();
+        if(dataSetInfos == null || dataSetInfos.size() == 0) {
+            return res;
+        }
+        for (DataSetInfo dataSetInfo : dataSetInfos) {
+            res.add(dataSetInfo.copy());
+        }
+        return res;
+    }
+
 }
