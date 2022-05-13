@@ -57,7 +57,7 @@ public class DataSetCache {
         return masters;
     }
 
-    public void setMasters(List<DataSetInfo> masters) {
+    public synchronized void setMasters(List<DataSetInfo> masters) {
         if (!masters.equals(this.masters)) {
             TdsqlDirectLoggerFactory.getLogger().logDebug("DataSet master have change");
             propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, this.masters, masters);
@@ -72,7 +72,7 @@ public class DataSetCache {
         return slaves;
     }
 
-    public void setSlaves(List<DataSetInfo> slaves) {
+    public synchronized void setSlaves(List<DataSetInfo> slaves) {
         if (TdsqlDirectTopoServer.getInstance().getTdsqlMaxSlaveDelay() > 0) {
             slaves.removeIf(dataSetInfo -> dataSetInfo.getDelay() > TdsqlDirectTopoServer.getInstance()
                     .getTdsqlMaxSlaveDelay());
