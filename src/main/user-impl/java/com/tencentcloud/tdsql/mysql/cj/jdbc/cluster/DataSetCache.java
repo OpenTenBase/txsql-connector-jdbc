@@ -76,7 +76,7 @@ public class DataSetCache {
                     .getTdsqlMaxSlaveDelay());
         }
         if (!newSlaves.equals(this.slaves)) {
-            TdsqlDirectLoggerFactory.getLogger().logDebug(", old: " + DataSetUtil.dataSetList2String(this.slaves) + ", new: " + DataSetUtil.dataSetList2String(newSlaves));
+            TdsqlDirectLoggerFactory.getLogger().logDebug("DataSet slave have change, old: " + DataSetUtil.dataSetList2String(this.slaves) + ", new: " + DataSetUtil.dataSetList2String(newSlaves));
             propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.slaves), DataSetUtil.copyDataSetList(newSlaves));
             this.slaves.clear();
             this.slaves.addAll(newSlaves);
