@@ -51,18 +51,30 @@ public class DataSetCache {
     }
 
     public List<DataSetInfo> getMasters() {
-        return masters;
+        TdsqlDirectTopoServer.getInstance().getRefreshLock().readLock().lock();
+        try {
+            return masters;
+        } finally {
+            TdsqlDirectTopoServer.getInstance().getRefreshLock().readLock().unlock();
+        }
+
     }
 
     public synchronized void setMasters(List<DataSetInfo> newMasters) {
         if (!newMasters.equals(this.masters)) {
-            TdsqlDirectLoggerFactory.getLogger().logDebug("DataSet master have change, old: " + DataSetUtil.dataSetList2String(this.masters) + ", new: " + DataSetUtil.dataSetList2String(newMasters));
-            propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.masters), DataSetUtil.copyDataSetList(newMasters));
-            this.masters.clear();
-            this.masters.addAll(newMasters);
-            if (!masterCached) {
-                masterCached = true;
+            TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
+            try {
+                TdsqlDirectLoggerFactory.getLogger().logDebug("DataSet master have change, old: " + DataSetUtil.dataSetList2String(this.masters) + ", new: " + DataSetUtil.dataSetList2String(newMasters));
+                propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.masters), DataSetUtil.copyDataSetList(newMasters));
+                this.masters.clear();
+                this.masters.addAll(newMasters);
+                if (!masterCached) {
+                    masterCached = true;
+                }
+            } finally {
+                TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().unlock();
             }
+
         }
     }
 
