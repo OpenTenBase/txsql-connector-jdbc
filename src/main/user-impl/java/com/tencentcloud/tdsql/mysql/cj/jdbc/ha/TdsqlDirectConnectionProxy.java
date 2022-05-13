@@ -7,8 +7,10 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectConnectionManager;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectTopoServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCache;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetUtil;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.TDSQLNoBackendInstanceException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -33,6 +35,7 @@ public final class TdsqlDirectConnectionProxy {
 
         TdsqlDirectReadWriteMode readWriteMode = TdsqlDirectReadWriteMode.convert(topoServer.getTdsqlReadWriteMode());
         if (TdsqlDirectReadWriteMode.RW.equals(readWriteMode) && DataSetCache.getInstance().getMasters().size() == 0) {
+            TdsqlDirectLoggerFactory.getLogger().logDebug("now masters: " + DataSetUtil.dataSetList2String(DataSetCache.getInstance().getMasters()));
             throw new TDSQLNoBackendInstanceException("No master instance found");
         }
         if (TdsqlDirectReadWriteMode.RO.equals(readWriteMode) && DataSetCache.getInstance().getSlaves().size() == 0) {
