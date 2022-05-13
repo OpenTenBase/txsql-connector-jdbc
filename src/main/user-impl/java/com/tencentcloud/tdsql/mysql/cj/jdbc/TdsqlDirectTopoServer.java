@@ -61,7 +61,7 @@ public final class TdsqlDirectTopoServer {
         return SingletonInstance.INSTANCE;
     }
 
-    public synchronized void initialize(ConnectionUrl connectionUrl) throws SQLException {
+    public void initialize(ConnectionUrl connectionUrl) throws SQLException {
         refreshLock.writeLock().lock();
         try {
             this.connectionUrl = connectionUrl;
