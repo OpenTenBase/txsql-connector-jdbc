@@ -68,6 +68,7 @@ public class DataSetCache {
                 propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.masters), DataSetUtil.copyDataSetList(newMasters));
                 this.masters.clear();
                 this.masters.addAll(newMasters);
+                TdsqlDirectLoggerFactory.getLogger().logDebug("after set, master is: " + DataSetUtil.dataSetList2String(this.masters));
                 if (!masterCached) {
                     masterCached = true;
                 }
