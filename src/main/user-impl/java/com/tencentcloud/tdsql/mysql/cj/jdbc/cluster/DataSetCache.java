@@ -37,9 +37,6 @@ public class DataSetCache {
             WaitUtil.waitFor(interval, count, this::isCached);
         } catch (InterruptedException ignored) {
         }
-        if(isCached()) {
-            TdsqlDirectLoggerFactory.getLogger().logDebug("TDSQL data set cached.");
-        }
         return isCached();
     }
 
@@ -59,7 +56,7 @@ public class DataSetCache {
 
     public synchronized void setMasters(List<DataSetInfo> masters) {
         if (!masters.equals(this.masters)) {
-            TdsqlDirectLoggerFactory.getLogger().logDebug("DataSet master have change");
+            TdsqlDirectLoggerFactory.getLogger().logDebug("DataSet master have change, old: " + DataSetUtil.dataSetList2String(this.masters) + ", new: " + DataSetUtil.dataSetList2String(masters));
             propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, this.masters, masters);
             this.masters = masters;
             if (!masterCached) {
@@ -78,7 +75,7 @@ public class DataSetCache {
                     .getTdsqlMaxSlaveDelay());
         }
         if (!slaves.equals(this.slaves)) {
-            TdsqlDirectLoggerFactory.getLogger().logDebug("DataSet slave have change");
+            TdsqlDirectLoggerFactory.getLogger().logDebug(", old: " + DataSetUtil.dataSetList2String(this.slaves) + ", new: " + DataSetUtil.dataSetList2String(slaves));
             propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, this.slaves, slaves);
             this.slaves = slaves;
             if (!slaveCached) {

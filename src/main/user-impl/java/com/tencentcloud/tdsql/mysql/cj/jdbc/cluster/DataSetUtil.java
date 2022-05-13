@@ -139,4 +139,18 @@ public class DataSetUtil {
                         mainHost.getUser(), mainHost.getPassword(), mainHost.getHostProperties()));
     }
 
+    public static String dataSetList2String(List<DataSetInfo> dataSetInfos){
+        if (dataSetInfos == null) {
+            return "[]";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (DataSetInfo dataSetInfo : dataSetInfos) {
+            sb.append(String.format("%s:%s", dataSetInfo.getIP(), dataSetInfo.getPort()));
+            sb.append(", ");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
 }
