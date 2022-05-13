@@ -24,7 +24,11 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlUtil;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -107,7 +111,7 @@ public final class TdsqlDirectTopoServer {
     }
 
     private void initTdsqlConnection() throws SQLException {
-        if(tdsqlConnection != null) {
+        if (tdsqlConnection != null) {
             return;
         }
         Map<String, String> config = new HashMap<>();
@@ -120,7 +124,7 @@ public final class TdsqlDirectTopoServer {
     }
 
     private void getTopology() throws SQLException {
-        if(tdsqlConnection == null) {
+        if (tdsqlConnection == null) {
             return;
         }
         List<DataSetCluster> dataSetClusters = TdsqlUtil.showRoutes(tdsqlConnection);
@@ -222,7 +226,7 @@ public final class TdsqlDirectTopoServer {
             try {
                 TdsqlDirectTopoServer.getInstance().getTopology();
             } catch (Exception e) {
-                e.printStackTrace();
+                TdsqlDirectLoggerFactory.getLogger().logError(e.getMessage(), e);
             }
         }
     }
