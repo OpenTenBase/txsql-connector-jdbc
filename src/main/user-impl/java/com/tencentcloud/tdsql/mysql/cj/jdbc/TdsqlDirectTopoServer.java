@@ -107,11 +107,11 @@ public final class TdsqlDirectTopoServer {
                         new UpdateSchedulingQueueCacheListener(tdsqlReadWriteMode, scheduleQueue, connectionUrl));
                 DataSetCache.getInstance().addListener(new FailoverCacheListener(tdsqlReadWriteMode));
             }
-            if (!DataSetCache.getInstance().waitCached(1, 60)) {
-                throw new SQLException("wait tdsql topology timeout");
-            }
         } finally {
             refreshLock.writeLock().unlock();
+        }
+        if (!DataSetCache.getInstance().waitCached(1, 60)) {
+            throw new SQLException("wait tdsql topology timeout");
         }
     }
 
