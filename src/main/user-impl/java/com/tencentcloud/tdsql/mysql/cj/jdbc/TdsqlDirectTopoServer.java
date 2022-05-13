@@ -62,51 +62,56 @@ public final class TdsqlDirectTopoServer {
     }
 
     public synchronized void initialize(ConnectionUrl connectionUrl) throws SQLException {
-        this.connectionUrl = connectionUrl;
-        JdbcPropertySetImpl connProps = new JdbcPropertySetImpl();
-        connProps.initializeProperties(connectionUrl.getConnectionArgumentsAsProperties());
+        refreshLock.writeLock().lock();
+        try {
+            this.connectionUrl = connectionUrl;
+            JdbcPropertySetImpl connProps = new JdbcPropertySetImpl();
+            connProps.initializeProperties(connectionUrl.getConnectionArgumentsAsProperties());
 
-        tdsqlProxyHostList = connectionUrl.getHostsList();
+            tdsqlProxyHostList = connectionUrl.getHostsList();
 
-        String newTdsqlReadWriteMode = connProps.getStringProperty(PropertyKey.tdsqlReadWriteMode).getValue();
-        if (!tdsqlReadWriteMode.equalsIgnoreCase(newTdsqlReadWriteMode)) {
-            if (TdsqlConst.TDSQL_READ_WRITE_MODE_RW.equalsIgnoreCase(newTdsqlReadWriteMode)
-                    || TdsqlConst.TDSQL_READ_WRITE_MODE_RO.equalsIgnoreCase(newTdsqlReadWriteMode)) {
-                tdsqlReadWriteMode = newTdsqlReadWriteMode;
-            }
-        }
-
-        if (TdsqlConst.TDSQL_READ_WRITE_MODE_RO.equalsIgnoreCase(tdsqlReadWriteMode)) {
-            Integer newTdsqlMaxSlaveDelay = connProps.getIntegerProperty(PropertyKey.tdsqlMaxSlaveDelay).getValue();
-            if (!tdsqlMaxSlaveDelay.equals(newTdsqlMaxSlaveDelay)) {
-                if (newTdsqlMaxSlaveDelay > 0 && newTdsqlMaxSlaveDelay < Integer.MAX_VALUE) {
-                    tdsqlMaxSlaveDelay = newTdsqlMaxSlaveDelay;
+            String newTdsqlReadWriteMode = connProps.getStringProperty(PropertyKey.tdsqlReadWriteMode).getValue();
+            if (!tdsqlReadWriteMode.equalsIgnoreCase(newTdsqlReadWriteMode)) {
+                if (TdsqlConst.TDSQL_READ_WRITE_MODE_RW.equalsIgnoreCase(newTdsqlReadWriteMode)
+                        || TdsqlConst.TDSQL_READ_WRITE_MODE_RO.equalsIgnoreCase(newTdsqlReadWriteMode)) {
+                    tdsqlReadWriteMode = newTdsqlReadWriteMode;
                 }
             }
-        }
 
-        Integer newTdsqlProxyTopoRefreshInterval = connProps
-                .getIntegerProperty(PropertyKey.tdsqlProxyTopoRefreshInterval).getValue();
-        if (!tdsqlProxyTopoRefreshInterval.equals(newTdsqlProxyTopoRefreshInterval)) {
-            if (newTdsqlProxyTopoRefreshInterval > 0 && newTdsqlProxyTopoRefreshInterval < Integer.MAX_VALUE) {
-                tdsqlProxyTopoRefreshInterval = newTdsqlProxyTopoRefreshInterval;
-                if (topoServerSchedulerInitialized && topoServerScheduler != null) {
-                    topoServerScheduler.shutdown();
-                    topoServerSchedulerInitialized = false;
+            if (TdsqlConst.TDSQL_READ_WRITE_MODE_RO.equalsIgnoreCase(tdsqlReadWriteMode)) {
+                Integer newTdsqlMaxSlaveDelay = connProps.getIntegerProperty(PropertyKey.tdsqlMaxSlaveDelay).getValue();
+                if (!tdsqlMaxSlaveDelay.equals(newTdsqlMaxSlaveDelay)) {
+                    if (newTdsqlMaxSlaveDelay > 0 && newTdsqlMaxSlaveDelay < Integer.MAX_VALUE) {
+                        tdsqlMaxSlaveDelay = newTdsqlMaxSlaveDelay;
+                    }
                 }
             }
-        }
 
-        if (!topoServerSchedulerInitialized) {
-            topoServerSchedulerInitialized = true;
-            initTdsqlConnection();
-            initializeScheduler();
-            DataSetCache.getInstance().addListener(
-                    new UpdateSchedulingQueueCacheListener(tdsqlReadWriteMode, scheduleQueue, connectionUrl));
-            DataSetCache.getInstance().addListener(new FailoverCacheListener(tdsqlReadWriteMode));
-        }
-        if (!DataSetCache.getInstance().waitCached(1, 60)) {
-            throw new SQLException("wait tdsql topology timeout");
+            Integer newTdsqlProxyTopoRefreshInterval = connProps
+                    .getIntegerProperty(PropertyKey.tdsqlProxyTopoRefreshInterval).getValue();
+            if (!tdsqlProxyTopoRefreshInterval.equals(newTdsqlProxyTopoRefreshInterval)) {
+                if (newTdsqlProxyTopoRefreshInterval > 0 && newTdsqlProxyTopoRefreshInterval < Integer.MAX_VALUE) {
+                    tdsqlProxyTopoRefreshInterval = newTdsqlProxyTopoRefreshInterval;
+                    if (topoServerSchedulerInitialized && topoServerScheduler != null) {
+                        topoServerScheduler.shutdown();
+                        topoServerSchedulerInitialized = false;
+                    }
+                }
+            }
+
+            if (!topoServerSchedulerInitialized) {
+                topoServerSchedulerInitialized = true;
+                initTdsqlConnection();
+                initializeScheduler();
+                DataSetCache.getInstance().addListener(
+                        new UpdateSchedulingQueueCacheListener(tdsqlReadWriteMode, scheduleQueue, connectionUrl));
+                DataSetCache.getInstance().addListener(new FailoverCacheListener(tdsqlReadWriteMode));
+            }
+            if (!DataSetCache.getInstance().waitCached(1, 60)) {
+                throw new SQLException("wait tdsql topology timeout");
+            }
+        } finally {
+            refreshLock.writeLock().unlock();
         }
     }
 
