@@ -6,6 +6,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.util.WaitUtil;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -14,8 +15,8 @@ import java.util.List;
 public class DataSetCache {
 
     private final PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
-    private final List<DataSetInfo> masters = new ArrayList<>();
-    private final List<DataSetInfo> slaves = new ArrayList<>();
+    private final List<DataSetInfo> masters = Collections.synchronizedList(new ArrayList<>());
+    private final List<DataSetInfo> slaves = Collections.synchronizedList(new ArrayList<>());
     private boolean masterCached = false;
     private boolean slaveCached = false;
 
