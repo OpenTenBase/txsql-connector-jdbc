@@ -32,10 +32,10 @@ public final class TdsqlDirectConnectionProxy {
         topoServer.initialize(connectionUrl);
 
         TdsqlDirectReadWriteMode readWriteMode = TdsqlDirectReadWriteMode.convert(topoServer.getTdsqlReadWriteMode());
-        if (TdsqlDirectReadWriteMode.RW.equals(readWriteMode) && DataSetCache.getInstance().getMasters().isEmpty()) {
+        if (TdsqlDirectReadWriteMode.RW.equals(readWriteMode) && DataSetCache.getInstance().getMasters().size() == 0) {
             throw new TDSQLNoBackendInstanceException("No master instance found");
         }
-        if (TdsqlDirectReadWriteMode.RO.equals(readWriteMode) && DataSetCache.getInstance().getSlaves().isEmpty()) {
+        if (TdsqlDirectReadWriteMode.RO.equals(readWriteMode) && DataSetCache.getInstance().getSlaves().size() == 0) {
             throw new TDSQLNoBackendInstanceException("No slave instance found");
         }
 
