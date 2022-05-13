@@ -14,8 +14,8 @@ import java.util.List;
 public class DataSetCache {
 
     private final PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
-    private List<DataSetInfo> masters = new ArrayList<>();
-    private List<DataSetInfo> slaves = new ArrayList<>();
+    private final List<DataSetInfo> masters = new ArrayList<>();
+    private final List<DataSetInfo> slaves = new ArrayList<>();
     private boolean masterCached = false;
     private boolean slaveCached = false;
 
