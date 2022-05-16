@@ -5,9 +5,8 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.WaitUtil;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 所有数据节点缓存.
@@ -15,8 +14,8 @@ import java.util.List;
 public class DataSetCache {
 
     private final PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
-    private volatile List<DataSetInfo> masters = Collections.synchronizedList(new ArrayList<>());
-    private volatile List<DataSetInfo> slaves = Collections.synchronizedList(new ArrayList<>());
+    private final List<DataSetInfo> masters = new CopyOnWriteArrayList<>();
+    private final List<DataSetInfo> slaves = new CopyOnWriteArrayList<>();
     private boolean masterCached = false;
     private boolean slaveCached = false;
 
@@ -58,25 +57,27 @@ public class DataSetCache {
         } finally {
             TdsqlDirectTopoServer.getInstance().getRefreshLock().readLock().unlock();
         }
-
     }
 
-    public synchronized void setMasters(List<DataSetInfo> newMasters) {
+    public void setMasters(List<DataSetInfo> newMasters) {
         if (!newMasters.equals(this.masters)) {
             TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
             try {
-                TdsqlDirectLoggerFactory.logDebug("DataSet master have change, old: " + DataSetUtil.dataSetList2String(this.masters) + ", new: " + DataSetUtil.dataSetList2String(newMasters));
-                propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.masters), DataSetUtil.copyDataSetList(newMasters));
+                TdsqlDirectLoggerFactory.logDebug(
+                        "DataSet master have change, old: " + DataSetUtil.dataSetList2String(this.masters) + ", new: "
+                                + DataSetUtil.dataSetList2String(newMasters));
+                propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME,
+                        DataSetUtil.copyDataSetList(this.masters), DataSetUtil.copyDataSetList(newMasters));
                 this.masters.clear();
                 this.masters.addAll(newMasters);
-                TdsqlDirectLoggerFactory.logDebug("after set, master is: " + DataSetUtil.dataSetList2String(this.masters));
+                TdsqlDirectLoggerFactory.logDebug(
+                        "after set, master is: " + DataSetUtil.dataSetList2String(this.masters));
                 if (!masterCached) {
                     masterCached = true;
                 }
             } finally {
                 TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().unlock();
             }
-
         }
     }
 
@@ -84,14 +85,17 @@ public class DataSetCache {
         return slaves;
     }
 
-    public synchronized void setSlaves(List<DataSetInfo> newSlaves) {
+    public void setSlaves(List<DataSetInfo> newSlaves) {
         if (TdsqlDirectTopoServer.getInstance().getTdsqlMaxSlaveDelay() > 0) {
             slaves.removeIf(dataSetInfo -> dataSetInfo.getDelay() > TdsqlDirectTopoServer.getInstance()
                     .getTdsqlMaxSlaveDelay());
         }
         if (!newSlaves.equals(this.slaves)) {
-            TdsqlDirectLoggerFactory.logDebug("DataSet slave have change, old: " + DataSetUtil.dataSetList2String(this.slaves) + ", new: " + DataSetUtil.dataSetList2String(newSlaves));
-            propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.slaves), DataSetUtil.copyDataSetList(newSlaves));
+            TdsqlDirectLoggerFactory.logDebug(
+                    "DataSet slave have change, old: " + DataSetUtil.dataSetList2String(this.slaves) + ", new: "
+                            + DataSetUtil.dataSetList2String(newSlaves));
+            propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.slaves),
+                    DataSetUtil.copyDataSetList(newSlaves));
             this.slaves.clear();
             this.slaves.addAll(newSlaves);
             if (!slaveCached) {

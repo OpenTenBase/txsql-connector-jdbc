@@ -17,6 +17,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlUtil;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -115,6 +116,7 @@ public final class TdsqlDirectTopoServer {
     }
 
     private void getTopology() throws SQLException {
+        System.out.println("TdsqlDirectTopoServer.getTopology");
         if (tdsqlConnection == null) {
             return;
         }
@@ -126,7 +128,7 @@ public final class TdsqlDirectTopoServer {
         if (dataSetClusters.get(0).getMaster() != null) {
             DataSetCache.getInstance().setMasters(Collections.singletonList(dataSetClusters.get(0).getMaster()));
         } else {
-            //            DataSetCache.getInstance().setMasters(new ArrayList<>());
+            DataSetCache.getInstance().setMasters(new ArrayList<>());
         }
         DataSetCache.getInstance().setSlaves(dataSetClusters.get(0).getSlaves());
     }
@@ -134,7 +136,7 @@ public final class TdsqlDirectTopoServer {
     private void initializeScheduler() {
         topoServerScheduler = new ScheduledThreadPoolExecutor(1,
                 new TdsqlThreadFactoryBuilder().setDaemon(false).setNameFormat("TopoServer-pool-%d").build());
-        topoServerScheduler.scheduleAtFixedRate(new TopoRefreshTask(), 0L, tdsqlProxyTopoRefreshInterval,
+        topoServerScheduler.scheduleWithFixedDelay(new TopoRefreshTask(), 0L, tdsqlProxyTopoRefreshInterval,
                 TimeUnit.MILLISECONDS);
     }
 

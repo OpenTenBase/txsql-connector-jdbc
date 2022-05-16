@@ -1,6 +1,8 @@
 package tdsql.direct;
 
-import com.zaxxer.hikari.HikariConfig;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode.RO;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode.RW;
+
 import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -15,8 +17,19 @@ import tdsql.base.BaseTest;
 public class ConnectionPoolTest extends BaseTest {
 
     @Test
-    public void testHikariPool() throws InterruptedException {
-        HikariDataSource ds = initDataSource();
+    public void testInReadOnly() throws InterruptedException {
+        HikariDataSource hikariDataSource = (HikariDataSource) createHikariDataSource(10, 10, RO);
+        testHikariPool(hikariDataSource);
+    }
+
+    @Test
+    public void testInReadWrite() throws InterruptedException {
+        HikariDataSource hikariDataSource = (HikariDataSource) createHikariDataSource(10, 10, RW);
+        testHikariPool(hikariDataSource);
+    }
+
+    private void testHikariPool(HikariDataSource hikariDataSource) throws InterruptedException {
+        hikariDataSource.setMaxLifetime(30000);
 
         ThreadPoolExecutor taskExecutor = new ThreadPoolExecutor(100, 100, 0L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>());
@@ -36,13 +49,13 @@ public class ConnectionPoolTest extends BaseTest {
                     taskExecutor.getQueue().size(), taskExecutor.getLargestPoolSize(),
                     taskExecutor.getMaximumPoolSize(), taskExecutor.getKeepAliveTime(TimeUnit.MILLISECONDS),
                     taskExecutor.isShutdown(), taskExecutor.isTerminated());
-            System.out.println("Hikari pool total = " + ds.getHikariPoolMXBean().getTotalConnections());
+            System.out.println("Hikari pool total = " + hikariDataSource.getHikariPoolMXBean().getTotalConnections());
         }, 0L, 5L, TimeUnit.SECONDS);
 
         for (; ; ) {
             TimeUnit.MILLISECONDS.sleep(100);
             taskExecutor.execute(() -> {
-                try (Connection conn = ds.getConnection();
+                try (Connection conn = hikariDataSource.getConnection();
                         Statement stmt = conn.createStatement()) {
                     stmt.executeQuery("select 1");
                 } catch (SQLException e) {
@@ -50,17 +63,5 @@ public class ConnectionPoolTest extends BaseTest {
                 }
             });
         }
-    }
-
-    private HikariDataSource initDataSource() {
-        HikariConfig config = new HikariConfig();
-        config.setDriverClassName(DRIVER_CLASS_NAME);
-        config.setJdbcUrl(URL_RO);
-        config.setUsername(USER_RO);
-        config.setPassword(PASS_RO);
-        config.setMinimumIdle(10);
-        config.setMaximumPoolSize(10);
-        config.setMaxLifetime(30000);
-        return new HikariDataSource(config);
     }
 }
