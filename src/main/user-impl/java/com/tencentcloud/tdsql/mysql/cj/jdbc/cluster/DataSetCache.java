@@ -59,7 +59,7 @@ public class DataSetCache {
         }
     }
 
-    public void setMasters(List<DataSetInfo> newMasters) {
+    public synchronized void setMasters(List<DataSetInfo> newMasters) {
         if (!newMasters.equals(this.masters)) {
             TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
             try {
@@ -85,7 +85,7 @@ public class DataSetCache {
         return slaves;
     }
 
-    public void setSlaves(List<DataSetInfo> newSlaves) {
+    public synchronized void setSlaves(List<DataSetInfo> newSlaves) {
         if (TdsqlDirectTopoServer.getInstance().getTdsqlMaxSlaveDelay() > 0) {
             slaves.removeIf(dataSetInfo -> dataSetInfo.getDelay() > TdsqlDirectTopoServer.getInstance()
                     .getTdsqlMaxSlaveDelay());
