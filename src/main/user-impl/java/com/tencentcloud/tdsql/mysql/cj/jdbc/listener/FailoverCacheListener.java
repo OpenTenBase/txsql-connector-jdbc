@@ -2,6 +2,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.listener;
 
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlDirectFailoverOperator;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectMasterSlaveSwitchMode;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode;
 import java.beans.PropertyChangeEvent;
@@ -31,7 +32,7 @@ public class FailoverCacheListener extends AbstractCacheListener {
     public void handleMaster(PropertyChangeEvent evt) {
         List<DataSetInfo> newMasters = (List<DataSetInfo>) evt.getNewValue();
         TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
-                TdsqlDirectMasterSlaveSwitchMode.MASTER_SLAVE_SWITCH, null);
+                TdsqlDirectMasterSlaveSwitchMode.MASTER_SLAVE_SWITCH, new ArrayList<>());
     }
 
     /**
@@ -52,6 +53,7 @@ public class FailoverCacheListener extends AbstractCacheListener {
         if (offLineSlaves.size() > 0) {
             List<String> toCloseList = offLineSlaves.stream().map(d -> String.format("%s:%s", d.getIP(), d.getPort()))
                     .collect(Collectors.toList());
+            TdsqlDirectLoggerFactory.getLogger().logDebug("to close offline slave size: " + toCloseList.size());
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_OFFLINE, toCloseList);
         }
