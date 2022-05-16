@@ -93,4 +93,16 @@ public class DataSetInfo {
         res.setAlive(this.getAlive());
         return res;
     }
+
+    @Override
+    public String toString() {
+        return "DataSetInfo{" +
+                "IP='" + IP + '\'' +
+                ", port='" + port + '\'' +
+                ", weight=" + weight +
+                ", alive=" + alive +
+                ", watch=" + watch +
+                ", delay=" + delay +
+                '}';
+    }
 }

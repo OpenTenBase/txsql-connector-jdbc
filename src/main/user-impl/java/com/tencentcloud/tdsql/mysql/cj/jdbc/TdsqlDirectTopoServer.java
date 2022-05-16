@@ -1,8 +1,6 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
-import com.tencentcloud.tdsql.mysql.cj.conf.DatabaseUrlContainer;
-import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.url.LoadBalanceConnectionUrl;
@@ -23,7 +21,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -132,39 +129,6 @@ public final class TdsqlDirectTopoServer {
             //            DataSetCache.getInstance().setMasters(new ArrayList<>());
         }
         DataSetCache.getInstance().setSlaves(dataSetClusters.get(0).getSlaves());
-    }
-
-    int cnt = 0;
-
-    public void refreshTopology(Boolean firstInitialize) {
-        refreshLock.writeLock().lock();
-        try {
-            HostInfo mainHost = connectionUrl.getMainHost();
-            DatabaseUrlContainer originalUrl = mainHost.getOriginalUrl();
-            String username = mainHost.getUser();
-            String password = mainHost.getPassword();
-            Map<String, String> properties = mainHost.getHostProperties();
-
-            if (firstInitialize) {
-                scheduleQueue.clear();
-                scheduleQueue.put(new TdsqlHostInfo(
-                        new HostInfo(originalUrl, "9.134.209.89", 3357, "root", "123456", properties)), 0L);
-                scheduleQueue.put(new TdsqlHostInfo(
-                        new HostInfo(originalUrl, "9.134.209.89", 3358, "root", "123456", properties)), 0L);
-                scheduleQueue.put(new TdsqlHostInfo(
-                        new HostInfo(originalUrl, "9.134.209.89", 3359, "root", "123456", properties)), 0L);
-                scheduleQueue.put(new TdsqlHostInfo(
-                        new HostInfo(originalUrl, "9.134.209.89", 3360, "root", "123456", properties)), 0L);
-            }
-            ++cnt;
-            System.out.println("=======================================================================> cnt = " + cnt);
-        } finally {
-            for (Entry<TdsqlHostInfo, Long> entry : scheduleQueue.asMap().entrySet()) {
-                System.out.println(
-                        "ScheduleQueue,Host:Count = " + entry.getKey().getHostPortPair() + ":" + entry.getValue());
-            }
-            refreshLock.writeLock().unlock();
-        }
     }
 
     private void initializeScheduler() {

@@ -4,12 +4,15 @@ import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectLoggerFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p></p>
@@ -21,6 +24,7 @@ public final class TdsqlDirectConnectionManager {
     private final ConcurrentHashMap<TdsqlHostInfo, List<JdbcConnection>> connectionHolder = new ConcurrentHashMap<>();
 
     private TdsqlDirectConnectionManager() {
+        initializeCompensator();
     }
 
     public static TdsqlDirectConnectionManager getInstance() {
@@ -80,6 +84,27 @@ public final class TdsqlDirectConnectionManager {
         } catch (SQLException e) {
             TdsqlDirectLoggerFactory.logError(e.getMessage(), e);
         }
+    }
+
+    private void initializeCompensator() {
+        ScheduledThreadPoolExecutor recycler = new ScheduledThreadPoolExecutor(1,
+                new TdsqlThreadFactoryBuilder().setDaemon(false).setNameFormat("Compensator-pool-").build());
+        recycler.scheduleAtFixedRate(() -> {
+            TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = TdsqlDirectTopoServer.getInstance()
+                    .getScheduleQueue();
+            try {
+                for (Entry<TdsqlHostInfo, List<JdbcConnection>> entry : getAllConnection().entrySet()) {
+                    TdsqlHostInfo tdsqlHostInfo = entry.getKey();
+                    int realCount = entry.getValue().size();
+                    long currentCount = scheduleQueue.get(tdsqlHostInfo);
+                    if (realCount != currentCount) {
+                        scheduleQueue.put(tdsqlHostInfo, realCount);
+                    }
+                }
+            } catch (Exception e) {
+                TdsqlDirectLoggerFactory.logError(e.getMessage(), e);
+            }
+        }, 0L, 1L, TimeUnit.SECONDS);
     }
 
     public List<JdbcConnection> getConnectionList(TdsqlHostInfo tdsqlHostInfo) {

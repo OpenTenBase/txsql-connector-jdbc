@@ -7,6 +7,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetUtil;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode;
 import java.beans.PropertyChangeEvent;
+import java.util.ArrayList;
 import java.util.List;
 
 public class UpdateSchedulingQueueCacheListener extends AbstractCacheListener {
@@ -53,15 +54,26 @@ public class UpdateSchedulingQueueCacheListener extends AbstractCacheListener {
     @SuppressWarnings("unchecked")
     @Override
     public void handleSlave(PropertyChangeEvent evt) {
+        List<DataSetInfo> oldSlaves = (List<DataSetInfo>) evt.getOldValue();
         List<DataSetInfo> newSlaves = (List<DataSetInfo>) evt.getNewValue();
+        List<DataSetInfo> offLineSlaves = new ArrayList<>(oldSlaves);
+        offLineSlaves.removeAll(newSlaves);
+        List<DataSetInfo> onlineSlaves = new ArrayList<>(newSlaves);
+        onlineSlaves.removeAll(oldSlaves);
         if (TdsqlDirectReadWriteMode.RW.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode))) {
             // ignored
         }
         if (TdsqlDirectReadWriteMode.RO.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode))) {
-            for (DataSetInfo slave : newSlaves) {
+            for (DataSetInfo slave : onlineSlaves) {
                 TdsqlHostInfo tdsqlHostInfo = DataSetUtil.convertDataSetInfo(slave, connectionUrl);
                 if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
                     scheduleQueue.put(tdsqlHostInfo, 0L);
+                }
+            }
+            for (DataSetInfo oldSlave : offLineSlaves) {
+                TdsqlHostInfo tdsqlHostInfo = DataSetUtil.convertDataSetInfo(oldSlave, connectionUrl);
+                if (scheduleQueue.containsKey(tdsqlHostInfo)) {
+                    scheduleQueue.remove(tdsqlHostInfo);
                 }
             }
         }
