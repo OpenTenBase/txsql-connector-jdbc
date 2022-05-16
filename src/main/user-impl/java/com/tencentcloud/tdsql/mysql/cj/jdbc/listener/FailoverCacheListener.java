@@ -24,40 +24,32 @@ public class FailoverCacheListener extends AbstractCacheListener {
     /**
      * 主库变化
      *
-     * @param evt 属性变化事件
      */
     @SuppressWarnings("unchecked")
     @Override
-    public void handleMaster(PropertyChangeEvent evt) {
-        List<DataSetInfo> newMasters = (List<DataSetInfo>) evt.getNewValue();
+    public void handleMaster(List<DataSetInfo> offLines, List<DataSetInfo> onLines) {
+        List<String> toCloseList = offLines.stream().map(d -> String.format("%s:%s", d.getIP(), d.getPort()))
+                .collect(Collectors.toList());
         TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
-                TdsqlDirectMasterSlaveSwitchMode.MASTER_SLAVE_SWITCH, new ArrayList<>());
+                TdsqlDirectMasterSlaveSwitchMode.MASTER_SLAVE_SWITCH, toCloseList);
     }
 
     /**
      * 从库变化
      *
-     * @param evt 属性变化事件
      */
     @SuppressWarnings("unchecked")
     @Override
-    public void handleSlave(PropertyChangeEvent evt) {
-        List<DataSetInfo> oldSlaves = (List<DataSetInfo>) evt.getOldValue();
-        List<DataSetInfo> newSlaves = (List<DataSetInfo>) evt.getNewValue();
-        List<DataSetInfo> offLineSlaves = new ArrayList<>(oldSlaves);
-        offLineSlaves.removeAll(newSlaves);
-        List<DataSetInfo> onlineSlaves = new ArrayList<>(newSlaves);
-        onlineSlaves.removeAll(oldSlaves);
-
-        if (offLineSlaves.size() > 0) {
-            List<String> toCloseList = offLineSlaves.stream().map(d -> String.format("%s:%s", d.getIP(), d.getPort()))
+    public void handleSlave(List<DataSetInfo> offLines, List<DataSetInfo> onLines) {
+        if (offLines.size() > 0) {
+            List<String> toCloseList = offLines.stream().map(d -> String.format("%s:%s", d.getIP(), d.getPort()))
                     .collect(Collectors.toList());
             TdsqlDirectLoggerFactory.logDebug("to close offline slave size: " + toCloseList.size());
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_OFFLINE, toCloseList);
         }
 
-        if (onlineSlaves.size() > 0) {
+        if (onLines.size() > 0) {
             List<String> toCloseList = new ArrayList<>();
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_ONLINE, toCloseList);

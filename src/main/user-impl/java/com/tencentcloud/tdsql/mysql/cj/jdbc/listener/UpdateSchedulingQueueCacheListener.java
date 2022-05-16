@@ -28,17 +28,23 @@ public class UpdateSchedulingQueueCacheListener extends AbstractCacheListener {
      * 1. 如果当前模式是RW, 将新主库加到schedulingQueue
      * 2. 如果当前模式是RO, 将新主库加到schedulingQueue
      *
-     * @param evt 属性变化事件
+     * @param offLines 离线主库
+     * @param onLines 新上线主库
      */
     @SuppressWarnings("unchecked")
     @Override
-    public void handleMaster(PropertyChangeEvent evt) {
-        List<DataSetInfo> newMasters = (List<DataSetInfo>) evt.getNewValue();
+    public void handleMaster(List<DataSetInfo> offLines, List<DataSetInfo> onLines) {
         if (TdsqlDirectReadWriteMode.RW.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode))) {
-            for (DataSetInfo newMaster : newMasters) {
+            for (DataSetInfo newMaster : onLines) {
                 TdsqlHostInfo tdsqlHostInfo = DataSetUtil.convertDataSetInfo(newMaster, connectionUrl);
                 if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
                     scheduleQueue.put(tdsqlHostInfo, 0L);
+                }
+            }
+            for (DataSetInfo offLine : offLines) {
+                TdsqlHostInfo tdsqlHostInfo = DataSetUtil.convertDataSetInfo(offLine, connectionUrl);
+                if (scheduleQueue.containsKey(tdsqlHostInfo)) {
+                    scheduleQueue.remove(tdsqlHostInfo);
                 }
             }
         }
@@ -49,28 +55,23 @@ public class UpdateSchedulingQueueCacheListener extends AbstractCacheListener {
      * 1. 如果当前模式是RW, 不做操作
      * 2. 如果当前模式是RO, 将所有从库加到schedulingQueue
      *
-     * @param evt 属性变化事件
+     * @param offLines 离线从库
+     * @param onLines 新上线从库
      */
     @SuppressWarnings("unchecked")
     @Override
-    public void handleSlave(PropertyChangeEvent evt) {
-        List<DataSetInfo> oldSlaves = (List<DataSetInfo>) evt.getOldValue();
-        List<DataSetInfo> newSlaves = (List<DataSetInfo>) evt.getNewValue();
-        List<DataSetInfo> offLineSlaves = new ArrayList<>(oldSlaves);
-        offLineSlaves.removeAll(newSlaves);
-        List<DataSetInfo> onlineSlaves = new ArrayList<>(newSlaves);
-        onlineSlaves.removeAll(oldSlaves);
+    public void handleSlave(List<DataSetInfo> offLines, List<DataSetInfo> onLines) {
         if (TdsqlDirectReadWriteMode.RW.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode))) {
             // ignored
         }
         if (TdsqlDirectReadWriteMode.RO.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode))) {
-            for (DataSetInfo slave : onlineSlaves) {
+            for (DataSetInfo slave : onLines) {
                 TdsqlHostInfo tdsqlHostInfo = DataSetUtil.convertDataSetInfo(slave, connectionUrl);
                 if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
                     scheduleQueue.put(tdsqlHostInfo, 0L);
                 }
             }
-            for (DataSetInfo oldSlave : offLineSlaves) {
+            for (DataSetInfo oldSlave : offLines) {
                 TdsqlHostInfo tdsqlHostInfo = DataSetUtil.convertDataSetInfo(oldSlave, connectionUrl);
                 if (scheduleQueue.containsKey(tdsqlHostInfo)) {
                     scheduleQueue.remove(tdsqlHostInfo);
