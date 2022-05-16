@@ -59,7 +59,7 @@ public class DataSetCache {
         }
     }
 
-    public void setMasters(List<DataSetInfo> newMasters) {
+    public synchronized void setMasters(List<DataSetInfo> newMasters) {
         if (!newMasters.equals(this.masters)) {
             TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
             try {
