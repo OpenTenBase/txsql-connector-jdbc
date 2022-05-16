@@ -1,5 +1,9 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.ha;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode.RO;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode.RW;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode.convert;
+
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
@@ -7,12 +11,13 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectConnectionManager;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectTopoServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCache;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetUtil;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.TDSQLNoBackendInstanceException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -33,14 +38,16 @@ public final class TdsqlDirectConnectionProxy {
         ReentrantReadWriteLock refreshLock = topoServer.getRefreshLock();
         topoServer.initialize(connectionUrl);
 
-        TdsqlDirectReadWriteMode readWriteMode = TdsqlDirectReadWriteMode.convert(topoServer.getTdsqlReadWriteMode());
-        TdsqlDirectLoggerFactory.logDebug("now masters: " + DataSetUtil.dataSetList2String(DataSetCache.getInstance().getMasters()));
-        if (TdsqlDirectReadWriteMode.RW.equals(readWriteMode) && DataSetCache.getInstance().getMasters().size() == 0) {
-            throw new TDSQLNoBackendInstanceException("No master instance found, master size: " + DataSetCache.getInstance().getMasters().size());
+        TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlReadWriteMode());
+        List<DataSetInfo> masters = DataSetCache.getInstance().getMasters();
+        List<DataSetInfo> slaves = DataSetCache.getInstance().getSlaves();
+        if (RW.equals(readWriteMode) && masters.isEmpty()) {
+            throw new TDSQLNoBackendInstanceException("No master instance found, master size: 0");
         }
-        if (TdsqlDirectReadWriteMode.RO.equals(readWriteMode) && DataSetCache.getInstance().getSlaves().size() == 0) {
+        if (RO.equals(readWriteMode) && slaves.isEmpty()) {
             throw new TDSQLNoBackendInstanceException("No slave instance found");
         }
+        TdsqlDirectLoggerFactory.logDebug("now masters: " + masters);
 
         refreshLock.readLock().lock();
         JdbcConnection newConnection;

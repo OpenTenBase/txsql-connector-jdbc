@@ -64,14 +64,12 @@ public class DataSetCache {
             TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
             try {
                 TdsqlDirectLoggerFactory.logDebug(
-                        "DataSet master have change, old: " + DataSetUtil.dataSetList2String(this.masters) + ", new: "
-                                + DataSetUtil.dataSetList2String(newMasters));
+                        "DataSet master have change, old: " + this.masters + ", new: " + newMasters);
                 propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME,
                         DataSetUtil.copyDataSetList(this.masters), DataSetUtil.copyDataSetList(newMasters));
                 this.masters.clear();
                 this.masters.addAll(newMasters);
-                TdsqlDirectLoggerFactory.logDebug(
-                        "after set, master is: " + DataSetUtil.dataSetList2String(this.masters));
+                TdsqlDirectLoggerFactory.logDebug("after set, master is: " + this.masters);
                 if (!masterCached) {
                     masterCached = true;
                 }
@@ -86,21 +84,25 @@ public class DataSetCache {
     }
 
     public void setSlaves(List<DataSetInfo> newSlaves) {
-        if (TdsqlDirectTopoServer.getInstance().getTdsqlMaxSlaveDelay() > 0) {
-            slaves.removeIf(dataSetInfo -> dataSetInfo.getDelay() > TdsqlDirectTopoServer.getInstance()
-                    .getTdsqlMaxSlaveDelay());
-        }
-        if (!newSlaves.equals(this.slaves)) {
-            TdsqlDirectLoggerFactory.logDebug(
-                    "DataSet slave have change, old: " + DataSetUtil.dataSetList2String(this.slaves) + ", new: "
-                            + DataSetUtil.dataSetList2String(newSlaves));
-            propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.slaves),
-                    DataSetUtil.copyDataSetList(newSlaves));
-            this.slaves.clear();
-            this.slaves.addAll(newSlaves);
-            if (!slaveCached) {
-                slaveCached = true;
+        TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
+        try {
+            if (TdsqlDirectTopoServer.getInstance().getTdsqlMaxSlaveDelay() > 0) {
+                slaves.removeIf(dataSetInfo -> dataSetInfo.getDelay() > TdsqlDirectTopoServer.getInstance()
+                        .getTdsqlMaxSlaveDelay());
             }
+            if (!newSlaves.equals(this.slaves)) {
+                TdsqlDirectLoggerFactory.logDebug(
+                        "DataSet slave have change, old: " + this.slaves + ", new: " + newSlaves);
+                propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.slaves),
+                        DataSetUtil.copyDataSetList(newSlaves));
+                this.slaves.clear();
+                this.slaves.addAll(newSlaves);
+                if (!slaveCached) {
+                    slaveCached = true;
+                }
+            }
+        } finally {
+            TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().unlock();
         }
     }
 

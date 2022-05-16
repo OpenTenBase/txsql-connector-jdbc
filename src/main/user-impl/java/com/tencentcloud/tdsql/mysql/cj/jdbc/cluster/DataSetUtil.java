@@ -139,7 +139,7 @@ public class DataSetUtil {
                         mainHost.getUser(), mainHost.getPassword(), mainHost.getHostProperties()));
     }
 
-    public static String dataSetList2String(List<DataSetInfo> dataSetInfos){
+    /*public static String dataSetList2String(List<DataSetInfo> dataSetInfos){
         if (dataSetInfos == null) {
             return "[]";
         }
@@ -151,7 +151,7 @@ public class DataSetUtil {
         }
         sb.append("]");
         return sb.toString();
-    }
+    }*/
 
     public static List<DataSetInfo> copyDataSetList(List<DataSetInfo> dataSetInfos) {
         List<DataSetInfo> res = new ArrayList<>();
