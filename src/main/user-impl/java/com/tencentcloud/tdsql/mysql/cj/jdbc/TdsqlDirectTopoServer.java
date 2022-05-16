@@ -139,7 +139,7 @@ public final class TdsqlDirectTopoServer {
         if (dataSetClusters.get(0).getMaster() != null) {
             DataSetCache.getInstance().setMasters(Collections.singletonList(dataSetClusters.get(0).getMaster()));
         } else {
-            DataSetCache.getInstance().setMasters(new ArrayList<>());
+//            DataSetCache.getInstance().setMasters(new ArrayList<>());
         }
         DataSetCache.getInstance().setSlaves(dataSetClusters.get(0).getSlaves());
     }
