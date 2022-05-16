@@ -8,7 +8,6 @@ import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 所有数据节点缓存.
@@ -16,15 +15,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class DataSetCache {
 
     private final PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
-    private final List<DataSetInfo> masters = Collections.synchronizedList(new ArrayList<>());
-    private final List<DataSetInfo> slaves = Collections.synchronizedList(new ArrayList<>());
+    private volatile List<DataSetInfo> masters = Collections.synchronizedList(new ArrayList<>());
+    private volatile List<DataSetInfo> slaves = Collections.synchronizedList(new ArrayList<>());
     private boolean masterCached = false;
     private boolean slaveCached = false;
 
     public static final String MASTERS_PROPERTY_NAME = "masters";
     public static final String SLAVES_PROPERTY_NAME = "slaves";
-
-    private final AtomicInteger masterNumber = new AtomicInteger(0);
 
     private DataSetCache() {
     }
@@ -64,10 +61,6 @@ public class DataSetCache {
 
     }
 
-    public boolean noMaster() {
-        return masterNumber.get() == 0;
-    }
-
     public synchronized void setMasters(List<DataSetInfo> newMasters) {
         if (!newMasters.equals(this.masters)) {
             TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
@@ -76,7 +69,6 @@ public class DataSetCache {
                 propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.masters), DataSetUtil.copyDataSetList(newMasters));
                 this.masters.clear();
                 this.masters.addAll(newMasters);
-                this.masterNumber.set(newMasters.size());
                 TdsqlDirectLoggerFactory.getLogger().logDebug("after set, master is: " + DataSetUtil.dataSetList2String(this.masters));
                 if (!masterCached) {
                     masterCached = true;
