@@ -5,9 +5,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -17,55 +14,9 @@ import tdsql.base.BaseTest;
 
 public class ConnectionPoolTest extends BaseTest {
 
-    private static HikariDataSource ds;
-
     @Test
-    public void case01() throws SQLException {
-        initDataSource();
-        try (Connection conn = ds.getConnection()) {
-            printAllConnection();
-            printScheduleQueue();
-        }
-    }
-
-    @Test
-    public void case02() throws InterruptedException {
-        initDataSource();
-        int cnt = 20;
-        CountDownLatch latch = new CountDownLatch(cnt);
-        ExecutorService executorService = Executors.newFixedThreadPool(cnt);
-        for (int i = 0; i < cnt; i++) {
-            executorService.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try (Connection conn = ds.getConnection()) {
-                        TimeUnit.SECONDS.sleep(1);
-                    } catch (SQLException | InterruptedException e) {
-                        e.printStackTrace();
-                    } finally {
-                        latch.countDown();
-                    }
-                }
-            });
-        }
-        executorService.shutdown();
-        latch.await();
-
-        printAllConnection();
-        printScheduleQueue();
-    }
-
-    @Test
-    public void case03() throws InterruptedException {
-        case02();
-        ds.close();
-        initDataSource();
-        case02();
-    }
-
-    @Test
-    public void case04() throws InterruptedException {
-        initDataSource();
+    public void testHikariPool() throws InterruptedException {
+        HikariDataSource ds = initDataSource();
 
         ThreadPoolExecutor taskExecutor = new ThreadPoolExecutor(100, 100, 0L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>());
@@ -101,7 +52,7 @@ public class ConnectionPoolTest extends BaseTest {
         }
     }
 
-    private void initDataSource() {
+    private HikariDataSource initDataSource() {
         HikariConfig config = new HikariConfig();
         config.setDriverClassName(DRIVER_CLASS_NAME);
         config.setJdbcUrl(URL_RO);
@@ -110,6 +61,6 @@ public class ConnectionPoolTest extends BaseTest {
         config.setMinimumIdle(10);
         config.setMaximumPoolSize(10);
         config.setMaxLifetime(30000);
-        ds = new HikariDataSource(config);
+        return new HikariDataSource(config);
     }
 }
