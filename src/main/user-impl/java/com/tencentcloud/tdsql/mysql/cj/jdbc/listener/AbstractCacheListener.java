@@ -4,6 +4,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectTopoServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCache;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 public abstract class AbstractCacheListener implements PropertyChangeListener {
@@ -14,7 +15,8 @@ public abstract class AbstractCacheListener implements PropertyChangeListener {
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
-        TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
+        ReentrantReadWriteLock refreshLock = TdsqlDirectTopoServer.getInstance().getRefreshLock();
+        refreshLock.writeLock().lock();
         try {
             if (evt.getPropertyName().equals(DataSetCache.MASTERS_PROPERTY_NAME)) {
                 handleMaster(evt);
@@ -22,7 +24,7 @@ public abstract class AbstractCacheListener implements PropertyChangeListener {
                 handleSlave(evt);
             }
         } finally {
-            TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().unlock();
+            refreshLock.writeLock().unlock();
         }
     }
 }

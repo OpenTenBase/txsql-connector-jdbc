@@ -1,9 +1,5 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectMasterSlaveSwitchMode.SLAVE_OFFLINE;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectMasterSlaveSwitchMode.SLAVE_ONLINE;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode.RO;
-
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.DatabaseUrlContainer;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
@@ -14,7 +10,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCache;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetCluster;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.TDSQLSyncBackendTopoException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlDirectFailoverOperator;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.listener.FailoverCacheListener;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.listener.UpdateSchedulingQueueCacheListener;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
@@ -24,7 +19,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlUtil;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -42,17 +36,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public final class TdsqlDirectTopoServer {
 
-    private volatile boolean topoServerSchedulerInitialized = false;
     private ScheduledThreadPoolExecutor topoServerScheduler = null;
-    private List<HostInfo> tdsqlProxyHostList = null;
     private String tdsqlReadWriteMode = TdsqlConst.TDSQL_READ_WRITE_MODE_RW;
     private Integer tdsqlMaxSlaveDelay = TdsqlConst.TDSQL_MAX_SLAVE_DELAY_DEFAULT_VALUE;
-    public ReentrantLock lock = new ReentrantLock();
     private Connection tdsqlConnection;
-    private Integer tdsqlProxyTopoRefreshInterval = TdsqlConst.TDSQL_PROXY_TOPO_REFRESH_INTERVAL_DEFAULT_VALUE * 5;
+    private Integer tdsqlProxyTopoRefreshInterval = TdsqlConst.TDSQL_PROXY_TOPO_REFRESH_INTERVAL_DEFAULT_VALUE;
     private ConnectionUrl connectionUrl = null;
     private final TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = TdsqlAtomicLongMap.create();
     private final ReentrantReadWriteLock refreshLock = new ReentrantReadWriteLock();
+    private final AtomicBoolean topoServerInitialized = new AtomicBoolean(false);
 
     private TdsqlDirectTopoServer() {
     }
@@ -67,8 +59,6 @@ public final class TdsqlDirectTopoServer {
             this.connectionUrl = connectionUrl;
             JdbcPropertySetImpl connProps = new JdbcPropertySetImpl();
             connProps.initializeProperties(connectionUrl.getConnectionArgumentsAsProperties());
-
-            tdsqlProxyHostList = connectionUrl.getHostsList();
 
             String newTdsqlReadWriteMode = connProps.getStringProperty(PropertyKey.tdsqlReadWriteMode).getValue();
             if (!tdsqlReadWriteMode.equalsIgnoreCase(newTdsqlReadWriteMode)) {
@@ -92,15 +82,13 @@ public final class TdsqlDirectTopoServer {
             if (!tdsqlProxyTopoRefreshInterval.equals(newTdsqlProxyTopoRefreshInterval)) {
                 if (newTdsqlProxyTopoRefreshInterval > 0 && newTdsqlProxyTopoRefreshInterval < Integer.MAX_VALUE) {
                     tdsqlProxyTopoRefreshInterval = newTdsqlProxyTopoRefreshInterval;
-                    if (topoServerSchedulerInitialized && topoServerScheduler != null) {
+                    if (topoServerInitialized.compareAndSet(true, false) && topoServerScheduler != null) {
                         topoServerScheduler.shutdown();
-                        topoServerSchedulerInitialized = false;
                     }
                 }
             }
 
-            if (!topoServerSchedulerInitialized) {
-                topoServerSchedulerInitialized = true;
+            if (topoServerInitialized.compareAndSet(false, true)) {
                 initTdsqlConnection();
                 initializeScheduler();
                 DataSetCache.getInstance().addListener(
@@ -111,6 +99,7 @@ public final class TdsqlDirectTopoServer {
             refreshLock.writeLock().unlock();
         }
         if (!DataSetCache.getInstance().waitCached(1, 60)) {
+            TdsqlDirectLoggerFactory.logError("wait tdsql topology timeout");
             throw new SQLException("wait tdsql topology timeout");
         }
     }
@@ -120,7 +109,7 @@ public final class TdsqlDirectTopoServer {
             return;
         }
         Map<String, String> config = new HashMap<>();
-        config.put("'autoReconnect'", "true");
+        config.put(PropertyKey.autoReconnect.getKeyName(), "true");
         LoadBalanceConnectionUrl myConnUrl = new LoadBalanceConnectionUrl(connectionUrl.getHostsList(), config);
         tdsqlConnection = LoadBalancedConnectionProxy.createProxyInstance(myConnUrl);
         if (!tdsqlConnection.isClosed()) {
@@ -134,12 +123,13 @@ public final class TdsqlDirectTopoServer {
         }
         List<DataSetCluster> dataSetClusters = TdsqlUtil.showRoutes(tdsqlConnection);
         if (dataSetClusters.isEmpty()) {
+            TdsqlDirectLoggerFactory.logError("No backend cluster found with command: /*proxy*/ show routes");
             throw new TDSQLSyncBackendTopoException("No backend cluster found with command: /*proxy*/ show routes");
         }
         if (dataSetClusters.get(0).getMaster() != null) {
             DataSetCache.getInstance().setMasters(Collections.singletonList(dataSetClusters.get(0).getMaster()));
         } else {
-//            DataSetCache.getInstance().setMasters(new ArrayList<>());
+            //            DataSetCache.getInstance().setMasters(new ArrayList<>());
         }
         DataSetCache.getInstance().setSlaves(dataSetClusters.get(0).getSlaves());
     }
@@ -158,33 +148,13 @@ public final class TdsqlDirectTopoServer {
             if (firstInitialize) {
                 scheduleQueue.clear();
                 scheduleQueue.put(new TdsqlHostInfo(
-                        new HostInfo(originalUrl, "9.134.209.89", 3357, username, password, properties)), 0L);
+                        new HostInfo(originalUrl, "9.134.209.89", 3357, "root", "123456", properties)), 0L);
                 scheduleQueue.put(new TdsqlHostInfo(
-                        new HostInfo(originalUrl, "9.134.209.89", 3358, username, password, properties)), 0L);
+                        new HostInfo(originalUrl, "9.134.209.89", 3358, "root", "123456", properties)), 0L);
                 scheduleQueue.put(new TdsqlHostInfo(
-                        new HostInfo(originalUrl, "9.134.209.89", 3359, username, password, properties)), 0L);
+                        new HostInfo(originalUrl, "9.134.209.89", 3359, "root", "123456", properties)), 0L);
                 scheduleQueue.put(new TdsqlHostInfo(
-                        new HostInfo(originalUrl, "9.134.209.89", 3360, username, password, properties)), 0L);
-            } else if (cnt % 2 > 0) {
-                for (Entry<TdsqlHostInfo, Long> entry : scheduleQueue.asMap().entrySet()) {
-                    if ("9.134.209.89:3357".equalsIgnoreCase(entry.getKey().getHostPortPair())
-                            || "9.134.209.89:3358".equalsIgnoreCase(entry.getKey().getHostPortPair())) {
-                        scheduleQueue.remove(entry.getKey());
-                    }
-                }
-                TdsqlDirectFailoverOperator.subsequentOperation(RO, SLAVE_OFFLINE, new ArrayList<String>() {{
-                    add("9.134.209.89:3357");
-                    add("9.134.209.89:3358");
-                }});
-            } else if (cnt % 2 == 0) {
-                scheduleQueue.put(new TdsqlHostInfo(
-                        new HostInfo(originalUrl, "9.134.209.89", 3357, username, password, properties)), 0L);
-                scheduleQueue.put(new TdsqlHostInfo(
-                        new HostInfo(originalUrl, "9.134.209.89", 3358, username, password, properties)), 0L);
-                TdsqlDirectFailoverOperator.subsequentOperation(RO, SLAVE_ONLINE, new ArrayList<String>() {{
-                    add("9.134.209.89:3357");
-                    add("9.134.209.89:3358");
-                }});
+                        new HostInfo(originalUrl, "9.134.209.89", 3360, "root", "123456", properties)), 0L);
             }
             ++cnt;
             System.out.println("=======================================================================> cnt = " + cnt);
@@ -199,7 +169,7 @@ public final class TdsqlDirectTopoServer {
 
     private void initializeScheduler() {
         topoServerScheduler = new ScheduledThreadPoolExecutor(1,
-                new TdsqlThreadFactoryBuilder().setNameFormat("TopoServer-pool-%d").build());
+                new TdsqlThreadFactoryBuilder().setDaemon(false).setNameFormat("TopoServer-pool-%d").build());
         topoServerScheduler.scheduleAtFixedRate(new TopoRefreshTask(), 0L, tdsqlProxyTopoRefreshInterval,
                 TimeUnit.MILLISECONDS);
     }
@@ -231,7 +201,7 @@ public final class TdsqlDirectTopoServer {
             try {
                 TdsqlDirectTopoServer.getInstance().getTopology();
             } catch (Exception e) {
-                TdsqlDirectLoggerFactory.getLogger().logError(e.getMessage(), e);
+                TdsqlDirectLoggerFactory.logError(e.getMessage(), e);
             }
         }
     }

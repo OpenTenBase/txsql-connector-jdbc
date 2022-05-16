@@ -1,6 +1,5 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.ha;
 
-import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 import java.util.ArrayList;
@@ -23,10 +22,10 @@ public final class TdsqlDirectLoadBalanceStrategy implements TdsqlLoadBalanceStr
      *
      * @param scheduleQueue 连接信息列表
      * @return 选择后的连接信息
-     * @see HostInfo
+     * @see TdsqlHostInfo
      */
     @Override
-    public HostInfo choice(TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue) {
+    public TdsqlHostInfo choice(TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue) {
         if (scheduleQueue == null || scheduleQueue.isEmpty()) {
             return null;
         }

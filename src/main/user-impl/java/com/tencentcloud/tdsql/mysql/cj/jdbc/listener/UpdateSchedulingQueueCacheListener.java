@@ -7,7 +7,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.cluster.DataSetUtil;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode;
 import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.List;
 
 public class UpdateSchedulingQueueCacheListener extends AbstractCacheListener {

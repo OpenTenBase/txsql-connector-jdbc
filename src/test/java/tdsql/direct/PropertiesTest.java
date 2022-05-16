@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.conf.url.DirectConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.TdsqlDirectTopoServer;
 import java.sql.Connection;
 import java.util.Properties;
@@ -80,5 +81,15 @@ public class PropertiesTest extends BaseTest {
         assertEquals(6 * 1000, TdsqlDirectTopoServer.getInstance().getTdsqlProxyTopoRefreshInterval());
         TimeUnit.SECONDS.sleep(7);
         assertEquals(6 * 1000, TdsqlDirectTopoServer.getInstance().getTdsqlProxyTopoRefreshInterval());
+    }
+
+    @Test
+    public void testDirectConnectionUrl() {
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.dnsSrv.getKeyName(), "false");
+        assertEquals(DirectConnectionUrl.class, ConnectionUrl.getConnectionUrlInstance("jdbc:tdsql-mysql:direct://hostname?dnsSrv=false", null).getClass());
+        assertEquals(DirectConnectionUrl.class, ConnectionUrl.getConnectionUrlInstance("jdbc:tdsql-mysql:direct://hostname", props).getClass());
+        assertEquals(DirectConnectionUrl.class, ConnectionUrl.getConnectionUrlInstance("jdbc:tdsql-mysql:direct://hostname?dnsArv=false", props).getClass());
+        assertEquals(DirectConnectionUrl.class, ConnectionUrl.getConnectionUrlInstance("jdbc:tdsql-mysql:direct://hostname?dnsSrv=true", props).getClass());
     }
 }

@@ -43,10 +43,10 @@ import org.junit.jupiter.api.TestInfo;
 public abstract class BaseTest {
 
     protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
-    protected static final String URL_RW = "jdbc:tdsql-mysql:direct://9.30.1.140:15038,9.30.1.207:15038/test"
-            + "?tdsqlReadWriteMode=rw";
-    protected static final String URL_RO = "jdbc:tdsql-mysql:direct://9.30.1.140:15038,9.30.1.207:15038/test"
-            + "?tdsqlReadWriteMode=ro";
+    protected static final String URL_RW = "jdbc:tdsql-mysql:direct://9.30.1.140:15038,9.30.1.207:15038/mysql"
+            + "?useSSL=false&tdsqlReadWriteMode=rw";
+    protected static final String URL_RO = "jdbc:tdsql-mysql:direct://9.30.1.140:15038,9.30.1.207:15038/mysql"
+            + "?useSSL=false&tdsqlReadWriteMode=ro";
     protected static final String USER_RW = "test";
     protected static final String PASS_RW = "test";
     protected static final String USER_RO = "test_ro";
@@ -125,20 +125,20 @@ public abstract class BaseTest {
     }
 
     protected DataSource createHikariDataSource() {
-        return createHikariDataSource(10, 10, false);
+        return createHikariDataSource(10, 10, RW);
     }
 
-    protected DataSource createHikariDataSource(int min, int max, boolean readonly) {
+    protected DataSource createHikariDataSource(int min, int max, TdsqlDirectReadWriteMode mode) {
         HikariConfig config = new HikariConfig();
         config.setDriverClassName(DRIVER_CLASS_NAME);
-        if (readonly) {
-            config.setJdbcUrl(URL_RW);
-            config.setUsername(USER_RW);
-            config.setPassword(PASS_RW);
-        } else {
+        if (RO.equals(mode)) {
             config.setJdbcUrl(URL_RO);
             config.setUsername(USER_RO);
             config.setPassword(PASS_RO);
+        } else {
+            config.setJdbcUrl(URL_RW);
+            config.setUsername(USER_RW);
+            config.setPassword(PASS_RW);
         }
         config.setMinimumIdle(min);
         config.setMaximumPoolSize(max);
@@ -146,20 +146,21 @@ public abstract class BaseTest {
     }
 
     protected DataSource createDruidDataSource() throws Exception {
-        return createDruidDataSource(10, 10, 10, false);
+        return createDruidDataSource(10, 10, 10, RW);
     }
 
-    protected DataSource createDruidDataSource(int init, int min, int max, boolean readonly) throws Exception {
+    protected DataSource createDruidDataSource(int init, int min, int max, TdsqlDirectReadWriteMode mode)
+            throws Exception {
         Properties prop = new Properties();
         prop.setProperty(PROP_DRIVERCLASSNAME, DRIVER_CLASS_NAME);
-        if (readonly) {
-            prop.setProperty(PROP_URL, URL_RW);
-            prop.setProperty(PROP_USERNAME, USER_RW);
-            prop.setProperty(PROP_PASSWORD, PASS_RW);
-        } else {
+        if (RO.equals(mode)) {
             prop.setProperty(PROP_URL, URL_RO);
             prop.setProperty(PROP_USERNAME, USER_RO);
             prop.setProperty(PROP_PASSWORD, PASS_RO);
+        } else {
+            prop.setProperty(PROP_URL, URL_RW);
+            prop.setProperty(PROP_USERNAME, USER_RW);
+            prop.setProperty(PROP_PASSWORD, PASS_RW);
         }
         prop.setProperty(PROP_INITIALSIZE, String.valueOf(init));
         prop.setProperty(PROP_MINIDLE, String.valueOf(min));
@@ -167,7 +168,7 @@ public abstract class BaseTest {
         return createDataSource(prop);
     }
 
-    protected void warmUp(DataSource dataSource, int threadCnt, int taskCnt) {
+    protected void warmUp(DataSource dataSource, int threadCnt, int taskCnt, int waitSec) {
         try {
             ExecutorService pool = Executors.newFixedThreadPool(threadCnt);
             CountDownLatch latch = new CountDownLatch(taskCnt);
@@ -183,7 +184,7 @@ public abstract class BaseTest {
                     }
                 });
             }
-            boolean await = latch.await(30L, TimeUnit.SECONDS);
+            boolean await = latch.await(waitSec, TimeUnit.SECONDS);
             if (!await) {
                 pool.shutdownNow();
             } else {

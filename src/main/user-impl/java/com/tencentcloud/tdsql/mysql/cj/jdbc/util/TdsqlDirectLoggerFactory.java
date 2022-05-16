@@ -18,7 +18,21 @@ public class TdsqlDirectLoggerFactory {
         TdsqlDirectLoggerFactory.log = log;
     }
 
-    public static Log getLogger() {
-        return TdsqlDirectLoggerFactory.log;
+    public static void logDebug(Object msg) {
+        if (log != null && log.isDebugEnabled()) {
+            log.logDebug(msg);
+        }
+    }
+
+    public static void logError(Object msg) {
+        if (log != null && log.isErrorEnabled()) {
+            log.logError(msg);
+        }
+    }
+
+    public static void logError(Object msg, Throwable thrown) {
+        if (log != null && log.isErrorEnabled()) {
+            log.logError(msg, thrown);
+        }
     }
 }
