@@ -88,7 +88,7 @@ public final class TdsqlDirectConnectionManager {
 
     private void initializeCompensator() {
         ScheduledThreadPoolExecutor recycler = new ScheduledThreadPoolExecutor(1,
-                new TdsqlThreadFactoryBuilder().setDaemon(false).setNameFormat("Compensator-pool-").build());
+                new TdsqlThreadFactoryBuilder().setDaemon(true).setNameFormat("Compensator-pool-").build());
         recycler.scheduleAtFixedRate(() -> {
             TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = TdsqlDirectTopoServer.getInstance()
                     .getScheduleQueue();

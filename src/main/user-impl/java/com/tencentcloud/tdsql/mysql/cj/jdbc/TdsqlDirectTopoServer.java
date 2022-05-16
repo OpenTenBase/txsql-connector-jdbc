@@ -116,7 +116,6 @@ public final class TdsqlDirectTopoServer {
     }
 
     private void getTopology() throws SQLException {
-        System.out.println("TdsqlDirectTopoServer.getTopology");
         if (tdsqlConnection == null) {
             return;
         }
@@ -135,7 +134,7 @@ public final class TdsqlDirectTopoServer {
 
     private void initializeScheduler() {
         topoServerScheduler = new ScheduledThreadPoolExecutor(1,
-                new TdsqlThreadFactoryBuilder().setDaemon(false).setNameFormat("TopoServer-pool-%d").build());
+                new TdsqlThreadFactoryBuilder().setDaemon(true).setNameFormat("TopoServer-pool-%d").build());
         topoServerScheduler.scheduleWithFixedDelay(new TopoRefreshTask(), 0L, tdsqlProxyTopoRefreshInterval,
                 TimeUnit.MILLISECONDS);
     }
