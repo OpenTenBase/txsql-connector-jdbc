@@ -90,6 +90,7 @@ public class DataSetCache {
             Integer tdsqlMaxSlaveDelay = topoServer.getTdsqlMaxSlaveDelay();
             if (tdsqlMaxSlaveDelay > 0) {
                 slaves.removeIf(dsInfo -> dsInfo.getDelay() >= tdsqlMaxSlaveDelay);
+                newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= tdsqlMaxSlaveDelay);
             }
             if (!newSlaves.equals(this.slaves)) {
                 TdsqlDirectLoggerFactory.logDebug(

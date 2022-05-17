@@ -131,12 +131,13 @@ public final class TdsqlDirectTopoServer {
             TdsqlDirectLoggerFactory.logError("No backend cluster found with command: /*proxy*/ show routes");
             throw new TDSQLSyncBackendTopoException("No backend cluster found with command: /*proxy*/ show routes");
         }
+        DataSetCache cache = DataSetCache.getInstance();
         if (dataSetClusters.get(0).getMaster() != null) {
-            DataSetCache.getInstance().setMasters(Collections.singletonList(dataSetClusters.get(0).getMaster()));
+            cache.setMasters(Collections.singletonList(dataSetClusters.get(0).getMaster()));
         } else {
-            DataSetCache.getInstance().setMasters(new ArrayList<>());
+            cache.setMasters(new ArrayList<>());
         }
-        DataSetCache.getInstance().setSlaves(dataSetClusters.get(0).getSlaves());
+        cache.setSlaves(dataSetClusters.get(0).getSlaves());
     }
 
     private void initializeScheduler() {
