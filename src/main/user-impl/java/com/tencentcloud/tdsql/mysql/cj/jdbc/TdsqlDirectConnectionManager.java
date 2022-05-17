@@ -96,6 +96,9 @@ public final class TdsqlDirectConnectionManager {
                 for (Entry<TdsqlHostInfo, List<JdbcConnection>> entry : getAllConnection().entrySet()) {
                     TdsqlHostInfo tdsqlHostInfo = entry.getKey();
                     int realCount = entry.getValue().size();
+                    if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
+                        return;
+                    }
                     long currentCount = scheduleQueue.get(tdsqlHostInfo);
                     if (realCount != currentCount) {
                         scheduleQueue.put(tdsqlHostInfo, realCount);
