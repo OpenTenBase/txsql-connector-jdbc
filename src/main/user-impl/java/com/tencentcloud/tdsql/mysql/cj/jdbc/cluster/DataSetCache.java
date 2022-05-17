@@ -84,11 +84,12 @@ public class DataSetCache {
     }
 
     public void setSlaves(List<DataSetInfo> newSlaves) {
-        TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
+        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+        topoServer.getRefreshLock().writeLock().lock();
         try {
-            if (TdsqlDirectTopoServer.getInstance().getTdsqlMaxSlaveDelay() > 0) {
-                slaves.removeIf(dataSetInfo -> dataSetInfo.getDelay() > TdsqlDirectTopoServer.getInstance()
-                        .getTdsqlMaxSlaveDelay());
+            Integer tdsqlMaxSlaveDelay = topoServer.getTdsqlMaxSlaveDelay();
+            if (tdsqlMaxSlaveDelay > 0) {
+                slaves.removeIf(dsInfo -> dsInfo.getDelay() >= tdsqlMaxSlaveDelay);
             }
             if (!newSlaves.equals(this.slaves)) {
                 TdsqlDirectLoggerFactory.logDebug(
@@ -102,7 +103,7 @@ public class DataSetCache {
                 }
             }
         } finally {
-            TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().unlock();
+            topoServer.getRefreshLock().writeLock().unlock();
         }
     }
 
