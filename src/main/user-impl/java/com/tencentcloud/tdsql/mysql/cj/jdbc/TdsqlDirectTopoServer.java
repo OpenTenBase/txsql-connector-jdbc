@@ -107,17 +107,24 @@ public final class TdsqlDirectTopoServer {
             return;
         }
         Map<String, String> config = new HashMap<>();
-        config.put(PropertyKey.autoReconnect.getKeyName(), "true");
+        config.put(PropertyKey.retriesAllDown.getKeyName(), "1");
+        config.put(PropertyKey.connectTimeout.getKeyName(), "1000");
+        config.put(PropertyKey.maxAllowedPacket.getKeyName(), "65535000");
         LoadBalanceConnectionUrl myConnUrl = new LoadBalanceConnectionUrl(connectionUrl.getHostsList(), config);
-        tdsqlConnection = LoadBalancedConnectionProxy.createProxyInstance(myConnUrl);
-        if (!tdsqlConnection.isClosed()) {
-            TdsqlDirectLoggerFactory.setLogger(((JdbcConnection) tdsqlConnection).getSession().getLog());
+        try {
+            tdsqlConnection = LoadBalancedConnectionProxy.createProxyInstance(myConnUrl);
+            if (!tdsqlConnection.isClosed()) {
+                TdsqlDirectLoggerFactory.setLogger(((JdbcConnection) tdsqlConnection).getSession().getLog());
+            }
+        } catch (SQLException e) {
+            TdsqlDirectConnectionManager.getInstance().closeAll();
+            throw e;
         }
     }
 
     private void getTopology() throws SQLException {
         if (tdsqlConnection == null) {
-            return;
+            initTdsqlConnection();
         }
         List<DataSetCluster> dataSetClusters = TdsqlUtil.showRoutes(tdsqlConnection);
         if (dataSetClusters.isEmpty()) {
