@@ -860,7 +860,7 @@ public class PropertyDefinitions {
                 new IntegerPropertyDefinition(PropertyKey.tdsqlMaxSlaveDelay, 0, RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlMaxSlaveDelay"), "1.2.2", CATEGORY_XDEVAPI, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
                 new IntegerPropertyDefinition(PropertyKey.tdsqlProxyTopoRefreshInterval, 1000, RUNTIME_NOT_MODIFIABLE,
-                        Messages.getString("ConnectionProperties.tdsqlProxyTopoRefreshInterval"), "1.2.2", CATEGORY_XDEVAPI, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
+                        Messages.getString("ConnectionProperties.tdsqlProxyTopoRefreshInterval"), "1.2.2", CATEGORY_XDEVAPI, Integer.MIN_VALUE, 1000, Integer.MAX_VALUE),
         };
 
         HashMap<PropertyKey, PropertyDefinition<?>> propertyKeyToPropertyDefinitionMap = new HashMap<>();
