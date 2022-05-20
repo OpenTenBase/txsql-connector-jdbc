@@ -24,7 +24,6 @@ public class FailoverCacheListener extends AbstractCacheListener {
      * 主库变化
      *
      */
-    @SuppressWarnings("unchecked")
     @Override
     public void handleMaster(List<DataSetInfo> offLines, List<DataSetInfo> onLines) {
         if(offLines.size() > 0) {
@@ -40,7 +39,6 @@ public class FailoverCacheListener extends AbstractCacheListener {
      * 从库变化
      *
      */
-    @SuppressWarnings("unchecked")
     @Override
     public void handleSlave(List<DataSetInfo> offLines, List<DataSetInfo> onLines) {
         if (offLines.size() > 0) {
