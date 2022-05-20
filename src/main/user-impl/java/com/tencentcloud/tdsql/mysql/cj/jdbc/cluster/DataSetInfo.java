@@ -99,9 +99,6 @@ public class DataSetInfo {
         return "DataSetInfo{" +
                 "IP='" + IP + '\'' +
                 ", port='" + port + '\'' +
-                ", weight=" + weight +
-                ", alive=" + alive +
-                ", watch=" + watch +
                 ", delay=" + delay +
                 '}';
     }

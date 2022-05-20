@@ -27,6 +27,9 @@ public class FailoverCacheListener extends AbstractCacheListener {
     @SuppressWarnings("unchecked")
     @Override
     public void handleMaster(List<DataSetInfo> offLines, List<DataSetInfo> onLines) {
+        if(offLines.size() > 0) {
+            TdsqlDirectLoggerFactory.logDebug("to close offline masters: " + offLines);
+        }
         List<String> toCloseList = offLines.stream().map(d -> String.format("%s:%s", d.getIP(), d.getPort()))
                 .collect(Collectors.toList());
         TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
@@ -43,7 +46,7 @@ public class FailoverCacheListener extends AbstractCacheListener {
         if (offLines.size() > 0) {
             List<String> toCloseList = offLines.stream().map(d -> String.format("%s:%s", d.getIP(), d.getPort()))
                     .collect(Collectors.toList());
-            TdsqlDirectLoggerFactory.logDebug("to close offline slave size: " + toCloseList.size());
+            TdsqlDirectLoggerFactory.logDebug("to close offline slaves: " + offLines);
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_OFFLINE, toCloseList);
         }

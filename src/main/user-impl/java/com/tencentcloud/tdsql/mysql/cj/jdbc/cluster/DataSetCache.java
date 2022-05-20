@@ -83,7 +83,7 @@ public class DataSetCache {
         return slaves;
     }
 
-    public void setSlaves(List<DataSetInfo> newSlaves) {
+    public synchronized void setSlaves(List<DataSetInfo> newSlaves) {
         TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
         topoServer.getRefreshLock().writeLock().lock();
         try {
