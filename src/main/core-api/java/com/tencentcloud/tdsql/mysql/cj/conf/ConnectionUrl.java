@@ -115,7 +115,8 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
         REPLICATION_CONNECTION("jdbc:tdsql-mysql:replication:", HostsCardinality.ONE_OR_MORE, "com.tencentcloud.tdsql.mysql.cj.conf.url.ReplicationConnectionUrl", PropertyKey.dnsSrv,
                 REPLICATION_DNS_SRV_CONNECTION), //
         XDEVAPI_SESSION("tdsql-mysqlx:", HostsCardinality.ONE_OR_MORE, "com.tencentcloud.tdsql.mysql.cj.conf.url.XDevApiConnectionUrl", PropertyKey.xdevapiDnsSrv,
-                XDEVAPI_DNS_SRV_SESSION);
+                XDEVAPI_DNS_SRV_SESSION),
+        DIRECT_CONNECTION("jdbc:tdsql-mysql:direct:", HostsCardinality.ONE_OR_MORE, "com.tencentcloud.tdsql.mysql.cj.conf.url.DirectConnectionUrl");
 
         private String scheme;
         private HostsCardinality cardinality;

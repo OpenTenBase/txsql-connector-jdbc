@@ -29,15 +29,14 @@
 
 package com.tencentcloud.tdsql.mysql.cj.conf;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.PerConnectionLRUFactory;
 import com.tencentcloud.tdsql.mysql.cj.log.Log;
 import com.tencentcloud.tdsql.mysql.cj.log.StandardLogger;
 import com.tencentcloud.tdsql.mysql.cj.util.PerVmServerConfigCacheFactory;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class PropertyDefinitions {
     /*
@@ -853,8 +852,15 @@ public class PropertyDefinitions {
                 new StringPropertyDefinition(PropertyKey.xdevapiCompressionAlgorithms, "zstd_stream,lz4_message,deflate_stream", RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.xdevapiCompressionAlgorithms"), "8.0.22", CATEGORY_XDEVAPI, Integer.MIN_VALUE),
                 new StringPropertyDefinition(PropertyKey.xdevapiCompressionExtensions, DEFAULT_VALUE_NULL_STRING, RUNTIME_NOT_MODIFIABLE,
-                        Messages.getString("ConnectionProperties.xdevapiCompressionExtensions"), "8.0.22", CATEGORY_XDEVAPI, Integer.MIN_VALUE)
-                //
+                        Messages.getString("ConnectionProperties.xdevapiCompressionExtensions"), "8.0.22", CATEGORY_XDEVAPI, Integer.MIN_VALUE),
+
+                // Direct
+                new StringPropertyDefinition(PropertyKey.tdsqlReadWriteMode, "rw", RUNTIME_NOT_MODIFIABLE, Messages.getString("ConnectionProperties.tdsqlReadWriteMode"),
+                        "1.2.2", CATEGORY_NETWORK, Integer.MIN_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlMaxSlaveDelay, 0, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlMaxSlaveDelay"), "1.2.2", CATEGORY_XDEVAPI, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlProxyTopoRefreshInterval, 1000, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlProxyTopoRefreshInterval"), "1.2.2", CATEGORY_XDEVAPI, Integer.MIN_VALUE, 1000, Integer.MAX_VALUE),
         };
 
         HashMap<PropertyKey, PropertyDefinition<?>> propertyKeyToPropertyDefinitionMap = new HashMap<>();

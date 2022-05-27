@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 1.3.0
+
+- 提供在NoShard场景下，驱动直连后端数据库实现静态读写分离的能力；
+
 ## Version 1.2.1
 
 - 针对TDSQL的Proxy协议进行了适配，修复了client deprecate eof问题；
