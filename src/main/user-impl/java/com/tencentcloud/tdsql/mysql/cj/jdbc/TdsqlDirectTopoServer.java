@@ -103,10 +103,10 @@ public final class TdsqlDirectTopoServer {
     }
 
     private void initTdsqlConnection() throws SQLException {
-        if (tdsqlConnection != null) {
+        if (tdsqlConnection != null && !tdsqlConnection.isClosed() && tdsqlConnection.isValid(1)) {
             return;
         }
-        Map<String, String> config = new HashMap<>();
+        Map<String, String> config = new HashMap<>(3);
         config.put(PropertyKey.retriesAllDown.getKeyName(), "1");
         config.put(PropertyKey.connectTimeout.getKeyName(), "1000");
         config.put(PropertyKey.maxAllowedPacket.getKeyName(), "65535000");
@@ -123,7 +123,7 @@ public final class TdsqlDirectTopoServer {
     }
 
     private void getTopology() throws SQLException {
-        if (tdsqlConnection == null) {
+        if (tdsqlConnection == null || tdsqlConnection.isClosed() || !tdsqlConnection.isValid(1)) {
             initTdsqlConnection();
         }
         List<DataSetCluster> dataSetClusters = TdsqlUtil.showRoutes(tdsqlConnection);
