@@ -48,7 +48,6 @@ public abstract class AbstractNumericValueFactory<T> extends DefaultValueFactory
             return createFromLong(0);
         }
 
-        // TODO: Too expensive to convert from other charset to ASCII here? UTF-8 (e.g.) doesn't need any conversion before being sent to the decoder
         String s = StringUtils.toString(bytes, offset, length, f.getEncoding());
         byte[] newBytes = s.getBytes();
 

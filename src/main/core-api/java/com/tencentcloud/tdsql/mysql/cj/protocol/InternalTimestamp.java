@@ -29,6 +29,13 @@
 
 package com.tencentcloud.tdsql.mysql.cj.protocol;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
+import java.util.Calendar;
+import java.util.concurrent.TimeUnit;
+
 public class InternalTimestamp extends InternalDate {
 
     private int hours = 0;
@@ -36,6 +43,34 @@ public class InternalTimestamp extends InternalDate {
     private int seconds = 0;
     private int nanos = 0;
     private int scale = 0;
+    private int offset = 0;
+
+    public static InternalTimestamp from(LocalDate x) {
+        return new InternalTimestamp(x.getYear(), x.getMonthValue(), x.getDayOfMonth(), 0, 0, 0, 0, -1);
+    }
+
+    public static InternalTimestamp from(LocalDateTime x) {
+        return new InternalTimestamp(x.getYear(), x.getMonthValue(), x.getDayOfMonth(), x.getHour(), x.getMinute(), x.getSecond(), x.getNano(), -1);
+    }
+
+    public static InternalTimestamp from(OffsetDateTime x) {
+        InternalTimestamp internalTimestamp = new InternalTimestamp(x.getYear(), x.getMonthValue(), x.getDayOfMonth(), x.getHour(), x.getMinute(),
+                x.getSecond(), x.getNano(), -1);
+        internalTimestamp.setOffset((int) TimeUnit.SECONDS.toMinutes(x.getOffset().getTotalSeconds()));
+        return internalTimestamp;
+    }
+
+    public static InternalTimestamp from(ZonedDateTime x) {
+        InternalTimestamp internalTimestamp = new InternalTimestamp(x.getYear(), x.getMonthValue(), x.getDayOfMonth(), x.getHour(), x.getMinute(),
+                x.getSecond(), x.getNano(), -1);
+        internalTimestamp.setOffset((int) TimeUnit.SECONDS.toMinutes(x.getOffset().getTotalSeconds()));
+        return internalTimestamp;
+    }
+
+    public static InternalTimestamp from(Calendar x, int nanos) {
+        return new InternalTimestamp(x.get(Calendar.YEAR), x.get(Calendar.MONTH) + 1, x.get(Calendar.DAY_OF_MONTH), x.get(Calendar.HOUR_OF_DAY),
+                x.get(Calendar.MINUTE), x.get(Calendar.SECOND), nanos, -1);
+    }
 
     /**
      * Constructs a zero datetime
@@ -87,16 +122,24 @@ public class InternalTimestamp extends InternalDate {
         this.nanos = nanos;
     }
 
-    @Override
-    public boolean isZero() {
-        return super.isZero() && this.hours == 0 && this.minutes == 0 && this.seconds == 0 && this.nanos == 0;
-    }
-
     public int getScale() {
         return this.scale;
     }
 
     public void setScale(int scale) {
         this.scale = scale;
+    }
+
+    public int getOffset() {
+        return this.offset;
+    }
+
+    public void setOffset(int offset) {
+        this.offset = offset;
+    }
+
+    @Override
+    public boolean isZero() {
+        return super.isZero() && this.hours == 0 && this.minutes == 0 && this.seconds == 0 && this.nanos == 0;
     }
 }

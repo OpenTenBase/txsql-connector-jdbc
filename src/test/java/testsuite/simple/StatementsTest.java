@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2002, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -31,10 +31,12 @@ package testsuite.simple;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -68,18 +70,21 @@ import java.time.OffsetTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.tencentcloud.tdsql.mysql.cj.CharsetMapping;
+import com.tencentcloud.tdsql.mysql.cj.CharsetMappingWrapper;
 import com.tencentcloud.tdsql.mysql.cj.MysqlConnection;
 import com.tencentcloud.tdsql.mysql.cj.MysqlType;
+import com.tencentcloud.tdsql.mysql.cj.Query;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.SslMode;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
@@ -90,180 +95,74 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLStatementCancelledException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.MySQLTimeoutException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.interceptors.ServerStatusDiffInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.protocol.Resultset;
 import com.tencentcloud.tdsql.mysql.cj.util.LRUCache;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 import com.tencentcloud.tdsql.mysql.cj.util.TimeUtil;
 
+import testsuite.BaseQueryInterceptor;
 import testsuite.BaseTestCase;
 import testsuite.regression.ConnectionRegressionTest.CountingReBalanceStrategy;
 
 public class StatementsTest extends BaseTestCase {
-    private static final int MAX_COLUMN_LENGTH = 255;
-    private static final int MAX_COLUMNS_TO_TEST = 40;
-    private static final int STEP = 8;
-
-    @BeforeEach
-    public void setUp() throws Exception {
-        this.stmt.executeUpdate("DROP TABLE IF EXISTS statement_test");
-        this.stmt.executeUpdate("DROP TABLE IF EXISTS statement_batch_test");
-        this.stmt.executeUpdate(
-                "CREATE TABLE statement_test (id int not null primary key auto_increment, strdata1 varchar(255) not null, strdata2 varchar(255))");
-
-        try {
-            this.stmt.executeUpdate("CREATE TABLE statement_batch_test (id int not null primary key auto_increment, "
-                    + "strdata1 varchar(255) not null, strdata2 varchar(255), UNIQUE INDEX (strdata1))");
-        } catch (SQLException sqlEx) {
-            if (sqlEx.getMessage().indexOf("max key length") != -1) {
-                createTable("statement_batch_test",
-                        "(id int not null primary key auto_increment, strdata1 varchar(175) not null, strdata2 varchar(175), " + "UNIQUE INDEX (strdata1))");
-            }
-        }
-
-        for (int i = 6; i < MAX_COLUMNS_TO_TEST; i += STEP) {
-            this.stmt.executeUpdate("DROP TABLE IF EXISTS statement_col_test_" + i);
-
-            StringBuilder insertBuf = new StringBuilder("INSERT INTO statement_col_test_");
-            StringBuilder stmtBuf = new StringBuilder("CREATE TABLE IF NOT EXISTS statement_col_test_");
-            stmtBuf.append(i);
-            insertBuf.append(i);
-            stmtBuf.append(" (");
-            insertBuf.append(" VALUES (");
-
-            boolean firstTime = true;
-
-            for (int j = 0; j < i; j++) {
-                if (!firstTime) {
-                    stmtBuf.append(",");
-                    insertBuf.append(",");
-                } else {
-                    firstTime = false;
-                }
-
-                stmtBuf.append("col_");
-                stmtBuf.append(j);
-                stmtBuf.append(" VARCHAR(");
-                stmtBuf.append(MAX_COLUMN_LENGTH);
-                stmtBuf.append(")");
-                insertBuf.append("'");
-
-                int numChars = 16;
-
-                for (int k = 0; k < numChars; k++) {
-                    insertBuf.append("A");
-                }
-
-                insertBuf.append("'");
-            }
-
-            stmtBuf.append(")");
-            insertBuf.append(")");
-            this.stmt.executeUpdate(stmtBuf.toString());
-            this.stmt.executeUpdate(insertBuf.toString());
-        }
-
-        // explicitly set the catalog to exercise code in execute(), executeQuery() and executeUpdate()
-        // FIXME: Only works on Windows!
-        // this.conn.setCatalog(this.conn.getCatalog().toUpperCase());
-    }
-
-    @AfterEach
-    public void tearDown() throws Exception {
-        this.stmt.executeUpdate("DROP TABLE statement_test");
-
-        for (int i = 6; i < MAX_COLUMNS_TO_TEST; i += STEP) {
-            StringBuilder stmtBuf = new StringBuilder("DROP TABLE IF EXISTS statement_col_test_");
-            stmtBuf.append(i);
-            this.stmt.executeUpdate(stmtBuf.toString());
-        }
-
-        try {
-            this.stmt.executeUpdate("DROP TABLE statement_batch_test");
-        } catch (SQLException sqlEx) {
-        }
-    }
-
     @Test
     public void testAccessorsAndMutators() throws SQLException {
         assertTrue(this.stmt.getConnection() == this.conn, "Connection can not be null, and must be same connection");
 
         // Set max rows, to exercise code in execute(), executeQuery() and executeUpdate()
-        Statement accessorStmt = null;
+        Statement accessorStmt = this.conn.createStatement();
+        accessorStmt.setMaxRows(1);
+        accessorStmt.setMaxRows(0); // FIXME, test that this actually affects rows returned
+        accessorStmt.setMaxFieldSize(255);
+        assertTrue(accessorStmt.getMaxFieldSize() == 255, "Max field size should match what was set");
 
-        try {
-            accessorStmt = this.conn.createStatement();
-            accessorStmt.setMaxRows(1);
-            accessorStmt.setMaxRows(0); // FIXME, test that this actually affects rows returned
-            accessorStmt.setMaxFieldSize(255);
-            assertTrue(accessorStmt.getMaxFieldSize() == 255, "Max field size should match what was set");
+        assertThrows("Should not be able to set max field size > max_packet_size", SQLException.class, () -> {
+            accessorStmt.setMaxFieldSize(Integer.MAX_VALUE);
+            return null;
+        });
 
-            try {
-                accessorStmt.setMaxFieldSize(Integer.MAX_VALUE);
-                fail("Should not be able to set max field size > max_packet_size");
-            } catch (SQLException sqlEx) {
-                // ignore
-            }
+        accessorStmt.setCursorName("undef");
+        accessorStmt.setEscapeProcessing(true);
+        accessorStmt.setFetchDirection(java.sql.ResultSet.FETCH_FORWARD);
 
-            accessorStmt.setCursorName("undef");
-            accessorStmt.setEscapeProcessing(true);
-            accessorStmt.setFetchDirection(java.sql.ResultSet.FETCH_FORWARD);
+        int fetchDirection = accessorStmt.getFetchDirection();
+        assertTrue(fetchDirection == java.sql.ResultSet.FETCH_FORWARD, "Set fetch direction != get fetch direction");
 
-            int fetchDirection = accessorStmt.getFetchDirection();
-            assertTrue(fetchDirection == java.sql.ResultSet.FETCH_FORWARD, "Set fetch direction != get fetch direction");
+        assertThrows("Should not be able to set fetch direction to invalid value", SQLException.class, () -> {
+            accessorStmt.setFetchDirection(Integer.MAX_VALUE);
+            return null;
+        });
 
-            try {
-                accessorStmt.setFetchDirection(Integer.MAX_VALUE);
-                fail("Should not be able to set fetch direction to invalid value");
-            } catch (SQLException sqlEx) {
-                // ignore
-            }
+        assertThrows("Should not be able to set max rows > 50000000", SQLException.class, () -> {
+            accessorStmt.setMaxRows(50000000 + 10);
+            return null;
+        });
 
-            try {
-                accessorStmt.setMaxRows(50000000 + 10);
-                fail("Should not be able to set max rows > 50000000");
-            } catch (SQLException sqlEx) {
-                // ignore
-            }
+        assertThrows("Should not be able to set max rows < 0", SQLException.class, () -> {
+            accessorStmt.setMaxRows(Integer.MIN_VALUE);
+            return null;
+        });
 
-            try {
-                accessorStmt.setMaxRows(Integer.MIN_VALUE);
-                fail("Should not be able to set max rows < 0");
-            } catch (SQLException sqlEx) {
-                // ignore
-            }
+        int fetchSize = this.stmt.getFetchSize();
 
-            int fetchSize = this.stmt.getFetchSize();
+        accessorStmt.setMaxRows(4);
+        assertThrows("Should not be able to set FetchSize > max rows", SQLException.class, () -> {
+            accessorStmt.setFetchSize(Integer.MAX_VALUE);
+            return null;
+        });
 
-            try {
-                accessorStmt.setMaxRows(4);
-                accessorStmt.setFetchSize(Integer.MAX_VALUE);
-                fail("Should not be able to set FetchSize > max rows");
-            } catch (SQLException sqlEx) {
-                // ignore
-            }
+        assertThrows("Should not be able to set FetchSize < 0", SQLException.class, () -> {
+            accessorStmt.setFetchSize(-2);
+            return null;
+        });
 
-            try {
-                accessorStmt.setFetchSize(-2);
-                fail("Should not be able to set FetchSize < 0");
-            } catch (SQLException sqlEx) {
-                // ignore
-            }
-
-            assertTrue(fetchSize == this.stmt.getFetchSize(), "Fetch size before invalid setFetchSize() calls should match fetch size now");
-        } finally {
-            if (accessorStmt != null) {
-                try {
-                    accessorStmt.close();
-                } catch (SQLException sqlEx) {
-                    // ignore
-                }
-
-                accessorStmt = null;
-            }
-        }
+        assertTrue(fetchSize == this.stmt.getFetchSize(), "Fetch size before invalid setFetchSize() calls should match fetch size now");
     }
 
     @Test
     public void testAutoIncrement() throws SQLException {
+        createTable("statement_test", "(id int not null primary key auto_increment, strdata1 varchar(255) not null, strdata2 varchar(255))");
+
         try {
             this.stmt.setFetchSize(Integer.MIN_VALUE);
 
@@ -272,29 +171,20 @@ public class StatementsTest extends BaseTestCase {
             int autoIncKeyFromApi = -1;
             this.rs = this.stmt.getGeneratedKeys();
 
-            if (this.rs.next()) {
-                autoIncKeyFromApi = this.rs.getInt(1);
-            } else {
-                fail("Failed to retrieve AUTO_INCREMENT using Statement.getGeneratedKeys()");
-            }
+            assertTrue(this.rs.next(), "Failed to retrieve AUTO_INCREMENT using Statement.getGeneratedKeys()");
+            autoIncKeyFromApi = this.rs.getInt(1);
 
             this.rs.close();
 
             int autoIncKeyFromFunc = -1;
             this.rs = this.stmt.executeQuery("SELECT LAST_INSERT_ID()");
 
-            if (this.rs.next()) {
-                autoIncKeyFromFunc = this.rs.getInt(1);
-            } else {
-                fail("Failed to retrieve AUTO_INCREMENT using LAST_INSERT_ID()");
-            }
+            assertTrue(this.rs.next(), "Failed to retrieve AUTO_INCREMENT using LAST_INSERT_ID()");
+            autoIncKeyFromFunc = this.rs.getInt(1);
 
-            if ((autoIncKeyFromApi != -1) && (autoIncKeyFromFunc != -1)) {
-                assertTrue(autoIncKeyFromApi == autoIncKeyFromFunc, "Key retrieved from API (" + autoIncKeyFromApi
-                        + ") does not match key retrieved from LAST_INSERT_ID() " + autoIncKeyFromFunc + ") function");
-            } else {
-                fail("AutoIncrement keys were '0'");
-            }
+            assertTrue((autoIncKeyFromApi != -1) && (autoIncKeyFromFunc != -1), "AutoIncrement keys were '0'");
+            assertTrue(autoIncKeyFromApi == autoIncKeyFromFunc, "Key retrieved from API (" + autoIncKeyFromApi
+                    + ") does not match key retrieved from LAST_INSERT_ID() " + autoIncKeyFromFunc + ") function");
         } finally {
             if (this.rs != null) {
                 try {
@@ -316,7 +206,11 @@ public class StatementsTest extends BaseTestCase {
     @Test
     public void testBinaryResultSetNumericTypes() throws Exception {
         testBinaryResultSetNumericTypesInternal(this.conn);
-        Connection sspsConn = getConnectionWithProps("useServerPrepStmts=true");
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
+        Connection sspsConn = getConnectionWithProps(props);
         testBinaryResultSetNumericTypesInternal(sspsConn);
         sspsConn.close();
     }
@@ -467,9 +361,7 @@ public class StatementsTest extends BaseTestCase {
             cStmt.close();
             cStmt = null;
 
-            System.out.println(rowsToCheck + " rows returned");
-
-            assertTrue(numRows == rowsToCheck);
+            assertEquals(numRows, rowsToCheck);
         } finally {
             try {
                 this.stmt.executeUpdate("DROP PROCEDURE testCallStmt");
@@ -490,10 +382,13 @@ public class StatementsTest extends BaseTestCase {
     @Test
     public void testCancelStatement() throws Exception {
 
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         Connection cancelConn = null;
 
         try {
-            cancelConn = getConnectionWithProps((String) null);
+            cancelConn = getConnectionWithProps(props);
             final Statement cancelStmt = cancelConn.createStatement();
 
             cancelStmt.setQueryTimeout(1);
@@ -708,7 +603,11 @@ public class StatementsTest extends BaseTestCase {
             assertTrue(this.rs.next());
             assertEquals(1, this.rs.getInt(1));
 
-            final Connection forceCancel = getConnectionWithProps("queryTimeoutKillsConnection=true");
+            Properties props2 = new Properties();
+            props2.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+            props2.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+            props2.setProperty(PropertyKey.queryTimeoutKillsConnection.getKeyName(), "true");
+            final Connection forceCancel = getConnectionWithProps(props2);
             final Statement forceStmt = forceCancel.createStatement();
             forceStmt.setQueryTimeout(1);
 
@@ -729,9 +628,7 @@ public class StatementsTest extends BaseTestCase {
                 Thread.sleep(100);
             }
 
-            if (count == 0) {
-                fail("Connection was never killed");
-            }
+            assertFalse(count == 0, "Connection was never killed");
 
             assertThrows(MySQLStatementCancelledException.class, new Callable<Void>() {
                 public Void call() throws Exception {
@@ -793,6 +690,8 @@ public class StatementsTest extends BaseTestCase {
     @Test
     public void testHoldingResultSetsOverClose() throws Exception {
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.holdResultsOpenOverStatementClose.getKeyName(), "true");
 
         Connection conn2 = getConnectionWithProps(props);
@@ -876,6 +775,8 @@ public class StatementsTest extends BaseTestCase {
 
     @Test
     public void testInsert() throws SQLException {
+        createTable("statement_test", "(id int not null primary key auto_increment, strdata1 varchar(255) not null, strdata2 varchar(255))");
+
         try {
             boolean autoCommit = this.conn.getAutoCommit();
 
@@ -949,6 +850,8 @@ public class StatementsTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.allowMultiQueries.getKeyName(), "true");
 
             multiStmtConn = getConnectionWithProps(props);
@@ -1038,6 +941,8 @@ public class StatementsTest extends BaseTestCase {
     public void testParsedConversionWarning() throws Exception {
         try {
             Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useUsageAdvisor.getKeyName(), "true");
             Connection warnConn = getConnectionWithProps(props);
 
@@ -1057,6 +962,8 @@ public class StatementsTest extends BaseTestCase {
 
     @Test
     public void testPreparedStatement() throws SQLException {
+        createTable("statement_test", "(id int not null primary key auto_increment, strdata1 varchar(255) not null, strdata2 varchar(255))");
+
         this.stmt.executeUpdate("INSERT INTO statement_test (id, strdata1,strdata2) values (999,'abcdefg', 'poi')");
         this.pstmt = this.conn.prepareStatement("UPDATE statement_test SET strdata1=?, strdata2=? where id=999");
         this.pstmt.setString(1, "iop");
@@ -1079,6 +986,16 @@ public class StatementsTest extends BaseTestCase {
 
     @Test
     public void testPreparedStatementBatch() throws SQLException {
+        try {
+            createTable("statement_batch_test",
+                    "(id int not null primary key auto_increment, strdata1 varchar(255) not null, strdata2 varchar(255), UNIQUE INDEX (strdata1))");
+        } catch (SQLException sqlEx) {
+            if (sqlEx.getMessage().indexOf("max key length") != -1) {
+                createTable("statement_batch_test",
+                        "(id int not null primary key auto_increment, strdata1 varchar(175) not null, strdata2 varchar(175), UNIQUE INDEX (strdata1))");
+            }
+        }
+
         this.pstmt = this.conn.prepareStatement("INSERT INTO statement_batch_test (strdata1, strdata2) VALUES (?,?)");
 
         for (int i = 0; i < 1000; i++) {
@@ -1103,6 +1020,8 @@ public class StatementsTest extends BaseTestCase {
         Connection fetchConn = null;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useCursorFetch.getKeyName(), "true");
 
         try {
@@ -1137,12 +1056,43 @@ public class StatementsTest extends BaseTestCase {
 
     @Test
     public void testSelectColumns() throws SQLException {
-        for (int i = 6; i < MAX_COLUMNS_TO_TEST; i += STEP) {
+        final int maxColLength = 255;
+        final int maxCols = 40;
+        final int step = 8;
+
+        for (int i = 6; i < maxCols; i += step) {
+            StringBuilder insertBuf = new StringBuilder("INSERT INTO statement_col_test_").append(i).append(" VALUES (");
+            StringBuilder tnameBuf = new StringBuilder("statement_col_test_").append(i);
+            StringBuilder ddlBuf = new StringBuilder("(");
+
+            boolean firstTime = true;
+            for (int j = 0; j < i; j++) {
+                if (!firstTime) {
+                    ddlBuf.append(",");
+                    insertBuf.append(",");
+                } else {
+                    firstTime = false;
+                }
+
+                ddlBuf.append("col_");
+                ddlBuf.append(j);
+                ddlBuf.append(" VARCHAR(");
+                ddlBuf.append(maxColLength);
+                ddlBuf.append(")");
+                insertBuf.append("'AAAAAAAAAAAAAAAA'");
+            }
+
+            ddlBuf.append(")");
+            insertBuf.append(")");
+            createTable(tnameBuf.toString(), ddlBuf.toString());
+            this.stmt.executeUpdate(insertBuf.toString());
+        }
+
+        for (int i = 6; i < maxCols; i += step) {
             long start = System.currentTimeMillis();
             this.rs = this.stmt.executeQuery("SELECT * from statement_col_test_" + i);
 
-            if (this.rs.next()) {
-            }
+            this.rs.next();
 
             long end = System.currentTimeMillis();
             System.out.println(i + " columns = " + (end - start) + " ms");
@@ -1157,6 +1107,8 @@ public class StatementsTest extends BaseTestCase {
     @Test
     public void testSetObject() throws Exception {
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.noDatetimeStringSync.getKeyName(), "true"); // value=true for #5
         props.setProperty(PropertyKey.preserveInstants.getKeyName(), "false");
         Connection conn1 = getConnectionWithProps(props);
@@ -1204,7 +1156,7 @@ public class StatementsTest extends BaseTestCase {
     @Test
     public void testSetObjectWithMysqlType() throws Exception {
         Properties props = new Properties();
-        props.setProperty(PropertyKey.useSSL.getKeyName(), "false");
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
         props.setProperty(PropertyKey.noDatetimeStringSync.getKeyName(), "true"); // value=true for #5
         props.setProperty(PropertyKey.preserveInstants.getKeyName(), "false");
         Connection conn1 = getConnectionWithProps(props);
@@ -1264,13 +1216,11 @@ public class StatementsTest extends BaseTestCase {
 
     @Test
     public void testStatementRewriteBatch() throws Exception {
-        for (int j = 0; j < 2; j++) {
+        for (boolean useSSPS : new boolean[] { false, true }) {
             Properties props = new Properties();
-
-            if (j == 0) {
-                props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
-            }
-
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "" + useSSPS);
             props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
             Connection multiConn = getConnectionWithProps(props);
             createTable("testStatementRewriteBatch", "(pk_field INT PRIMARY KEY NOT NULL AUTO_INCREMENT, field1 INT)");
@@ -1311,6 +1261,8 @@ public class StatementsTest extends BaseTestCase {
 
             createTable("testStatementRewriteBatch", "(pk_field INT PRIMARY KEY NOT NULL AUTO_INCREMENT, field1 INT)");
             props.clear();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
             props.setProperty(PropertyKey.maxAllowedPacket.getKeyName(), "1024");
             multiConn = getConnectionWithProps(props);
@@ -1332,7 +1284,9 @@ public class StatementsTest extends BaseTestCase {
             createTable("testStatementRewriteBatch", "(pk_field INT PRIMARY KEY NOT NULL AUTO_INCREMENT, field1 INT)");
 
             props.clear();
-            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), j == 0 ? "true" : "false");
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "" + useSSPS);
             props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
             multiConn = getConnectionWithProps(props);
 
@@ -1355,9 +1309,9 @@ public class StatementsTest extends BaseTestCase {
             }
 
             createTable("testStatementRewriteBatch", "(pk_field INT PRIMARY KEY NOT NULL AUTO_INCREMENT, field1 INT)");
-            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), j == 0 ? "true" : "false");
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "" + useSSPS);
             props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
-            props.setProperty(PropertyKey.maxAllowedPacket.getKeyName(), j == 0 ? "10240" : "1024");
+            props.setProperty(PropertyKey.maxAllowedPacket.getKeyName(), useSSPS ? "10240" : "1024");
             multiConn = getConnectionWithProps(props);
 
             pStmt = multiConn.prepareStatement("INSERT INTO testStatementRewriteBatch(field1) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
@@ -1379,8 +1333,8 @@ public class StatementsTest extends BaseTestCase {
             Object[][] differentTypes = new Object[1000][15];
 
             createTable("rewriteBatchTypes",
-                    "(internalOrder int, f1 tinyint null, " + "f2 smallint null, f3 int null, f4 bigint null, "
-                            + "f5 decimal(8, 2) null, f6 float null, f7 double null, " + "f8 varchar(255) null, f9 text null, f10 blob null, f11 blob null, "
+                    "(internalOrder int, f1 tinyint null, f2 smallint null, f3 int null, f4 bigint null, f5 decimal(8, 2) null, "
+                            + "f6 float null, f7 double null, f8 varchar(255) null, f9 text null, f10 blob null, f11 blob null, "
                             + (versionMeetsMinimum(5, 6, 4) ? "f12 datetime(3) null, f13 time(3) null, f14 date null, f15 timestamp(3) null)"
                                     : "f12 datetime null, f13 time null, f14 date null, f15 timestamp null)"));
 
@@ -1402,9 +1356,9 @@ public class StatementsTest extends BaseTestCase {
                 differentTypes[i][14] = Math.random() < .5 ? null : new Timestamp(System.currentTimeMillis());
             }
 
-            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), j == 0 ? "true" : "false");
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "" + useSSPS);
             props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
-            props.setProperty(PropertyKey.maxAllowedPacket.getKeyName(), j == 0 ? "10240" : "1024");
+            props.setProperty(PropertyKey.maxAllowedPacket.getKeyName(), useSSPS ? "10240" : "1024");
             multiConn = getConnectionWithProps(props);
             pStmt = multiConn.prepareStatement("INSERT INTO rewriteBatchTypes(internalOrder,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15) VALUES "
                     + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
@@ -1447,7 +1401,9 @@ public class StatementsTest extends BaseTestCase {
             SimpleDateFormat sdf = TimeUtil.getSimpleDateFormat(null, "''yyyy-MM-dd HH:mm:ss''", null);
             DateTimeFormatter dtf = TimeUtil.DATETIME_FORMATTER_NO_FRACT_NO_OFFSET;
 
+            int cnt = 0;
             while (this.rs.next()) {
+                System.out.println(++cnt);
                 for (int k = 0; k < 14; k++) {
                     if (differentTypes[idx][k] == null) {
                         assertTrue(this.rs.getObject(k + 1) == null,
@@ -1510,6 +1466,8 @@ public class StatementsTest extends BaseTestCase {
                             assertEquals(new Integer(((Short) differentTypes[idx][k]).shortValue()), this.rs.getObject(k + 1),
                                     "On row " + idx + ", column " + (k + 1));
                         } else {
+                            System.out
+                                    .println((k + 1) + ": " + this.rs.getMetaData().getColumnName(k + 1) + ": " + differentTypes[idx][k].getClass().getName());//+ " " + this.rs.getObject(k + 1).getClass().getName());
                             assertEquals(differentTypes[idx][k].toString(), this.rs.getObject(k + 1).toString(), "On row " + idx + ", column " + (k + 1) + " ("
                                     + differentTypes[idx][k].getClass() + "/" + this.rs.getObject(k + 1).getClass());
                         }
@@ -1526,6 +1484,8 @@ public class StatementsTest extends BaseTestCase {
         createTable("rewriteErrors", "(field1 int not null primary key) ENGINE=MyISAM");
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false");
         props.setProperty(PropertyKey.maxAllowedPacket.getKeyName(), "5660");
         props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
@@ -1730,7 +1690,7 @@ public class StatementsTest extends BaseTestCase {
 
         PreparedStatement pStmt = null;
 
-        System.out.println("Testing prepared statements with binary result sets now");
+        // Testing prepared statements with binary result sets now.
 
         try {
             this.stmt.executeUpdate("DROP TABLE IF EXISTS testTruncationOnRead");
@@ -1775,7 +1735,7 @@ public class StatementsTest extends BaseTestCase {
         /*
          * try {
          * Properties props = new Properties();
-         * props.setProperty(PropertyKey.queryInterceptors", "com.tencent.tdsql.mysql.jdbc.interceptors.ResultSetScannerInterceptor");
+         * props.setProperty(PropertyKey.queryInterceptors", "com.mysql.jdbc.interceptors.ResultSetScannerInterceptor");
          * props.setProperty(PropertyKey.resultSetScannerRegex", ".*");
          * interceptedConn = getConnectionWithProps(props);
          * this.rs = interceptedConn.createStatement().executeQuery("SELECT 'abc'");
@@ -1792,6 +1752,8 @@ public class StatementsTest extends BaseTestCase {
 
         try {
             Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.queryInterceptors.getKeyName(), ServerStatusDiffInterceptor.class.getName());
 
             interceptedConn = getConnectionWithProps(props);
@@ -1806,6 +1768,8 @@ public class StatementsTest extends BaseTestCase {
     @Test
     public void testParameterBindings() throws Exception {
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.characterEncoding.getKeyName(), "UTF-8");
         props.setProperty(PropertyKey.treatUtilDateAsTimestamp.getKeyName(), "false");
         props.setProperty(PropertyKey.autoDeserialize.getKeyName(), "true");
@@ -1861,19 +1825,25 @@ public class StatementsTest extends BaseTestCase {
 
     @Test
     public void testLocalInfileHooked() throws Exception {
+        this.rs = this.stmt.executeQuery("SHOW VARIABLES LIKE 'local_infile'");
+        assumeTrue(this.rs.next() && "ON".equalsIgnoreCase(this.rs.getString(2)), "This test requires the server started with --local-infile=ON");
+        this.rs.close();
+
         createTable("localInfileHooked", "(field1 int, field2 varchar(255))");
         String streamData = "1\tabcd\n2\tefgh\n3\tijkl";
         InputStream stream = new ByteArrayInputStream(streamData.getBytes());
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.allowLoadLocalInfile.getKeyName(), "true");
         Connection testConn = getConnectionWithProps(props);
         Statement testStmt = testConn.createStatement();
 
         try {
             ((com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcStatement) testStmt).setLocalInfileInputStream(stream);
-            testStmt.execute(
-                    "LOAD DATA LOCAL INFILE 'bogusFileName' INTO TABLE localInfileHooked CHARACTER SET " + CharsetMapping.getMysqlCharsetForJavaEncoding(
+            testStmt.execute("LOAD DATA LOCAL INFILE 'bogusFileName' INTO TABLE localInfileHooked CHARACTER SET "
+                    + CharsetMappingWrapper.getStaticMysqlCharsetForJavaEncoding(
                             ((MysqlConnection) this.conn).getPropertySet().getStringProperty(PropertyKey.characterEncoding).getValue(), this.serverVersion));
             assertEquals(-1, stream.read());
             this.rs = testStmt.executeQuery("SELECT field2 FROM localInfileHooked ORDER BY field1 ASC");
@@ -1970,6 +1940,8 @@ public class StatementsTest extends BaseTestCase {
 
         createTable("testSetNCharacterStream", "(c1 NATIONAL CHARACTER(10), c2 NATIONAL CHARACTER(10), " + "c3 NATIONAL CHARACTER(10)) ENGINE=InnoDB");
         Properties props1 = new Properties();
+        props1.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props1.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props1.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false"); // use client-side prepared statement
         props1.setProperty(PropertyKey.characterEncoding.getKeyName(), "latin1"); // ensure charset isn't utf8 here
         Connection conn1 = getConnectionWithProps(props1);
@@ -1989,6 +1961,8 @@ public class StatementsTest extends BaseTestCase {
 
         createTable("testSetNCharacterStream", "(c1 NATIONAL CHARACTER(10), c2 NATIONAL CHARACTER(10), " + "c3 NATIONAL CHARACTER(10)) ENGINE=InnoDB");
         Properties props2 = new Properties();
+        props2.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props2.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props2.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false"); // use client-side prepared statement
         props2.setProperty(PropertyKey.characterEncoding.getKeyName(), "UTF-8"); // ensure charset is utf8 here
         Connection conn2 = getConnectionWithProps(props2);
@@ -2016,22 +1990,27 @@ public class StatementsTest extends BaseTestCase {
     public void testSetNCharacterStreamServer() throws Exception {
         createTable("testSetNCharacterStreamServer", "(c1 NATIONAL CHARACTER(10)) ENGINE=InnoDB");
         Properties props1 = new Properties();
+        props1.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props1.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props1.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true"); // use server-side prepared statement
         props1.setProperty(PropertyKey.characterEncoding.getKeyName(), "latin1"); // ensure charset isn't utf8 here
         Connection conn1 = getConnectionWithProps(props1);
         PreparedStatement pstmt1 = conn1.prepareStatement("INSERT INTO testSetNCharacterStreamServer (c1) VALUES (?)");
+        pstmt1.setNCharacterStream(1, new StringReader("aaa"), 3);
         try {
-            pstmt1.setNCharacterStream(1, new StringReader("aaa"), 3);
+            pstmt1.execute();
             fail();
         } catch (SQLException e) {
             // ok
-            assertEquals("Can not call setNCharacterStream() when connection character set isn't UTF-8", e.getMessage());
+            assertEquals("Can not send national characters when connection character set isn't UTF-8", e.getMessage());
         }
         pstmt1.close();
         conn1.close();
 
         createTable("testSetNCharacterStreamServer", "(c1 LONGTEXT charset utf8) ENGINE=InnoDB");
         Properties props2 = new Properties();
+        props2.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props2.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props2.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true"); // use server-side prepared statement
         props2.setProperty(PropertyKey.characterEncoding.getKeyName(), "UTF-8"); // ensure charset is utf8 here
         Connection conn2 = getConnectionWithProps(props2);
@@ -2056,48 +2035,34 @@ public class StatementsTest extends BaseTestCase {
         // suppose sql_mode don't include "NO_BACKSLASH_ESCAPES"
 
         createTable("testSetNClob", "(c1 NATIONAL CHARACTER(10), c2 NATIONAL CHARACTER(10), " + "c3 NATIONAL CHARACTER(10)) ENGINE=InnoDB");
-        Properties props1 = new Properties();
-        props1.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false"); // use client-side prepared statement
-        props1.setProperty(PropertyKey.characterEncoding.getKeyName(), "latin1"); // ensure charset isn't utf8 here
-        Connection conn1 = getConnectionWithProps(props1);
-        PreparedStatement pstmt1 = conn1.prepareStatement("INSERT INTO testSetNClob (c1, c2, c3) VALUES (?, ?, ?)");
-        pstmt1.setNClob(1, (NClob) null);
-        NClob nclob2 = conn1.createNClob();
-        nclob2.setString(1, "aaa");
-        pstmt1.setNClob(2, nclob2);                   // for setNClob(int, NClob)
-        Reader reader3 = new StringReader("\'aaa\'");
-        pstmt1.setNClob(3, reader3, 5);               // for setNClob(int, Reader, long)
-        pstmt1.execute();
-        ResultSet rs1 = this.stmt.executeQuery("SELECT c1, c2, c3 FROM testSetNClob");
-        rs1.next();
-        assertEquals(null, rs1.getString(1));
-        assertEquals("aaa", rs1.getString(2));
-        assertEquals("\'aaa\'", rs1.getString(3));
-        rs1.close();
-        pstmt1.close();
-        conn1.close();
 
-        createTable("testSetNClob", "(c1 NATIONAL CHARACTER(10), c2 NATIONAL CHARACTER(10), " + "c3 NATIONAL CHARACTER(10)) ENGINE=InnoDB");
-        Properties props2 = new Properties();
-        props2.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false"); // use client-side prepared statement
-        props2.setProperty(PropertyKey.characterEncoding.getKeyName(), "UTF-8"); // ensure charset is utf8 here
-        Connection conn2 = getConnectionWithProps(props2);
-        PreparedStatement pstmt2 = conn2.prepareStatement("INSERT INTO testSetNClob (c1, c2, c3) VALUES (?, ?, ?)");
-        pstmt2.setNClob(1, (NClob) null);
-        nclob2 = conn2.createNClob();
-        nclob2.setString(1, "aaa");
-        pstmt2.setNClob(2, nclob2);             // for setNClob(int, NClob)
-        reader3 = new StringReader("\'aaa\'");
-        pstmt2.setNClob(3, reader3, 5);         // for setNClob(int, Reader, long)
-        pstmt2.execute();
-        ResultSet rs2 = this.stmt.executeQuery("SELECT c1, c2, c3 FROM testSetNClob");
-        rs2.next();
-        assertEquals(null, rs2.getString(1));
-        assertEquals("aaa", rs2.getString(2));
-        assertEquals("\'aaa\'", rs2.getString(3));
-        rs2.close();
-        pstmt2.close();
-        conn2.close();
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false"); // use client-side prepared statement
+
+        for (String enc : new String[] { "latin1", "UTF-8" }) {
+            this.stmt.execute("TRUNCATE TABLE testSetNClob");
+            props.setProperty(PropertyKey.characterEncoding.getKeyName(), enc); // ensure charset isn't utf8 here
+            Connection conn1 = getConnectionWithProps(props);
+            PreparedStatement pstmt1 = conn1.prepareStatement("INSERT INTO testSetNClob (c1, c2, c3) VALUES (?, ?, ?)");
+            pstmt1.setNClob(1, (NClob) null);
+            NClob nclob2 = conn1.createNClob();
+            nclob2.setString(1, "aaa");
+            pstmt1.setNClob(2, nclob2);                   // for setNClob(int, NClob)
+            Reader reader3 = new StringReader("\'aaa\'");
+            pstmt1.setNClob(3, reader3, 5);               // for setNClob(int, Reader, long)
+            pstmt1.execute();
+
+            ResultSet rs1 = this.stmt.executeQuery("SELECT c1, c2, c3 FROM testSetNClob");
+            rs1.next();
+            assertEquals(null, rs1.getString(1));
+            assertEquals("aaa", rs1.getString(2));
+            assertEquals("\'aaa\'", rs1.getString(3));
+            rs1.close();
+            pstmt1.close();
+            conn1.close();
+        }
     }
 
     /**
@@ -2109,6 +2074,8 @@ public class StatementsTest extends BaseTestCase {
     public void testSetNClobServer() throws Exception {
         createTable("testSetNClobServer", "(c1 NATIONAL CHARACTER(10), c2 NATIONAL CHARACTER(10)) ENGINE=InnoDB");
         Properties props1 = new Properties();
+        props1.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props1.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props1.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true"); // use server-side prepared statement
         props1.setProperty(PropertyKey.characterEncoding.getKeyName(), "latin1"); // ensure charset isn't utf8 here
         Connection conn1 = getConnectionWithProps(props1);
@@ -2116,25 +2083,31 @@ public class StatementsTest extends BaseTestCase {
         NClob nclob1 = conn1.createNClob();
         nclob1.setString(1, "aaa");
         Reader reader2 = new StringReader("aaa");
+        pstmt1.setNClob(1, nclob1);
+        pstmt1.setString(2, "abc");
         try {
-            pstmt1.setNClob(1, nclob1);
+            pstmt1.execute();
             fail();
         } catch (SQLException e) {
             // ok
-            assertEquals("Can not call setNClob() when connection character set isn't UTF-8", e.getMessage());
+            assertEquals("Can not send national characters when connection character set isn't UTF-8", e.getMessage());
         }
+        pstmt1.setString(1, "abc");
+        pstmt1.setNClob(2, reader2, 3);
         try {
-            pstmt1.setNClob(2, reader2, 3);
+            pstmt1.execute();
             fail();
         } catch (SQLException e) {
             // ok
-            assertEquals("Can not call setNClob() when connection character set isn't UTF-8", e.getMessage());
+            assertEquals("Can not send national characters when connection character set isn't UTF-8", e.getMessage());
         }
         pstmt1.close();
         conn1.close();
 
         createTable("testSetNClobServer", "(c1 NATIONAL CHARACTER(10), c2 LONGTEXT charset utf8) ENGINE=InnoDB");
         Properties props2 = new Properties();
+        props2.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props2.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props2.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true"); // use server-side prepared statement
         props2.setProperty(PropertyKey.characterEncoding.getKeyName(), "UTF-8"); // ensure charset is utf8 here
         Connection conn2 = getConnectionWithProps(props2);
@@ -2165,6 +2138,8 @@ public class StatementsTest extends BaseTestCase {
         createTable("testSetNString",
                 "(c1 NATIONAL CHARACTER(10), c2 NATIONAL CHARACTER(10), " + "c3 NATIONAL CHARACTER(10)) DEFAULT CHARACTER SET cp932 ENGINE=InnoDB");
         Properties props1 = new Properties();
+        props1.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props1.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props1.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false"); // use client-side prepared statement
         props1.setProperty(PropertyKey.characterEncoding.getKeyName(), "MS932"); // ensure charset isn't utf8 here
         Connection conn1 = getConnectionWithProps(props1);
@@ -2185,6 +2160,8 @@ public class StatementsTest extends BaseTestCase {
         createTable("testSetNString",
                 "(c1 NATIONAL CHARACTER(10), c2 NATIONAL CHARACTER(10), " + "c3 NATIONAL CHARACTER(10)) DEFAULT CHARACTER SET cp932 ENGINE=InnoDB");
         Properties props2 = new Properties();
+        props2.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props2.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props2.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "false"); // use client-side prepared statement
         props2.setProperty(PropertyKey.characterEncoding.getKeyName(), "UTF-8"); // ensure charset is utf8 here
         Connection conn2 = getConnectionWithProps(props2);
@@ -2212,22 +2189,27 @@ public class StatementsTest extends BaseTestCase {
     public void testSetNStringServer() throws Exception {
         createTable("testSetNStringServer", "(c1 NATIONAL CHARACTER(10)) ENGINE=InnoDB");
         Properties props1 = new Properties();
+        props1.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props1.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props1.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true"); // use server-side prepared statement
         props1.setProperty(PropertyKey.characterEncoding.getKeyName(), "latin1"); // ensure charset isn't utf8 here
         Connection conn1 = getConnectionWithProps(props1);
         PreparedStatement pstmt1 = conn1.prepareStatement("INSERT INTO testSetNStringServer (c1) VALUES (?)");
+        pstmt1.setNString(1, "aaa");
         try {
-            pstmt1.setNString(1, "aaa");
+            pstmt1.execute();
             fail();
         } catch (SQLException e) {
             // ok
-            assertEquals("Can not call setNString() when connection character set isn't UTF-8", e.getMessage());
+            assertEquals("Can not send national characters when connection character set isn't UTF-8", e.getMessage());
         }
         pstmt1.close();
         conn1.close();
 
         createTable("testSetNStringServer", "(c1 NATIONAL CHARACTER(10)) ENGINE=InnoDB");
         Properties props2 = new Properties();
+        props2.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props2.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props2.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true"); // use server-side prepared statement
         props2.setProperty(PropertyKey.characterEncoding.getKeyName(), "UTF-8"); // ensure charset is utf8 here
         Connection conn2 = getConnectionWithProps(props2);
@@ -2251,6 +2233,8 @@ public class StatementsTest extends BaseTestCase {
     public void testUpdateNCharacterStream() throws Exception {
         createTable("testUpdateNCharacterStream", "(c1 CHAR(10) PRIMARY KEY, c2 NATIONAL CHARACTER(10)) default character set sjis");
         Properties props1 = new Properties();
+        props1.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props1.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props1.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true"); // use server-side prepared statement
         props1.setProperty(PropertyKey.characterEncoding.getKeyName(), "UTF-8"); // ensure charset isn't utf8 here
         Connection conn1 = getConnectionWithProps(props1);
@@ -2280,6 +2264,8 @@ public class StatementsTest extends BaseTestCase {
 
         createTable("testUpdateNCharacterStream", "(c1 CHAR(10) PRIMARY KEY, c2 CHAR(10)) default character set sjis"); // sjis field
         Properties props2 = new Properties();
+        props2.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props2.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props2.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true"); // use server-side prepared statement
         props2.setProperty(PropertyKey.characterEncoding.getKeyName(), "SJIS"); // ensure charset isn't utf8 here
         Connection conn2 = getConnectionWithProps(props2);
@@ -2311,6 +2297,8 @@ public class StatementsTest extends BaseTestCase {
     public void testUpdateNClob() throws Exception {
         createTable("testUpdateNChlob", "(c1 CHAR(10) PRIMARY KEY, c2 NATIONAL CHARACTER(10)) default character set sjis");
         Properties props1 = new Properties();
+        props1.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props1.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props1.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true"); // use server-side prepared statement
         props1.setProperty(PropertyKey.characterEncoding.getKeyName(), "UTF-8"); // ensure charset isn't utf8 here
         Connection conn1 = getConnectionWithProps(props1);
@@ -2346,6 +2334,8 @@ public class StatementsTest extends BaseTestCase {
 
         createTable("testUpdateNChlob", "(c1 CHAR(10) PRIMARY KEY, c2 CHAR(10)) default character set sjis"); // sjis field
         Properties props2 = new Properties();
+        props2.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props2.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props2.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true"); // use server-side prepared statement
         props2.setProperty(PropertyKey.characterEncoding.getKeyName(), "SJIS"); // ensure charset isn't utf8 here
         Connection conn2 = getConnectionWithProps(props2);
@@ -2379,6 +2369,8 @@ public class StatementsTest extends BaseTestCase {
     public void testUpdateNString() throws Exception {
         createTable("testUpdateNString", "(c1 CHAR(10) PRIMARY KEY, c2 NATIONAL CHARACTER(10)) default character set sjis");
         Properties props1 = new Properties();
+        props1.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props1.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props1.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true"); // use server-side prepared statement
         props1.setProperty(PropertyKey.characterEncoding.getKeyName(), "UTF-8"); // ensure charset is utf8 here
         Connection conn1 = getConnectionWithProps(props1);
@@ -2408,6 +2400,8 @@ public class StatementsTest extends BaseTestCase {
 
         createTable("testUpdateNString", "(c1 CHAR(10) PRIMARY KEY, c2 CHAR(10)) default character set sjis"); // sjis field
         Properties props2 = new Properties();
+        props2.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props2.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props2.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true"); // use server-side prepared statement
         props2.setProperty(PropertyKey.characterEncoding.getKeyName(), "SJIS"); // ensure charset isn't utf8 here
         Connection conn2 = getConnectionWithProps(props2);
@@ -2433,6 +2427,8 @@ public class StatementsTest extends BaseTestCase {
     @Test
     public void testJdbc4LoadBalancing() throws Exception {
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.ha_loadBalanceStrategy.getKeyName(), CountingReBalanceStrategy.class.getName());
         props.setProperty(PropertyKey.loadBalanceAutoCommitStatementThreshold.getKeyName(), "3");
 
@@ -2970,7 +2966,11 @@ public class StatementsTest extends BaseTestCase {
          */
         createTable("testExecuteLargeBatch", "(id BIGINT AUTO_INCREMENT PRIMARY KEY, n INT)");
 
-        Connection testConn = getConnectionWithProps("useServerPrepStmts=true");
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
+        Connection testConn = getConnectionWithProps(props);
 
         this.pstmt = testConn.prepareStatement("INSERT INTO testExecuteLargeBatch (n) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
         this.pstmt.setInt(1, 1);
@@ -3111,6 +3111,8 @@ public class StatementsTest extends BaseTestCase {
         createTable("testSetObjectPS1", "(id INT, d DATE, t TIME, dt DATETIME, ts TIMESTAMP)");
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.preserveInstants.getKeyName(), "false");
 
         Connection testConn = getConnectionWithProps(timeZoneFreeDbUrl, props);
@@ -3150,6 +3152,8 @@ public class StatementsTest extends BaseTestCase {
                 "(IN id INT, IN d DATE, IN t TIME, IN dt DATETIME, IN ts TIMESTAMP) BEGIN " + "INSERT INTO testSetObjectCS1 VALUES (id, d, t, dt, ts); END");
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.preserveInstants.getKeyName(), "false");
 
         Connection testConn = getConnectionWithProps(timeZoneFreeDbUrl, props);
@@ -3191,6 +3195,8 @@ public class StatementsTest extends BaseTestCase {
         createTable("testSetObjectSPS1", "(id INT, d DATE, t TIME, dt DATETIME, ts TIMESTAMP)");
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.preserveInstants.getKeyName(), "false");
         props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
 
@@ -3213,7 +3219,11 @@ public class StatementsTest extends BaseTestCase {
      */
     @Test
     public void testServPrepStmtSetObjectAndNewUnsupportedTypes() throws Exception {
-        Connection testConn = getConnectionWithProps("useServerPrepStmts=true");
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), "true");
+        Connection testConn = getConnectionWithProps(props);
         checkUnsupportedTypesBehavior(testConn.prepareStatement("SELECT ?"));
         testConn.close();
     }
@@ -3441,6 +3451,8 @@ public class StatementsTest extends BaseTestCase {
      */
     private void validateTestDataOffsetDTTypes(String tableName, int expectedRowCount) throws Exception {
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.preserveInstants.getKeyName(), "false");
         Connection testConn = getConnectionWithProps(timeZoneFreeDbUrl, props);
         Statement testStmt = testConn.createStatement();
@@ -3856,6 +3868,8 @@ public class StatementsTest extends BaseTestCase {
         boolean cachePS = false;
         do {
             Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
             props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
             props.setProperty(PropertyKey.cachePrepStmts.getKeyName(), Boolean.toString(cachePS));
             props.setProperty(PropertyKey.prepStmtCacheSize.getKeyName(), "5");
@@ -4104,5 +4118,1287 @@ public class StatementsTest extends BaseTestCase {
                 assertEquals(cachedSPS ? 0 : -1, getStmtsCacheSize.applyAsInt(testConn));
             }
         } while ((useSPS = !useSPS) || (cachePS = !cachePS));
+    }
+
+    @Test
+    public void testResultSetProducingQueries() throws Exception {
+        assumeTrue(versionMeetsMinimum(8, 0, 19), "MySQL 8.0.19+ is required to run this test.");
+
+        // Prepare testing entities and data.
+        createTable("rsProdQuery", "(col1 INT, col2 VARCHAR(100))");
+        createProcedure("rsProdQueryProc", "() BEGIN SELECT * FROM rsProdQuery; END");
+        assertEquals(2, this.stmt.executeUpdate("INSERT INTO rsProdQuery VALUES (1, 'test1'), (2, 'test2')"));
+        assertFalse(this.stmt.execute("PREPARE rsProdQueryPS FROM \"SELECT * FROM rsProdQuery\""));
+
+        String[] okQueries = new String[] {
+                // Data Manipulation Statements:
+                "SELECT * FROM rsProdQuery", "TABLE rsProdQuery", "VALUES ROW (1, 'test1'), ROW (2, 'test2')", "CALL rsProdQueryProc()",
+                "WITH cte1 AS (TABLE rsProdQuery), cte2 AS (TABLE rsProdQuery) SELECT * FROM cte1", "WITH cte1 AS (TABLE rsProdQuery) TABLE cte1",
+                "WITH cte1 AS (TABLE rsProdQuery) VALUES ROW (1, 'test1'), ROW (2, 'test2')",
+                // Transactional and Locking Statements:
+                "XA RECOVER",
+                // Prepared Statements:
+                "EXECUTE rsProdQueryPS",
+                // Database Administration Statements/Table Maintenance Statements:
+                "ANALYZE TABLE rsProdQuery", "CHECK TABLE rsProdQuery", "CHECKSUM TABLE rsProdQuery", "OPTIMIZE TABLE rsProdQuery", "REPAIR TABLE rsProdQuery",
+                // Database Administration Statements/SHOW Statements:
+                "SHOW CREATE TABLE rsProdQuery",
+                // Utility Statements:
+                "DESC rsProdQuery", "DESCRIBE rsProdQuery", "EXPLAIN rsProdQuery", "HELP 'SELECT'" };
+        for (String query : okQueries) {
+            try {
+                this.rs = this.stmt.executeQuery(query);
+                this.rs.absolute(2);
+                this.rs.beforeFirst();
+                this.rs.next();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                fail("Should not have thrown an Exception while executing \"" + query + "\"");
+            }
+        }
+
+        String[] notOkQueries = new String[] {
+                // Data Manipulation Statements:
+                "INSERT INTO rsProdQuery VALUES (99, 'test99')", "REPLACE INTO rsProdQuery VALUES (99, 'test99')", "UPDATE rsProdQuery SET col1 = col1 + 1",
+                "DELETE FROM rsProdQuery", "TRUNCATE TABLE rsProdQuery", "DO 1 + 1", "HANDLER rsProdQuery OPEN AS hrsProdQuery",
+                "IMPORT TABLE FROM 'rsProdQuery'", "LOAD DATA INFILE 'rsProdQuery' INTO TABLE rsProdQuery",
+                "WITH cte1 AS (TABLE rsProdQuery) UPDATE rsProdQuery SET c = c + 1", "WITH cte1 AS (TABLE rsProdQuery) DELETE FROM rsProdQuery",
+                // Transactional and Locking Statements:
+                "BEGIN", "START TRANSACTION", "SAVEPOINT rsProdQuery", "RELEASE SAVEPOINT rsProdQuery", "ROLLBACK", "COMMIT", "LOCK INSTANCE FOR BACKUP",
+                "UNLOCK INSTANCE", "XA START 'rsProdQuery'",
+                // Replication Statements:
+                "PURGE BINARY LOGS TO 'rsProdQuery'", "CHANGE REPLICATION SOURCE TO SOURCE_DELAY=0", "RESET REPLICA", "STOP REPLICA",
+                // Prepared Statements:
+                "PREPARE rsProdQueryPS FROM 'TABLE rsProdQuery'", "DEALLOCATE PREPARE rsProdQueryPS",
+                // Compound Statement Syntax/Condition Handling:
+                "SIGNAL SQLSTATE '01000'", "RESIGNAL", "GET DIAGNOSTICS @n = NUMBER",
+                // Database Administration Statements/Account Management Statements:
+                "CREATE USER rsProdQueryUser", "ALTER USER rsProdQueryUser", "RENAME USER rsProdQueryUser to rsProdQueryUserNew",
+                "GRANT SELECT ON rsProdQueryDb.* TO rsProdQueryUser", "REVOKE ALL ON *.* FROM rsProdQueryUser", "DROP USER rsProdQuery",
+                // Database Administration Statements/Component, Plugin, and Loadable Function Statements:
+                "INSTALL COMPONENT 'rsProdQuery'", "UNINSTALL COMPONENT 'rsProdQuery'",
+                // Database Administration Statements/CLONE Statement & SET Statements:
+                "CLONE LOCAL DATA DIRECTORY '/tmp'", "SET @rsProdQuery = 'rsProdQuery'",
+                // Database Administration Statements/Other Administrative Statements:
+                "BINLOG 'rsProdQuery'", "CACHE INDEX rsProdQueryIdx IN rsProdQueryCache", "FLUSH STATUS", "KILL 0", "RESTART", "SHUTDOWN",
+                //  Utility Statements
+                "USE rsProdQueryDb" };
+        for (String query : notOkQueries) {
+            assertThrows("Query: " + query, SQLException.class, "Statement\\.executeQuery\\(\\) cannot issue statements that do not produce result sets\\.",
+                    () -> {
+                        this.stmt.executeQuery(query);
+                        return null;
+                    });
+        }
+    }
+
+    @Test
+    public void testReadOnlySafeStatements() throws Exception {
+        assumeTrue(versionMeetsMinimum(8, 0, 19), "MySQL 8.0.19+ is required to run this test.");
+
+        // Prepare testing entities and data.
+        createTable("roSafeTest", "(col1 INT, col2 VARCHAR(100))");
+        createProcedure("roSafeTestProc", "() BEGIN SELECT * FROM roSafeTest; END");
+        assertEquals(2, this.stmt.executeUpdate("INSERT INTO roSafeTest VALUES (1, 'test1'), (2, 'test2')"));
+        assertFalse(this.stmt.execute("PREPARE roSafeTestPS FROM \"SELECT * FROM roSafeTest\""));
+
+        Connection testConn = getConnectionWithProps("");
+        Statement testStmt = testConn.createStatement();
+        testConn.setReadOnly(true);
+
+        String[] okQueries = new String[] {
+                // Data Manipulation Statements:
+                "SELECT * FROM roSafeTest", "TABLE roSafeTest", "VALUES ROW (1, 'test1'), ROW (2, 'test2')", "CALL roSafeTestProc()",
+                "WITH cte1 AS (TABLE roSafeTest), cte2 AS (TABLE roSafeTest) SELECT * FROM cte1", "WITH cte1 AS (TABLE roSafeTest) TABLE cte1",
+                "WITH cte1 AS (TABLE roSafeTest) VALUES ROW (1, 'test1'), ROW (2, 'test2')", "DO 1 + 1", "HANDLER roSafeTest OPEN AS hroSafeTest",
+                // Transactional and Locking Statements:
+                "BEGIN", "START TRANSACTION", "SAVEPOINT roSafeTest", "RELEASE SAVEPOINT roSafeTest", "ROLLBACK", "COMMIT", "LOCK INSTANCE FOR BACKUP",
+                "UNLOCK INSTANCE", "XA START 'roSafeTest'", "XA END 'roSafeTest'", "XA ROLLBACK 'roSafeTest'",
+                // Replication Statements:
+                "PURGE BINARY LOGS TO 'roSafeTest'", "STOP REPLICA",
+                // Prepared Statements:
+                "PREPARE roSafeTestPS FROM 'TABLE roSafeTest'", "EXECUTE roSafeTestPS", "DEALLOCATE PREPARE roSafeTestPS",
+                // Compound Statement Syntax/Condition Handling:
+                "SIGNAL SQLSTATE '01000'", "RESIGNAL", "GET DIAGNOSTICS @n = NUMBER",
+                // Database Administration Statements/Table Maintenance Statements:
+                "ANALYZE TABLE roSafeTest", "CHECK TABLE roSafeTest", "CHECKSUM TABLE roSafeTest",
+                // Database Administration Statements/CLONE Statement, SET & SHOW Statements:
+                "CLONE LOCAL DATA DIRECTORY '/tmp'", "SET @roSafeTest = 'roSafeTest'", "SHOW CREATE TABLE roSafeTest",
+                // Database Administration Statements/Other Administrative Statements:
+                "BINLOG 'roSafeTest'", "CACHE INDEX roSafeTestIdx IN roSafeTestCache", "FLUSH STATUS", "KILL 0",
+                // "RESTART", it's safe but can't be executed in this test
+                // "SHUTDOWN", it's safe but can't be executed in this test
+                //  Utility Statements
+                "USE roSafeTestDb",
+                // Utility Statements:
+                "DESC roSafeTest", "DESCRIBE roSafeTest", "EXPLAIN roSafeTest", "HELP 'SELECT'" };
+        for (String query : okQueries) {
+            try {
+                testStmt.execute(query);
+            } catch (SQLException e) {
+                assertNotEquals("Connection is read-only. Queries leading to data modification are not allowed.", e.getMessage());
+            }
+        }
+
+        String[] notOkQueries = new String[] {
+                // Data Manipulation Statements:
+                "INSERT INTO roSafeTest VALUES (99, 'test99')", "REPLACE INTO roSafeTest VALUES (99, 'test99')", "UPDATE roSafeTest SET col1 = col1 + 1",
+                "DELETE FROM roSafeTest", "TRUNCATE TABLE roSafeTest", "IMPORT TABLE FROM 'roSafeTest'", "LOAD DATA INFILE 'roSafeTest' INTO TABLE roSafeTest",
+                "WITH cte1 AS (TABLE roSafeTest) UPDATE roSafeTest SET c = c + 1", "WITH cte1 AS (TABLE roSafeTest) DELETE FROM roSafeTest",
+                // Replication Statements:
+                "CHANGE REPLICATION SOURCE TO SOURCE_DELAY=0", "RESET REPLICA",
+                // Database Administration Statements/Account Management Statements:
+                "CREATE USER roSafeTestUser", "ALTER USER roSafeTestUser", "RENAME USER roSafeTestUser to roSafeTestUserNew",
+                "GRANT SELECT ON roSafeTestDb.* TO roSafeTestUser", "REVOKE ALL ON *.* FROM roSafeTestUser", "DROP USER roSafeTest",
+                // Database Administration Statements/Table Maintenance Statements:
+                "OPTIMIZE TABLE roSafeTest", "REPAIR TABLE roSafeTest",
+                // Database Administration Statements/Component, Plugin, and Loadable Function Statements:
+                "INSTALL COMPONENT 'roSafeTest'", "UNINSTALL COMPONENT 'roSafeTest'", };
+        for (String query : notOkQueries) {
+            assertThrows("Query: " + query, SQLException.class, "Connection is read-only\\. Queries leading to data modification are not allowed\\.", () -> {
+                testStmt.execute(query);
+                return null;
+            });
+        }
+    }
+
+    @Test
+    public void testQueryInfoParsingAndRewrittingLoadData() throws Exception {
+        assumeTrue(versionMeetsMinimum(8, 0, 19), "MySQL 8.0.19+ is required to run this test.");
+
+        createTable("testQueryInfo", "(c1 INT, c2 INT)");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.queryInterceptors.getKeyName(), QueryInfoQueryInterceptor.class.getName());
+        props.setProperty(PropertyKey.continueBatchOnError.getKeyName(), "true");
+        props.setProperty(PropertyKey.emulateUnsupportedPstmts.getKeyName(), "true");
+
+        boolean rwBS = false;
+        boolean useSPS = false;
+
+        do {
+            final String testCase = String.format("Case [rwBS: %s, useSPS: %s]", rwBS ? "Y" : "N", useSPS ? "Y" : "N");
+
+            props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), Boolean.toString(rwBS));
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
+
+            Connection testConn = getConnectionWithProps(props);
+
+            // LOAD DATA INFILE ? ... --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("LOAD DATA INFILE ? INTO TABLE testQueryInfo");
+            this.pstmt.setString(1, "path1/file1");
+            this.pstmt.addBatch();
+            this.pstmt.setString(1, "path2/file2");
+            this.pstmt.addBatch();
+            assertThrows(BatchUpdateException.class, () -> this.pstmt.executeBatch());
+            QueryInfoQueryInterceptor.assertCapturedSql(testCase, "LOAD DATA INFILE 'path1/file1' INTO TABLE testQueryInfo",
+                    "LOAD DATA INFILE 'path2/file2' INTO TABLE testQueryInfo");
+
+            testConn.close();
+        } while ((useSPS = !useSPS) || (rwBS = !rwBS));
+    }
+
+    @Test
+    public void testQueryInfoParsingAndRewrittingInsertValuesStatic() throws Exception {
+        assumeTrue(versionMeetsMinimum(8, 0, 19), "MySQL 8.0.19+ is required to run this test.");
+
+        createTable("testQueryInfo", "(c1 INT, c2 INT)");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.queryInterceptors.getKeyName(), QueryInfoQueryInterceptor.class.getName());
+        props.setProperty(PropertyKey.continueBatchOnError.getKeyName(), "true");
+        props.setProperty(PropertyKey.emulateUnsupportedPstmts.getKeyName(), "true");
+
+        boolean rwBS = false;
+        boolean useSPS = false;
+
+        do {
+            final String testCase = String.format("Case [rwBS: %s, useSPS: %s]", rwBS ? "Y" : "N", useSPS ? "Y" : "N");
+
+            props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), Boolean.toString(rwBS));
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
+
+            Connection testConn = getConnectionWithProps(props);
+
+            // INSERT ... VALUES (n, m) --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES (1, 2)");
+            this.pstmt.addBatch();
+            this.pstmt.addBatch();
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS) { // && (useSPS || !useSPS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2),(1, 2),(1, 2)");
+            } else { // !rwBS && (useSPS || !useSPS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2)", "INSERT INTO testQueryInfo VALUES (1, 2)",
+                        "INSERT INTO testQueryInfo VALUES (1, 2)");
+            }
+
+            // INSERT ... VALUES (n, m) AS ... --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES (1, 2) AS new(v1, v2)");
+            this.pstmt.addBatch();
+            this.pstmt.addBatch();
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS) { // && (useSPS || !useSPS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2),(1, 2),(1, 2) AS new(v1, v2)");
+            } else { // !rwBS && (useSPS || !useSPS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2) AS new(v1, v2)",
+                        "INSERT INTO testQueryInfo VALUES (1, 2) AS new(v1, v2)", "INSERT INTO testQueryInfo VALUES (1, 2) AS new(v1, v2)");
+            }
+
+            // INSERT ... VALUES (n, m) AS ... ON DUPLICATE KEY UPDATE ... VALUES() --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn
+                    .prepareStatement("INSERT INTO testQueryInfo VALUES (1, 2) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            this.pstmt.addBatch();
+            this.pstmt.addBatch();
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS) { // && (useSPS || !useSPS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES (1, 2),(1, 2),(1, 2) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            } else { // !rwBS && (useSPS || !useSPS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES (1, 2) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)",
+                        "INSERT INTO testQueryInfo VALUES (1, 2) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)",
+                        "INSERT INTO testQueryInfo VALUES (1, 2) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            }
+
+            // INSERT ... VALUES (n, m) ON DUPLICATE KEY UPDATE ... VALUES() --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES (1, 2) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            this.pstmt.addBatch();
+            this.pstmt.addBatch();
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS) { // && (useSPS || !useSPS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES (1, 2),(1, 2),(1, 2) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else { // !rwBS && (useSPS || !useSPS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo VALUES (1, 2) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo VALUES (1, 2) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            }
+
+            // INSERT ... VALUES (n, m) ON DUPLICATE KEY UPDATE ... LAST_INSERT_ID() --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES (1, 2) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()");
+            this.pstmt.addBatch();
+            this.pstmt.addBatch();
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()",
+                    "INSERT INTO testQueryInfo VALUES (1, 2) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()",
+                    "INSERT INTO testQueryInfo VALUES (1, 2) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()");
+
+            // INSERT ... VALUES (n, LAST_INSERT_ID())  --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES (1, LAST_INSERT_ID())");
+            this.pstmt.addBatch();
+            this.pstmt.addBatch();
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, LAST_INSERT_ID())",
+                    "INSERT INTO testQueryInfo VALUES (1, LAST_INSERT_ID())", "INSERT INTO testQueryInfo VALUES (1, LAST_INSERT_ID())");
+
+            testConn.close();
+        } while ((useSPS = !useSPS) || (rwBS = !rwBS));
+    }
+
+    @Test
+    public void testQueryInfoParsingAndRewrittingInsertValuesEroteme() throws Exception {
+        assumeTrue(versionMeetsMinimum(8, 0, 19), "MySQL 8.0.19+ is required to run this test.");
+
+        createTable("testQueryInfo", "(c1 INT, c2 INT)");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.queryInterceptors.getKeyName(), QueryInfoQueryInterceptor.class.getName());
+        props.setProperty(PropertyKey.continueBatchOnError.getKeyName(), "true");
+        props.setProperty(PropertyKey.emulateUnsupportedPstmts.getKeyName(), "true");
+
+        boolean rwBS = false;
+        boolean useSPS = false;
+
+        do {
+            final String testCase = String.format("Case [rwBS: %s, useSPS: %s]", rwBS ? "Y" : "N", useSPS ? "Y" : "N");
+
+            props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), Boolean.toString(rwBS));
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
+
+            Connection testConn = getConnectionWithProps(props);
+
+            // INSERT ... VALUES (?, ?) --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES (?, ?)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 5);
+            this.pstmt.setInt(2, 6);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (?, ?),(?, ?),(?, ?)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (?, ?)", "INSERT INTO testQueryInfo VALUES (?, ?)",
+                        "INSERT INTO testQueryInfo VALUES (?, ?)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2),(3, 4),(5, 6)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2)", "INSERT INTO testQueryInfo VALUES (3, 4)",
+                        "INSERT INTO testQueryInfo VALUES (5, 6)");
+            }
+
+            // INSERT ... VALUES (?, ?) AS ... --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES (?, ?) AS new(v1, v2)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (?, ?),(?, ?) AS new(v1, v2)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (?, ?) AS new(v1, v2)",
+                        "INSERT INTO testQueryInfo VALUES (?, ?) AS new(v1, v2)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2),(3, 4) AS new(v1, v2)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2) AS new(v1, v2)",
+                        "INSERT INTO testQueryInfo VALUES (3, 4) AS new(v1, v2)");
+            }
+
+            // INSERT ... VALUES (?, ?) AS ... ON DUPLICATE KEY UPDATE ... VALUES() --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn
+                    .prepareStatement("INSERT INTO testQueryInfo VALUES (?, ?) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES (?, ?),(?, ?) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES (?, ?) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)",
+                        "INSERT INTO testQueryInfo VALUES (?, ?) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES (1, 2),(3, 4) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES (1, 2) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)",
+                        "INSERT INTO testQueryInfo VALUES (3, 4) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            }
+
+            // INSERT ... VALUES (?, ?) ON DUPLICATE KEY UPDATE ... VALUES() --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES (?, ?) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (?, ?),(?, ?) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (?, ?) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo VALUES (?, ?) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2),(3, 4) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo VALUES (3, 4) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            }
+
+            // INSERT ... VALUES (?, m) ON DUPLICATE KEY UPDATE ... ? --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES (?, 2) ON DUPLICATE KEY UPDATE c1 = ?");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (?, 2) ON DUPLICATE KEY UPDATE c1 = ?",
+                        "INSERT INTO testQueryInfo VALUES (?, 2) ON DUPLICATE KEY UPDATE c1 = ?");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2) ON DUPLICATE KEY UPDATE c1 = 2",
+                        "INSERT INTO testQueryInfo VALUES (3, 2) ON DUPLICATE KEY UPDATE c1 = 4");
+            }
+
+            // INSERT ... VALUES (?, ?) ON DUPLICATE KEY UPDATE ... LAST_INSERT_ID() --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES (?, ?) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (?, ?) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()",
+                        "INSERT INTO testQueryInfo VALUES (?, ?) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, 2) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()",
+                        "INSERT INTO testQueryInfo VALUES (3, 4) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()");
+            }
+
+            // INSERT ... VALUES (?, LAST_INSERT_ID()) --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES (?, LAST_INSERT_ID())");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 2);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (?, LAST_INSERT_ID())",
+                        "INSERT INTO testQueryInfo VALUES (?, LAST_INSERT_ID())");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (1, LAST_INSERT_ID())",
+                        "INSERT INTO testQueryInfo VALUES (2, LAST_INSERT_ID())");
+            }
+
+            testConn.close();
+        } while ((useSPS = !useSPS) || (rwBS = !rwBS));
+    }
+
+    @Test
+    public void testQueryInfoParsingAndRewrittingInsertValuesRowEroteme() throws Exception {
+        assumeTrue(versionMeetsMinimum(8, 0, 19), "MySQL 8.0.19+ is required to run this test.");
+
+        createTable("testQueryInfo", "(c1 INT, c2 INT)");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.queryInterceptors.getKeyName(), QueryInfoQueryInterceptor.class.getName());
+        props.setProperty(PropertyKey.continueBatchOnError.getKeyName(), "true");
+        props.setProperty(PropertyKey.emulateUnsupportedPstmts.getKeyName(), "true");
+
+        boolean rwBS = false;
+        boolean useSPS = false;
+
+        do {
+            final String testCase = String.format("Case [rwBS: %s, useSPS: %s]", rwBS ? "Y" : "N", useSPS ? "Y" : "N");
+
+            props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), Boolean.toString(rwBS));
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
+
+            Connection testConn = getConnectionWithProps(props);
+
+            // INSERT ... VALUES ROW(?, ?) --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES ROW(?, ?)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 5);
+            this.pstmt.setInt(2, 6);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(?, ?),ROW(?, ?),ROW(?, ?)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(?, ?)",
+                        "INSERT INTO testQueryInfo VALUES ROW(?, ?)", "INSERT INTO testQueryInfo VALUES ROW(?, ?)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(1, 2),ROW(3, 4),ROW(5, 6)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(1, 2)",
+                        "INSERT INTO testQueryInfo VALUES ROW(3, 4)", "INSERT INTO testQueryInfo VALUES ROW(5, 6)");
+            }
+
+            // INSERT ... VALUES ROW(?, ?) AS ... --> rewritable.
+            // -- ROW(...) AS is not currently supported, so it fails preparing the statement and, thus, falls back to ClientPreparedStatement - Bug#33917022.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES ROW(?, ?) AS new(v1, v2)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            assertThrows(BatchUpdateException.class, () -> this.pstmt.executeBatch()); // ROW(...) AS is not currently supported.
+            // if (rwBS && useSPS) {
+            //     QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(?, ?),ROW(?, ?) AS new(v1, v2)");
+            // } else if (!rwBS && useSPS) {
+            //     QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(?, ?) AS new(v1, v2)",
+            //             "INSERT INTO testQueryInfo VALUES ROW(?, ?) AS new(v1, v2)");
+            // } else 
+            if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(1, 2),ROW(3, 4) AS new(v1, v2)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(1, 2) AS new(v1, v2)",
+                        "INSERT INTO testQueryInfo VALUES ROW(3, 4) AS new(v1, v2)");
+            }
+
+            // INSERT ... VALUES ROW(?, ?) AS ... ON DUPLICATE KEY UPDATE ... VALUES() --> rewritable.
+            // -- ROW(...) AS is not currently supported, so it fails preparing the statement and, thus, falls back to ClientPreparedStatement - Bug#33917022.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn
+                    .prepareStatement("INSERT INTO testQueryInfo VALUES ROW(?, ?) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            assertThrows(BatchUpdateException.class, () -> this.pstmt.executeBatch()); // ROW(...) AS is not currently supported.
+            // if (rwBS && useSPS) {
+            //     QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+            //             "INSERT INTO testQueryInfo VALUES ROW(?, ?),ROW(?, ?) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            // } else if (!rwBS && useSPS) {
+            //     QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+            //             "INSERT INTO testQueryInfo VALUES ROW(?, ?) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)",
+            //             "INSERT INTO testQueryInfo VALUES ROW(?, ?) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            // } else 
+            if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES ROW(1, 2),ROW(3, 4) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES ROW(1, 2) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)",
+                        "INSERT INTO testQueryInfo VALUES ROW(3, 4) AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            }
+
+            // INSERT ... VALUES ROW(?, ?) ON DUPLICATE KEY UPDATE ... VALUES() --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES ROW(?, ?) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES ROW(?, ?),ROW(?, ?) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(?, ?) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo VALUES ROW(?, ?) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES ROW(1, 2),ROW(3, 4) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(1, 2) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo VALUES ROW(3, 4) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            }
+
+            // INSERT ... VALUES ROW(?, m) ON DUPLICATE KEY UPDATE ... ? --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES ROW(?, 2) ON DUPLICATE KEY UPDATE c1 = ?");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(?, 2) ON DUPLICATE KEY UPDATE c1 = ?",
+                        "INSERT INTO testQueryInfo VALUES ROW(?, 2) ON DUPLICATE KEY UPDATE c1 = ?");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(1, 2) ON DUPLICATE KEY UPDATE c1 = 2",
+                        "INSERT INTO testQueryInfo VALUES ROW(3, 2) ON DUPLICATE KEY UPDATE c1 = 4");
+            }
+
+            // INSERT ... VALUES ROW(?, ?) ON DUPLICATE KEY UPDATE ... LAST_INSERT_ID() --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES ROW(?, ?) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES ROW(?, ?) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()",
+                        "INSERT INTO testQueryInfo VALUES ROW(?, ?) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo VALUES ROW(1, 2) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()",
+                        "INSERT INTO testQueryInfo VALUES ROW(3, 4) ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()");
+            }
+
+            // INSERT ... VALUES ROW(?, LAST_INSERT_ID()) --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES ROW(?, LAST_INSERT_ID())");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 2);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(?, LAST_INSERT_ID())",
+                        "INSERT INTO testQueryInfo VALUES ROW(?, LAST_INSERT_ID())");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES ROW(1, LAST_INSERT_ID())",
+                        "INSERT INTO testQueryInfo VALUES ROW(2, LAST_INSERT_ID())");
+            }
+
+            testConn.close();
+        } while ((useSPS = !useSPS) || (rwBS = !rwBS));
+    }
+
+    @Test
+    public void testQueryInfoParsingAndRewrittingInsertSetEroteme() throws Exception {
+        assumeTrue(versionMeetsMinimum(8, 0, 19), "MySQL 8.0.19+ is required to run this test.");
+
+        createTable("testQueryInfo", "(c1 INT, c2 INT)");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.queryInterceptors.getKeyName(), QueryInfoQueryInterceptor.class.getName());
+        props.setProperty(PropertyKey.continueBatchOnError.getKeyName(), "true");
+        props.setProperty(PropertyKey.emulateUnsupportedPstmts.getKeyName(), "true");
+
+        boolean rwBS = false;
+        boolean useSPS = false;
+
+        do {
+            final String testCase = String.format("Case [rwBS: %s, useSPS: %s]", rwBS ? "Y" : "N", useSPS ? "Y" : "N");
+
+            props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), Boolean.toString(rwBS));
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
+
+            Connection testConn = getConnectionWithProps(props);
+
+            // INSERT ... SET ?, ? --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo SET c1 = ?, c2 = ?");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 5);
+            this.pstmt.setInt(2, 6);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo SET c1 = ?, c2 = ?",
+                        "INSERT INTO testQueryInfo SET c1 = ?, c2 = ?", "INSERT INTO testQueryInfo SET c1 = ?, c2 = ?");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo SET c1 = 1, c2 = 2",
+                        "INSERT INTO testQueryInfo SET c1 = 3, c2 = 4", "INSERT INTO testQueryInfo SET c1 = 5, c2 = 6");
+            }
+
+            // INSERT ... SET ?, ? AS ... --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo SET c1 = ?, c2 = ? AS new(v1, v2)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo SET c1 = ?, c2 = ? AS new(v1, v2)",
+                        "INSERT INTO testQueryInfo SET c1 = ?, c2 = ? AS new(v1, v2)");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo SET c1 = 1, c2 = 2 AS new(v1, v2)",
+                        "INSERT INTO testQueryInfo SET c1 = 3, c2 = 4 AS new(v1, v2)");
+            }
+
+            // INSERT ... SET ?, ? AS ... ON DUPLICATE KEY UPDATE ... VALUES() --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn
+                    .prepareStatement("INSERT INTO testQueryInfo SET c1 = ?, c2 = ? AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo SET c1 = ?, c2 = ? AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)",
+                        "INSERT INTO testQueryInfo SET c1 = ?, c2 = ? AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo SET c1 = 1, c2 = 2 AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)",
+                        "INSERT INTO testQueryInfo SET c1 = 3, c2 = 4 AS new(v1, v2) ON DUPLICATE KEY UPDATE c1 = new.v2, c2 = VALUES(c1)");
+            }
+
+            // INSERT ... SET ?, ? ON DUPLICATE KEY UPDATE ... VALUES() --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo SET c1 = ?, c2 = ? ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo SET c1 = ?, c2 = ? ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo SET c1 = ?, c2 = ? ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo SET c1 = 1, c2 = 2 ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo SET c1 = 3, c2 = 4 ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            }
+
+            // INSERT ... SET ?, ? ON DUPLICATE KEY UPDATE ... ? --> not not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo SET c1 = ?, c2 = 2 ON DUPLICATE KEY UPDATE c1 = ?");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo SET c1 = ?, c2 = 2 ON DUPLICATE KEY UPDATE c1 = ?",
+                        "INSERT INTO testQueryInfo SET c1 = ?, c2 = 2 ON DUPLICATE KEY UPDATE c1 = ?");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo SET c1 = 1, c2 = 2 ON DUPLICATE KEY UPDATE c1 = 2",
+                        "INSERT INTO testQueryInfo SET c1 = 3, c2 = 2 ON DUPLICATE KEY UPDATE c1 = 4");
+            }
+
+            // INSERT ... SET ?, ? ON DUPLICATE KEY UPDATE ... LAST_INSERT_ID() --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo SET c1 = ?, c2 = ? ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo SET c1 = ?, c2 = ? ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()",
+                        "INSERT INTO testQueryInfo SET c1 = ?, c2 = ? ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo SET c1 = 1, c2 = 2 ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()",
+                        "INSERT INTO testQueryInfo SET c1 = 3, c2 = 4 ON DUPLICATE KEY UPDATE c1 = LAST_INSERT_ID()");
+            }
+
+            // INSERT ... SET ?, LAST_INSERT_ID() --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo SET c1 = ?, c2 = LAST_INSERT_ID()");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 2);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo SET c1 = ?, c2 = LAST_INSERT_ID()",
+                        "INSERT INTO testQueryInfo SET c1 = ?, c2 = LAST_INSERT_ID()");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo SET c1 = 1, c2 = LAST_INSERT_ID()",
+                        "INSERT INTO testQueryInfo SET c1 = 2, c2 = LAST_INSERT_ID()");
+            }
+
+            testConn.close();
+        } while ((useSPS = !useSPS) || (rwBS = !rwBS));
+    }
+
+    @Test
+    public void testQueryInfoParsingAndRewrittingReplaceVauesEroteme() throws Exception {
+        assumeTrue(versionMeetsMinimum(8, 0, 19), "MySQL 8.0.19+ is required to run this test.");
+
+        createTable("testQueryInfo", "(c1 INT, c2 INT)");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.queryInterceptors.getKeyName(), QueryInfoQueryInterceptor.class.getName());
+        props.setProperty(PropertyKey.continueBatchOnError.getKeyName(), "true");
+        props.setProperty(PropertyKey.emulateUnsupportedPstmts.getKeyName(), "true");
+
+        boolean rwBS = false;
+        boolean useSPS = false;
+
+        do {
+            final String testCase = String.format("Case [rwBS: %s, useSPS: %s]", rwBS ? "Y" : "N", useSPS ? "Y" : "N");
+
+            props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), Boolean.toString(rwBS));
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
+
+            Connection testConn = getConnectionWithProps(props);
+
+            // REPLACE ... VALUES (?, ?) --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("REPLACE INTO testQueryInfo VALUES (?, ?)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 5);
+            this.pstmt.setInt(2, 6);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo VALUES (?, ?),(?, ?),(?, ?)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo VALUES (?, ?)", "REPLACE INTO testQueryInfo VALUES (?, ?)",
+                        "REPLACE INTO testQueryInfo VALUES (?, ?)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo VALUES (1, 2),(3, 4),(5, 6)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo VALUES (1, 2)", "REPLACE INTO testQueryInfo VALUES (3, 4)",
+                        "REPLACE INTO testQueryInfo VALUES (5, 6)");
+            }
+
+            // REPLACE ... VALUES (?, LAST_INSERT_ID()) --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("REPLACE INTO testQueryInfo VALUES (?, LAST_INSERT_ID())");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 2);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo VALUES (?, LAST_INSERT_ID())",
+                        "REPLACE INTO testQueryInfo VALUES (?, LAST_INSERT_ID())");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo VALUES (1, LAST_INSERT_ID())",
+                        "REPLACE INTO testQueryInfo VALUES (2, LAST_INSERT_ID())");
+            }
+
+            testConn.close();
+        } while ((useSPS = !useSPS) || (rwBS = !rwBS));
+    }
+
+    @Test
+    public void testQueryInfoParsingAndRewrittingReplaceValuesRowEroteme() throws Exception {
+        assumeTrue(versionMeetsMinimum(8, 0, 19), "MySQL 8.0.19+ is required to run this test.");
+
+        createTable("testQueryInfo", "(c1 INT, c2 INT)");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.queryInterceptors.getKeyName(), QueryInfoQueryInterceptor.class.getName());
+        props.setProperty(PropertyKey.continueBatchOnError.getKeyName(), "true");
+        props.setProperty(PropertyKey.emulateUnsupportedPstmts.getKeyName(), "true");
+
+        boolean rwBS = false;
+        boolean useSPS = false;
+
+        do {
+            final String testCase = String.format("Case [rwBS: %s, useSPS: %s]", rwBS ? "Y" : "N", useSPS ? "Y" : "N");
+
+            props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), Boolean.toString(rwBS));
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
+
+            Connection testConn = getConnectionWithProps(props);
+
+            // REPLACE ... VALUES ROW(?, ?) --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("REPLACE INTO testQueryInfo VALUES ROW(?, ?)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 5);
+            this.pstmt.setInt(2, 6);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo VALUES ROW(?, ?),ROW(?, ?),ROW(?, ?)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo VALUES ROW(?, ?)",
+                        "REPLACE INTO testQueryInfo VALUES ROW(?, ?)", "REPLACE INTO testQueryInfo VALUES ROW(?, ?)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo VALUES ROW(1, 2),ROW(3, 4),ROW(5, 6)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo VALUES ROW(1, 2)",
+                        "REPLACE INTO testQueryInfo VALUES ROW(3, 4)", "REPLACE INTO testQueryInfo VALUES ROW(5, 6)");
+            }
+
+            // REPLACE ... VALUES ROW(?, LAST_INSERT_ID()) --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("REPLACE INTO testQueryInfo VALUES ROW(?, LAST_INSERT_ID())");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 2);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo VALUES ROW(?, LAST_INSERT_ID())",
+                        "REPLACE INTO testQueryInfo VALUES ROW(?, LAST_INSERT_ID())");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo VALUES ROW(1, LAST_INSERT_ID())",
+                        "REPLACE INTO testQueryInfo VALUES ROW(2, LAST_INSERT_ID())");
+            }
+
+            testConn.close();
+        } while ((useSPS = !useSPS) || (rwBS = !rwBS));
+    }
+
+    @Test
+    public void testQueryInfoParsingAndRewrittingReplaceSetEroteme() throws Exception {
+        assumeTrue(versionMeetsMinimum(8, 0, 19), "MySQL 8.0.19+ is required to run this test.");
+
+        createTable("testQueryInfo", "(c1 INT, c2 INT)");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.queryInterceptors.getKeyName(), QueryInfoQueryInterceptor.class.getName());
+        props.setProperty(PropertyKey.continueBatchOnError.getKeyName(), "true");
+        props.setProperty(PropertyKey.emulateUnsupportedPstmts.getKeyName(), "true");
+
+        boolean rwBS = false;
+        boolean useSPS = false;
+
+        do {
+            final String testCase = String.format("Case [rwBS: %s, useSPS: %s]", rwBS ? "Y" : "N", useSPS ? "Y" : "N");
+
+            props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), Boolean.toString(rwBS));
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
+
+            Connection testConn = getConnectionWithProps(props);
+
+            // REPLACE ... SET ?, ? --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("REPLACE INTO testQueryInfo SET c1 = ?, c2 = ?");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 5);
+            this.pstmt.setInt(2, 6);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo SET c1 = ?, c2 = ?",
+                        "REPLACE INTO testQueryInfo SET c1 = ?, c2 = ?", "REPLACE INTO testQueryInfo SET c1 = ?, c2 = ?");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo SET c1 = 1, c2 = 2",
+                        "REPLACE INTO testQueryInfo SET c1 = 3, c2 = 4", "REPLACE INTO testQueryInfo SET c1 = 5, c2 = 6");
+            }
+
+            // REPLACE ... SET ?, LAST_INSERT_ID() --> not rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("REPLACE INTO testQueryInfo SET c1 = ?, c2 = LAST_INSERT_ID()");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 2);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (useSPS) { // && (rwBS || !rwBS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo SET c1 = ?, c2 = LAST_INSERT_ID()",
+                        "REPLACE INTO testQueryInfo SET c1 = ?, c2 = LAST_INSERT_ID()");
+            } else { // (rwBS || !rwBS) && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "REPLACE INTO testQueryInfo SET c1 = 1, c2 = LAST_INSERT_ID()",
+                        "REPLACE INTO testQueryInfo SET c1 = 2, c2 = LAST_INSERT_ID()");
+            }
+
+            testConn.close();
+        } while ((useSPS = !useSPS) || (rwBS = !rwBS));
+    }
+
+    @Test
+    public void testQueryInfoParsingAndRewrittingSpecialCases() throws Exception {
+        assumeTrue(versionMeetsMinimum(8, 0, 19), "MySQL 8.0.19+ is required to run this test.");
+
+        createTable("testQueryInfo", "(c1 INT, c2 INT)");
+
+        Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), SslMode.DISABLED.name());
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+        props.setProperty(PropertyKey.queryInterceptors.getKeyName(), QueryInfoQueryInterceptor.class.getName());
+        props.setProperty(PropertyKey.continueBatchOnError.getKeyName(), "true");
+        props.setProperty(PropertyKey.emulateUnsupportedPstmts.getKeyName(), "true");
+
+        boolean rwBS = false;
+        boolean useSPS = false;
+
+        do {
+            final String testCase = String.format("Case [rwBS: %s, useSPS: %s]", rwBS ? "Y" : "N", useSPS ? "Y" : "N");
+
+            props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), Boolean.toString(rwBS));
+            props.setProperty(PropertyKey.useServerPrepStmts.getKeyName(), Boolean.toString(useSPS));
+
+            Connection testConn = getConnectionWithProps(props);
+
+            /*
+             * Special Case 1: Parsing around VALUES.
+             */
+
+            // INSERT ... VALUES(?,?)AS ... --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES(?,?)AS new(v1, v2)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES(?,?),(?,?)AS new(v1, v2)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES(?,?)AS new(v1, v2)",
+                        "INSERT INTO testQueryInfo VALUES(?,?)AS new(v1, v2)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES(1,2),(3,4)AS new(v1, v2)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES(1,2)AS new(v1, v2)",
+                        "INSERT INTO testQueryInfo VALUES(3,4)AS new(v1, v2)");
+            }
+
+            // INSERT ... VALUES(?, ?)ON DUPLICATE KEY UPDATE ... --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES(?, ?)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES(?, ?),(?, ?)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES(?, ?)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo VALUES(?, ?)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES(1, 2),(3, 4)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES(1, 2)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo VALUES(3, 4)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            }
+
+            /*
+             * Special Case 2: VALUE clause & spaces around it.
+             */
+
+            // INSERT ... VALUE(?, ?) AS ... --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUE(?, ?) AS new(v1, v2)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUE(?, ?),(?, ?) AS new(v1, v2)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUE(?, ?) AS new(v1, v2)",
+                        "INSERT INTO testQueryInfo VALUE(?, ?) AS new(v1, v2)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUE(1, 2),(3, 4) AS new(v1, v2)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUE(1, 2) AS new(v1, v2)",
+                        "INSERT INTO testQueryInfo VALUE(3, 4) AS new(v1, v2)");
+            }
+
+            // INSERT ... VALUE (?, ?)ON DUPLICATE KEY UPDATE ... --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUE (?, ?)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUE (?, ?),(?, ?)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUE (?, ?)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo VALUE (?, ?)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUE (1, 2),(3, 4)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUE (1, 2)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo VALUE (3, 4)ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            }
+
+            /*
+             * Special Case 3: Table and column names.
+             */
+            // INSERT ... tbl (c1, c2) ... VALUES (?, ?) AS ... --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo (c1, c2) VALUES (?, ?) AS new(v1, v2)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo (c1, c2) VALUES (?, ?),(?, ?) AS new(v1, v2)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo (c1, c2) VALUES (?, ?) AS new(v1, v2)",
+                        "INSERT INTO testQueryInfo (c1, c2) VALUES (?, ?) AS new(v1, v2)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo (c1, c2) VALUES (1, 2),(3, 4) AS new(v1, v2)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo (c1, c2) VALUES (1, 2) AS new(v1, v2)",
+                        "INSERT INTO testQueryInfo (c1, c2) VALUES (3, 4) AS new(v1, v2)");
+            }
+
+            // INSERT ... tbl (c1, c2) ... VALUES(?, ? )ON DUPLICATE KEY UPDATE ... --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo (c1, c2) VALUES (?, ?) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo (c1, c2) VALUES (?, ?),(?, ?) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo (c1, c2) VALUES (?, ?) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo (c1, c2) VALUES (?, ?) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo (c1, c2) VALUES (1, 2),(3, 4) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "INSERT INTO testQueryInfo (c1, c2) VALUES (1, 2) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)",
+                        "INSERT INTO testQueryInfo (c1, c2) VALUES (3, 4) ON DUPLICATE KEY UPDATE c1 = VALUES(c2)");
+            }
+
+            /*
+             * Special Case 4: Comments in place of spaces.
+             */
+
+            // /* */INSERT/* */.../* */VALUES/* */(?,/* */?)/* */AS/* */.../* */ON/* */DUPLICATE/* */KEY/* */UPDATE/* */.../* */VALUES() --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("/* DELETE */INSERT/* SELECT */INTO/* SHOW */testQueryInfo# testQueryInfo\n"
+                    + "VALUES/* AS */(?,/* ON */?)/* LAST_INSERT_ID() */AS-- \nnew(v1,/**/v2)/* */ON/* AT */DUPLICATE# DUPLICATE\n"
+                    + "KEY/* */UPDATE/* */c1/* = */=/* */new.v2,/* , , */c2/* VALUES */=/* VALUES */VALUES(c1)# the end");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 3);
+            this.pstmt.setInt(2, 4);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "/* DELETE */INSERT/* SELECT */INTO/* SHOW */testQueryInfo# testQueryInfo\n"
+                                + "VALUES/* AS */(?,/* ON */?),(?,/* ON */?)/* LAST_INSERT_ID() */AS-- \nnew(v1,/**/v2)/* */ON/* AT */DUPLICATE# DUPLICATE\n"
+                                + "KEY/* */UPDATE/* */c1/* = */=/* */new.v2,/* , , */c2/* VALUES */=/* VALUES */VALUES(c1)# the end");
+            } else if (!rwBS && useSPS) {
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "/* DELETE */INSERT/* SELECT */INTO/* SHOW */testQueryInfo# testQueryInfo\n"
+                                + "VALUES/* AS */(?,/* ON */?)/* LAST_INSERT_ID() */AS-- \nnew(v1,/**/v2)/* */ON/* AT */DUPLICATE# DUPLICATE\n"
+                                + "KEY/* */UPDATE/* */c1/* = */=/* */new.v2,/* , , */c2/* VALUES */=/* VALUES */VALUES(c1)# the end",
+                        "/* DELETE */INSERT/* SELECT */INTO/* SHOW */testQueryInfo# testQueryInfo\n"
+                                + "VALUES/* AS */(?,/* ON */?)/* LAST_INSERT_ID() */AS-- \nnew(v1,/**/v2)/* */ON/* AT */DUPLICATE# DUPLICATE\n"
+                                + "KEY/* */UPDATE/* */c1/* = */=/* */new.v2,/* , , */c2/* VALUES */=/* VALUES */VALUES(c1)# the end");
+            } else if (rwBS) { // && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "/* DELETE */INSERT/* SELECT */INTO/* SHOW */testQueryInfo# testQueryInfo\n"
+                                + "VALUES/* AS */(1,/* ON */2),(3,/* ON */4)/* LAST_INSERT_ID() */AS-- \nnew(v1,/**/v2)/* */ON/* AT */DUPLICATE# DUPLICATE\n"
+                                + "KEY/* */UPDATE/* */c1/* = */=/* */new.v2,/* , , */c2/* VALUES */=/* VALUES */VALUES(c1)# the end");
+            } else { // !rwBS && !useSPS
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase,
+                        "/* DELETE */INSERT/* SELECT */INTO/* SHOW */testQueryInfo# testQueryInfo\n"
+                                + "VALUES/* AS */(1,/* ON */2)/* LAST_INSERT_ID() */AS-- \nnew(v1,/**/v2)/* */ON/* AT */DUPLICATE# DUPLICATE\n"
+                                + "KEY/* */UPDATE/* */c1/* = */=/* */new.v2,/* , , */c2/* VALUES */=/* VALUES */VALUES(c1)# the end",
+                        "/* DELETE */INSERT/* SELECT */INTO/* SHOW */testQueryInfo# testQueryInfo\n"
+                                + "VALUES/* AS */(3,/* ON */4)/* LAST_INSERT_ID() */AS-- \nnew(v1,/**/v2)/* */ON/* AT */DUPLICATE# DUPLICATE\n"
+                                + "KEY/* */UPDATE/* */c1/* = */=/* */new.v2,/* , , */c2/* VALUES */=/* VALUES */VALUES(c1)# the end");
+            }
+
+            /*
+             * Special Case 5: Doubling eroteme - only works with ClientPreparedStatements.
+             */
+
+            // INSERT ... VALUES (??, ?) --> rewritable.
+            QueryInfoQueryInterceptor.startCapturing();
+            this.pstmt = testConn.prepareStatement("INSERT INTO testQueryInfo VALUES (??, ?)");
+            this.pstmt.setInt(1, 1);
+            this.pstmt.setInt(2, 2);
+            this.pstmt.setInt(3, 3);
+            this.pstmt.addBatch();
+            this.pstmt.setInt(1, 4);
+            this.pstmt.setInt(2, 5);
+            this.pstmt.setInt(3, 6);
+            this.pstmt.addBatch();
+            this.pstmt.executeBatch();
+            if (rwBS) { // && (useSPS || !useSPS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (12, 3),(45, 6)");
+            } else { // !rwBS && (useSPS || !useSPS)
+                QueryInfoQueryInterceptor.assertCapturedSql(testCase, "INSERT INTO testQueryInfo VALUES (12, 3)", "INSERT INTO testQueryInfo VALUES (45, 6)");
+            }
+
+            testConn.close();
+        } while ((useSPS = !useSPS) || (rwBS = !rwBS));
+    }
+
+    public static class QueryInfoQueryInterceptor extends BaseQueryInterceptor {
+        private static boolean enabled = false;
+        private static List<String> capturedSql = new ArrayList<>();
+
+        public static void startCapturing() {
+            enabled = true;
+            capturedSql.clear();
+        }
+
+        public static void assertCapturedSql(String testCase, String... expectedSql) {
+            enabled = false;
+            assertEquals(expectedSql.length, capturedSql.size(), testCase);
+            for (int i = 0; i < expectedSql.length; i++) {
+                assertEquals(expectedSql[i], capturedSql.get(i), testCase);
+            }
+        }
+
+        @Override
+        public <T extends Resultset> T preProcess(Supplier<String> sql, Query interceptedQuery) {
+            if (enabled && interceptedQuery != null) {
+                capturedSql.add(sql.get());
+            }
+            return super.preProcess(sql, interceptedQuery);
+        }
     }
 }

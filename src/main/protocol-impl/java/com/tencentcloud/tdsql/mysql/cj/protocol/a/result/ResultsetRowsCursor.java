@@ -76,7 +76,7 @@ public class ResultsetRowsCursor extends AbstractResultsetRows implements Result
      */
     private boolean firstFetchCompleted = false;
 
-    protected NativeMessageBuilder commandBuilder = new NativeMessageBuilder(); // TODO use shared builder
+    protected NativeMessageBuilder commandBuilder = null;
 
     /**
      * Creates a new cursor-backed row provider.
@@ -91,6 +91,7 @@ public class ResultsetRowsCursor extends AbstractResultsetRows implements Result
         this.metadata = columnDefinition;
         this.protocol = ioChannel;
         this.rowFactory = new BinaryRowFactory(this.protocol, this.metadata, Concurrency.READ_ONLY, false);
+        this.commandBuilder = new NativeMessageBuilder(this.protocol.getServerSession().supportsQueryAttributes());
     }
 
     @Override

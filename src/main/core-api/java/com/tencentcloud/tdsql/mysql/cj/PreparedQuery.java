@@ -31,11 +31,11 @@ package com.tencentcloud.tdsql.mysql.cj;
 
 import com.tencentcloud.tdsql.mysql.cj.protocol.Message;
 
-public interface PreparedQuery<T extends QueryBindings<?>> extends Query {
+public interface PreparedQuery extends Query {
 
-    ParseInfo getParseInfo();
+    QueryInfo getQueryInfo();
 
-    void setParseInfo(ParseInfo parseInfo);
+    void setQueryInfo(QueryInfo queryInfo);
 
     void checkNullOrEmptyQuery(String sql);
 
@@ -47,9 +47,9 @@ public interface PreparedQuery<T extends QueryBindings<?>> extends Query {
 
     void setParameterCount(int parameterCount);
 
-    public T getQueryBindings();
+    public QueryBindings getQueryBindings();
 
-    public void setQueryBindings(T queryBindings);
+    public void setQueryBindings(QueryBindings queryBindings);
 
     int computeBatchSize(int numBatchedArgs);
 
@@ -59,9 +59,5 @@ public interface PreparedQuery<T extends QueryBindings<?>> extends Query {
 
     String asSql();
 
-    String asSql(boolean quoteStreamsAndUnknowns);
-
-    <M extends Message> M fillSendPacket();
-
-    <M extends Message> M fillSendPacket(QueryBindings<?> bindings);
+    <M extends Message> M fillSendPacket(QueryBindings bindings);
 }

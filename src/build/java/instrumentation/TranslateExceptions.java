@@ -29,28 +29,61 @@
 
 package instrumentation;
 
+import java.lang.reflect.Method;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Savepoint;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TreeMap;
+
 import com.tencentcloud.tdsql.mysql.cj.QueryBindings;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.*;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.Blob;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.BlobFromLocator;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.CallableStatement;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.CallableStatement.CallableStatementParamInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ClientPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.Clob;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionWrapper;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaData;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaDataUsingInfoSchema;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlDataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlParameterMetadata;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlPooledConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlSQLXML;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlSavepoint;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXAConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXADataSource;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXid;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.NClob;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.NonRegisteringDriver;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.StatementImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.SuspendableXAConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.*;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedMySQLConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.MultiHostMySQLConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationMySQLConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetInternalMethods;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetMetaData;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.result.UpdatableResultSet;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ColumnDefinition;
 import com.tencentcloud.tdsql.mysql.cj.protocol.Message;
+
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtMethod;
 import javassist.NotFoundException;
-
-import java.lang.reflect.Method;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Savepoint;
-import java.util.*;
 
 public class TranslateExceptions {
 
@@ -76,7 +109,7 @@ public class TranslateExceptions {
         // params classes
         //CtClass ctServerPreparedQueryBindValue = pool.get(ServerPreparedQueryBindValue.class.getName());
         CtClass ctQueryBindings = pool.get(QueryBindings.class.getName());
-        CtClass ctByteArray = pool.get(byte[].class.getName());
+        //CtClass ctByteArray = pool.get(byte[].class.getName());
         CtClass ctColumnDefinition = pool.get(ColumnDefinition.class.getName());
 
         CtClass ctLongArray = pool.get(long[].class.getName());
@@ -264,7 +297,7 @@ public class TranslateExceptions {
         instrumentJdbcMethods(clazz, java.sql.PreparedStatement.class, false, EXCEPTION_INTERCEPTOR_GETTER);
         instrumentJdbcMethods(clazz, JdbcStatement.class, true, EXCEPTION_INTERCEPTOR_GETTER);
         // non-JDBC
-        catchRuntimeException(clazz, clazz.getDeclaredMethod("asSql", new CtClass[] { CtClass.booleanType }), EXCEPTION_INTERCEPTOR_GETTER);
+        catchRuntimeException(clazz, clazz.getDeclaredMethod("toString", new CtClass[] {}), EXCEPTION_INTERCEPTOR_GETTER);
         catchRuntimeException(clazz, clazz.getDeclaredMethod("checkBounds", new CtClass[] { CtClass.intType, CtClass.intType }), EXCEPTION_INTERCEPTOR_GETTER);
         catchRuntimeException(clazz, clazz.getDeclaredMethod("checkReadOnlySafeStatement", new CtClass[] {}), EXCEPTION_INTERCEPTOR_GETTER);
         catchRuntimeException(clazz, clazz.getDeclaredMethod("executeBatchedInserts", new CtClass[] { CtClass.intType }), EXCEPTION_INTERCEPTOR_GETTER);
@@ -283,14 +316,13 @@ public class TranslateExceptions {
                 EXCEPTION_INTERCEPTOR_GETTER);
         catchRuntimeException(clazz, clazz.getDeclaredMethod("getBytesRepresentation", new CtClass[] { CtClass.intType }), EXCEPTION_INTERCEPTOR_GETTER);
         catchRuntimeException(clazz, clazz.getDeclaredMethod("getParameterBindings", new CtClass[] {}), EXCEPTION_INTERCEPTOR_GETTER);
-        catchRuntimeException(clazz, clazz.getDeclaredMethod("initializeFromParseInfo", new CtClass[] {}), EXCEPTION_INTERCEPTOR_GETTER);
+        catchRuntimeException(clazz, clazz.getDeclaredMethod("initializeFromQueryInfo", new CtClass[] {}), EXCEPTION_INTERCEPTOR_GETTER);
         catchRuntimeException(clazz, clazz.getDeclaredMethod("isNull", new CtClass[] { CtClass.intType }), EXCEPTION_INTERCEPTOR_GETTER);
-        catchRuntimeException(clazz, clazz.getDeclaredMethod("isSelectQuery", new CtClass[] {}), EXCEPTION_INTERCEPTOR_GETTER);
         catchRuntimeException(clazz, clazz.getDeclaredMethod("prepareBatchedInsertSQL", new CtClass[] { ctJdbcConnection, CtClass.intType }),
                 EXCEPTION_INTERCEPTOR_GETTER);
-        catchRuntimeException(clazz,
-                clazz.getDeclaredMethod("setBytes", new CtClass[] { CtClass.intType, ctByteArray, CtClass.booleanType, CtClass.booleanType }),
-                EXCEPTION_INTERCEPTOR_GETTER);
+        //        catchRuntimeException(clazz,
+        //                clazz.getDeclaredMethod("setBytes", new CtClass[] { CtClass.intType, ctByteArray, CtClass.booleanType, CtClass.booleanType }),
+        //                EXCEPTION_INTERCEPTOR_GETTER);
         catchRuntimeException(clazz, clazz.getDeclaredMethod("setRetrieveGeneratedKeys", new CtClass[] { CtClass.booleanType }), EXCEPTION_INTERCEPTOR_GETTER);
         clazz.writeFile(args[0]);
 
@@ -301,6 +333,7 @@ public class TranslateExceptions {
         instrumentJdbcMethods(clazz, java.sql.PreparedStatement.class, false, EXCEPTION_INTERCEPTOR_GETTER);
         instrumentJdbcMethods(clazz, JdbcStatement.class, true, EXCEPTION_INTERCEPTOR_GETTER);
         // non-JDBC
+        catchRuntimeException(clazz, clazz.getDeclaredMethod("toString", new CtClass[] {}), EXCEPTION_INTERCEPTOR_GETTER);
         catchRuntimeException(clazz, clazz.getDeclaredMethod("getBinding", new CtClass[] { CtClass.intType, CtClass.booleanType }),
                 EXCEPTION_INTERCEPTOR_GETTER);
         catchRuntimeException(clazz,

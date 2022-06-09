@@ -64,6 +64,21 @@ public interface SocketConnection {
 
     void performTlsHandshake(ServerSession serverSession) throws SSLParamsException, FeatureNotAvailableException, IOException;
 
+    /**
+     * Start a TLS handshake
+     * 
+     * @param serverSession
+     *            server session state object
+     * @param log
+     *            logger
+     * @throws SSLParamsException
+     * @throws FeatureNotAvailableException
+     * @throws IOException
+     */
+    default void performTlsHandshake(ServerSession serverSession, Log log) throws SSLParamsException, FeatureNotAvailableException, IOException {
+        performTlsHandshake(serverSession);
+    }
+
     void forceClose();
 
     NetworkResources getNetworkResources();

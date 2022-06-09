@@ -29,9 +29,11 @@
 
 package com.tencentcloud.tdsql.mysql.cj;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.sql.Clob;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.RuntimeProperty;
@@ -46,7 +48,6 @@ import com.tencentcloud.tdsql.mysql.cj.protocol.ProtocolEntityFactory;
 import com.tencentcloud.tdsql.mysql.cj.protocol.Resultset;
 import com.tencentcloud.tdsql.mysql.cj.protocol.Resultset.Type;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.ColumnDefinitionFactory;
-import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.IntegerDataType;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringLengthDataType;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringSelfDataType;
@@ -55,12 +56,13 @@ import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativePacketPayload;
 import com.tencentcloud.tdsql.mysql.cj.result.Field;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 
-//TODO should not be protocol-specific
+// TODO should not be protocol-specific
 
-public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQueryBindings> {
+public class ServerPreparedQuery extends ClientPreparedQuery {
 
     public static final int BLOB_STREAM_READ_BUF_SIZE = 8192;
-    public static final byte OPEN_CURSOR_FLAG = 1;
+    public static final byte OPEN_CURSOR_FLAG = 0x01;
+    public static final byte PARAMETER_COUNT_AVAILABLE = 0x08;
 
     /** The ID that the server uses to identify this PreparedStatement */
     private long serverStatementId;
@@ -89,7 +91,7 @@ public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQue
 
     protected boolean queryWasSlow = false;
 
-    protected NativeMessageBuilder commandBuilder = new NativeMessageBuilder(); // TODO use shared builder
+    protected NativeMessageBuilder commandBuilder = null;
 
     public static ServerPreparedQuery getInstance(NativeSession sess) {
         if (sess.getPropertySet().getBooleanProperty(PropertyKey.autoGenerateTestcaseScript).getValue()) {
@@ -107,6 +109,7 @@ public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQue
         this.slowQueryThresholdMillis = sess.getPropertySet().getIntegerProperty(PropertyKey.slowQueryThresholdMillis);
         this.explainSlowQueries = sess.getPropertySet().getBooleanProperty(PropertyKey.explainSlowQueries);
         this.useCursorFetch = sess.getPropertySet().getBooleanProperty(PropertyKey.useCursorFetch).getValue();
+        this.commandBuilder = (NativeMessageBuilder) sess.getProtocol().getMessageBuilder();
     }
 
     /**
@@ -122,17 +125,9 @@ public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQue
         synchronized (this.session) {
             long begin = this.profileSQL ? System.currentTimeMillis() : 0;
 
-            boolean loadDataQuery = StringUtils.startsWithIgnoreCaseAndWs(sql, "LOAD DATA");
-
-            String characterEncoding = null;
-            String connectionEncoding = this.session.getPropertySet().getStringProperty(PropertyKey.characterEncoding).getValue();
-
-            if (!loadDataQuery && (connectionEncoding != null)) {
-                characterEncoding = connectionEncoding;
-            }
-
-            NativePacketPayload prepareResultPacket = this.session
-                    .sendCommand(this.commandBuilder.buildComStmtPrepare(this.session.getSharedSendPacket(), sql, characterEncoding), false, 0);
+            NativePacketPayload prepareResultPacket = this.session.getProtocol()
+                    .sendCommand(this.commandBuilder.buildComStmtPrepare(this.session.getSharedSendPacket(), sql,
+                            this.session.getPropertySet().getStringProperty(PropertyKey.characterEncoding).getValue()), false, 0);
 
             // 4.1.1 and newer use the first byte as an 'ok' or 'error' flag, so move the buffer pointer past it to start reading the statement id.
             prepareResultPacket.setPosition(1);
@@ -141,8 +136,7 @@ public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQue
             int fieldCount = (int) prepareResultPacket.readInteger(IntegerDataType.INT2);
             setParameterCount((int) prepareResultPacket.readInteger(IntegerDataType.INT2));
 
-            this.queryBindings = new ServerPreparedQueryBindings(this.parameterCount, this.session);
-            this.queryBindings.setLoadDataQuery(loadDataQuery);
+            this.queryBindings = new NativeQueryBindings(this.parameterCount, this.session, NativeQueryBindValue::new);
 
             if (this.gatherPerfMetrics) {
                 this.session.getProtocol().getMetricsHolder().incrementNumberOfPrepares();
@@ -207,18 +201,13 @@ public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQue
                 return interceptedResults;
             }
         }
-        String queryAsString = this.profileSQL || this.logSlowQueries || this.gatherPerfMetrics ? asSql(true) : "";
-
-        NativePacketPayload packet = prepareExecutePacket();
-        NativePacketPayload resPacket = sendExecutePacket(packet, queryAsString);
-        T rs = readExecuteResult(resPacket, maxRowsToRetrieve, createStreamingResultSet, metadata, resultSetFactory, queryAsString);
-
-        return rs;
+        String queryAsString = this.profileSQL || this.logSlowQueries || this.gatherPerfMetrics ? asSql() : "";
+        return readExecuteResult(sendExecutePacket(prepareExecutePacket(), queryAsString), maxRowsToRetrieve, createStreamingResultSet, metadata,
+                resultSetFactory, queryAsString);
     }
 
     public NativePacketPayload prepareExecutePacket() {
-
-        ServerPreparedQueryBindValue[] parameterBindings = this.queryBindings.getBindValues();
+        BindValue[] bindValues = this.queryBindings.getBindValues();
 
         if (this.queryBindings.isLongParameterSwitchDetected()) {
             // Check when values were bound
@@ -226,19 +215,18 @@ public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQue
             long boundTimeToCheck = 0;
 
             for (int i = 0; i < this.parameterCount - 1; i++) {
-                if (parameterBindings[i].isStream()) {
-                    if (firstFound && boundTimeToCheck != parameterBindings[i].boundBeforeExecutionNum) {
+                if (bindValues[i].isStream()) {
+                    if (firstFound && boundTimeToCheck != bindValues[i].getBoundBeforeExecutionNum()) {
                         throw ExceptionFactory.createException(
                                 Messages.getString("ServerPreparedStatement.11") + Messages.getString("ServerPreparedStatement.12"),
                                 MysqlErrorNumbers.SQL_STATE_DRIVER_NOT_CAPABLE, 0, true, null, this.session.getExceptionInterceptor());
                     }
                     firstFound = true;
-                    boundTimeToCheck = parameterBindings[i].boundBeforeExecutionNum;
+                    boundTimeToCheck = bindValues[i].getBoundBeforeExecutionNum();
                 }
             }
 
             // Okay, we've got all "newly"-bound streams, so reset server-side state to clear out previous bindings
-
             serverResetStatement();
         }
 
@@ -248,99 +236,50 @@ public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQue
         // Send all long data
         //
         for (int i = 0; i < this.parameterCount; i++) {
-            if (parameterBindings[i].isStream()) {
-                serverLongData(i, parameterBindings[i]);
+            if (bindValues[i].isStream()) {
+                serverLongData(i, bindValues[i]);
             }
         }
 
         //
         // store the parameter values
         //
+        boolean sendQueryAttributes = false;
+        if (this.session.getServerSession().supportsQueryAttributes()) {
+            // Servers between 8.0.23 8.0.25 are affected by Bug#103102, Bug#103268 and Bug#103377. Query attributes cannot be sent to these servers.
+            sendQueryAttributes = this.session.getServerSession().getServerVersion().meetsMinimum(new ServerVersion(8, 0, 26));
+        } else if (this.queryAttributesBindings.getCount() > 0) {
+            this.session.getLog().logWarn(Messages.getString("QueryAttributes.SetButNotSupported"));
+        }
 
-        NativePacketPayload packet = this.session.getSharedSendPacket();
-        packet.writeInteger(IntegerDataType.INT1, NativeConstants.COM_STMT_EXECUTE);
-        packet.writeInteger(IntegerDataType.INT4, this.serverStatementId);
-
-        // we only create cursor-backed result sets if
-        // a) The query is a SELECT
-        // b) The server supports it
-        // c) We know it is forward-only (note this doesn't preclude updatable result sets)
-        // d) The user has set a fetch size
+        byte flags = 0;
         if (this.resultFields != null && this.resultFields.getFields() != null && this.useCursorFetch && this.resultSetType == Type.FORWARD_ONLY
                 && this.fetchSize > 0) {
-            packet.writeInteger(IntegerDataType.INT1, OPEN_CURSOR_FLAG);
-        } else {
-            packet.writeInteger(IntegerDataType.INT1, 0); // placeholder for flags
+            // we only create cursor-backed result sets if
+            // a) The query is a SELECT
+            // b) The server supports it
+            // c) We know it is forward-only (note this doesn't preclude updatable result sets)
+            // d) The user has set a fetch size
+            flags |= OPEN_CURSOR_FLAG;
+        }
+        if (sendQueryAttributes) {
+            flags |= PARAMETER_COUNT_AVAILABLE;
         }
 
-        packet.writeInteger(IntegerDataType.INT4, 1); // placeholder for parameter iterations
-
-        if (this.parameterCount > 0) {
-            /* Reserve place for null-marker bytes */
-            int nullCount = (this.parameterCount + 7) / 8;
-
-            int nullBitsPosition = packet.getPosition();
-
-            for (int i = 0; i < nullCount; i++) {
-                packet.writeInteger(IntegerDataType.INT1, 0);
-            }
-
-            byte[] nullBitsBuffer = new byte[nullCount];
-
-            /* In case if buffers (type) altered, indicate to server */
-            packet.writeInteger(IntegerDataType.INT1, this.queryBindings.getSendTypesToServer().get() ? (byte) 1 : (byte) 0);
-
-            if (this.queryBindings.getSendTypesToServer().get()) {
-                /*
-                 * Store types of parameters in the first package that is sent to the server.
-                 */
-                for (int i = 0; i < this.parameterCount; i++) {
-                    packet.writeInteger(IntegerDataType.INT2, parameterBindings[i].bufferType);
-                }
-            }
-
-            //
-            // store the parameter values
-            //
-            for (int i = 0; i < this.parameterCount; i++) {
-                if (!parameterBindings[i].isStream()) {
-                    if (!parameterBindings[i].isNull()) {
-                        parameterBindings[i].storeBinding(packet, this.queryBindings.isLoadDataQuery(), this.charEncoding,
-                                this.session.getExceptionInterceptor());
-                    } else {
-                        nullBitsBuffer[i / 8] |= (1 << (i & 7));
-                    }
-                }
-            }
-
-            //
-            // Go back and write the NULL flags to the beginning of the packet
-            //
-            int endPosition = packet.getPosition();
-            packet.setPosition(nullBitsPosition);
-            packet.writeBytes(StringLengthDataType.STRING_FIXED, nullBitsBuffer);
-            packet.setPosition(endPosition);
-        }
-
-        return packet;
+        return this.commandBuilder.buildComStmtExecute(this.session.getSharedSendPacket(), this.serverStatementId, flags, sendQueryAttributes, this);
     }
 
     public NativePacketPayload sendExecutePacket(NativePacketPayload packet, String queryAsString) { // TODO queryAsString should be shared instead of passed
-
         final long begin = this.session.getCurrentTimeNanosOrMillis();
-
         resetCancelledState();
-
         CancelQueryTask timeoutTask = null;
-
         try {
             // Get this before executing to avoid a shared packet pollution in the case some other query is issued internally, such as when using I_S.
-
             timeoutTask = startQueryTimer(this, this.timeoutInMillis);
 
             statementBegins();
 
-            NativePacketPayload resultPacket = this.session.sendCommand(packet, false, 0);
+            NativePacketPayload resultPacket = this.session.getProtocol().sendCommand(packet, false, 0);
 
             final long queryEndTime = this.session.getCurrentTimeNanosOrMillis();
 
@@ -459,28 +398,39 @@ public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQue
      * 
      * @param parameterIndex
      *            parameter index
-     * @param longData
-     *            {@link ServerPreparedQueryBindValue containing long data}
+     * @param binding
+     *            {@link BindValue containing long data}
      * 
      */
-    private void serverLongData(int parameterIndex, ServerPreparedQueryBindValue longData) {
+    private void serverLongData(int parameterIndex, BindValue binding) {
         synchronized (this) {
             NativePacketPayload packet = this.session.getSharedSendPacket();
-
-            Object value = longData.value;
-
+            Object value = binding.getValue();
             if (value instanceof byte[]) {
-                this.session.sendCommand(this.commandBuilder.buildComStmtSendLongData(packet, this.serverStatementId, parameterIndex, (byte[]) value), true, 0);
+                this.session.getProtocol()
+                        .sendCommand(this.commandBuilder.buildComStmtSendLongData(packet, this.serverStatementId, parameterIndex, (byte[]) value), true, 0);
             } else if (value instanceof InputStream) {
-                storeStream(parameterIndex, packet, (InputStream) value);
+                storeStreamOrReader(parameterIndex, packet, (InputStream) value);
             } else if (value instanceof java.sql.Blob) {
                 try {
-                    storeStream(parameterIndex, packet, ((java.sql.Blob) value).getBinaryStream());
+                    storeStreamOrReader(parameterIndex, packet, ((java.sql.Blob) value).getBinaryStream());
                 } catch (Throwable t) {
                     throw ExceptionFactory.createException(t.getMessage(), this.session.getExceptionInterceptor());
                 }
             } else if (value instanceof Reader) {
-                storeReader(parameterIndex, packet, (Reader) value);
+                if (binding.isNational() && !this.charEncoding.equalsIgnoreCase("UTF-8") && !this.charEncoding.equalsIgnoreCase("utf8")) {
+                    throw ExceptionFactory.createException(Messages.getString("ServerPreparedStatement.31"), this.session.getExceptionInterceptor());
+                }
+                storeStreamOrReader(parameterIndex, packet, (Reader) value);
+            } else if (value instanceof Clob) {
+                if (binding.isNational() && !this.charEncoding.equalsIgnoreCase("UTF-8") && !this.charEncoding.equalsIgnoreCase("utf8")) {
+                    throw ExceptionFactory.createException(Messages.getString("ServerPreparedStatement.31"), this.session.getExceptionInterceptor());
+                }
+                try {
+                    storeStreamOrReader(parameterIndex, packet, ((Clob) value).getCharacterStream());
+                } catch (Throwable t) {
+                    throw ExceptionFactory.createException(t.getMessage(), t);
+                }
             } else {
                 throw ExceptionFactory.createException(WrongArgumentException.class,
                         Messages.getString("ServerPreparedStatement.18") + value.getClass().getName() + "'", this.session.getExceptionInterceptor());
@@ -520,149 +470,80 @@ public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQue
         this.resultFields = resultFields;
     }
 
-    public void storeStream(int parameterIndex, NativePacketPayload packet, InputStream inStream) {
+    private void storeStreamOrReader(int parameterIndex, NativePacketPayload packet, Closeable streamOrReader) {
+        // TODO consider to use more precise type than just Closable
         this.session.checkClosed();
+        boolean isStream = InputStream.class.isAssignableFrom(streamOrReader.getClass());
+        byte[] bBuf = null;
+        char[] cBuf = null;
+        String clobEncoding = null;
+
         synchronized (this.session) {
-            byte[] buf = new byte[BLOB_STREAM_READ_BUF_SIZE];
-
-            int numRead = 0;
-
-            try {
-                int bytesInPacket = 0;
-                int totalBytesRead = 0;
-                int bytesReadAtLastSend = 0;
-                int packetIsFullAt = this.session.getPropertySet().getMemorySizeProperty(PropertyKey.blobSendChunkSize).getValue();
-
-                packet.setPosition(0);
-                packet.writeInteger(IntegerDataType.INT1, NativeConstants.COM_STMT_SEND_LONG_DATA);
-                packet.writeInteger(IntegerDataType.INT4, this.serverStatementId);
-                packet.writeInteger(IntegerDataType.INT2, parameterIndex);
-
-                boolean readAny = false;
-
-                while ((numRead = inStream.read(buf)) != -1) {
-
-                    readAny = true;
-
-                    packet.writeBytes(StringLengthDataType.STRING_FIXED, buf, 0, numRead);
-                    bytesInPacket += numRead;
-                    totalBytesRead += numRead;
-
-                    if (bytesInPacket >= packetIsFullAt) {
-                        bytesReadAtLastSend = totalBytesRead;
-
-                        this.session.sendCommand(packet, true, 0);
-
-                        bytesInPacket = 0;
-                        packet.setPosition(0);
-                        packet.writeInteger(IntegerDataType.INT1, NativeConstants.COM_STMT_SEND_LONG_DATA);
-                        packet.writeInteger(IntegerDataType.INT4, this.serverStatementId);
-                        packet.writeInteger(IntegerDataType.INT2, parameterIndex);
-                    }
+            if (isStream) {
+                bBuf = new byte[BLOB_STREAM_READ_BUF_SIZE];
+            } else {
+                clobEncoding = this.session.getPropertySet().getStringProperty(PropertyKey.clobCharacterEncoding).getStringValue();
+                if (clobEncoding == null) {
+                    clobEncoding = this.session.getPropertySet().getStringProperty(PropertyKey.characterEncoding).getValue();
                 }
-
-                if (totalBytesRead != bytesReadAtLastSend) {
-                    this.session.sendCommand(packet, true, 0);
-                }
-
-                if (!readAny) {
-                    this.session.sendCommand(packet, true, 0);
-                }
-            } catch (IOException ioEx) {
-                throw ExceptionFactory.createException(Messages.getString("ServerPreparedStatement.25") + ioEx.toString(), ioEx,
-                        this.session.getExceptionInterceptor());
-            } finally {
-                if (this.autoClosePStmtStreams.getValue()) {
-                    if (inStream != null) {
-                        try {
-                            inStream.close();
-                        } catch (IOException ioEx) {
-                            // ignore
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // TODO: Investigate using NIO to do this faster
-    public void storeReader(int parameterIndex, NativePacketPayload packet, Reader inStream) {
-        this.session.checkClosed();
-        synchronized (this.session) {
-            String forcedEncoding = this.session.getPropertySet().getStringProperty(PropertyKey.clobCharacterEncoding).getStringValue();
-
-            String clobEncoding = (forcedEncoding == null ? this.session.getPropertySet().getStringProperty(PropertyKey.characterEncoding).getValue()
-                    : forcedEncoding);
-
-            int maxBytesChar = 2;
-
-            if (clobEncoding != null) {
-                if (!clobEncoding.equals("UTF-16")) {
-                    maxBytesChar = this.session.getServerSession().getMaxBytesPerChar(clobEncoding);
-
+                int maxBytesChar = 2;
+                if (clobEncoding != null) {
+                    maxBytesChar = this.session.getServerSession().getCharsetSettings().getMaxBytesPerChar(clobEncoding);
                     if (maxBytesChar == 1) {
                         maxBytesChar = 2; // for safety
                     }
-                } else {
-                    maxBytesChar = 4;
                 }
+                cBuf = new char[ServerPreparedQuery.BLOB_STREAM_READ_BUF_SIZE / maxBytesChar];
             }
 
-            char[] buf = new char[ServerPreparedQuery.BLOB_STREAM_READ_BUF_SIZE / maxBytesChar];
-
-            int numRead = 0;
-
+            boolean readAny = false;
             int bytesInPacket = 0;
             int totalBytesRead = 0;
             int bytesReadAtLastSend = 0;
             int packetIsFullAt = this.session.getPropertySet().getMemorySizeProperty(PropertyKey.blobSendChunkSize).getValue();
+            int numRead = 0;
 
             try {
                 packet.setPosition(0);
-                packet.writeInteger(IntegerDataType.INT1, NativeConstants.COM_STMT_SEND_LONG_DATA);
-                packet.writeInteger(IntegerDataType.INT4, this.serverStatementId);
-                packet.writeInteger(IntegerDataType.INT2, parameterIndex);
+                this.commandBuilder.buildComStmtSendLongDataHeader(packet, this.serverStatementId, parameterIndex);
 
-                boolean readAny = false;
-
-                while ((numRead = inStream.read(buf)) != -1) {
+                while ((numRead = (isStream ? ((InputStream) streamOrReader).read(bBuf) : ((Reader) streamOrReader).read(cBuf))) != -1) {
                     readAny = true;
 
-                    byte[] valueAsBytes = StringUtils.getBytes(buf, 0, numRead, clobEncoding);
-
-                    packet.writeBytes(StringSelfDataType.STRING_EOF, valueAsBytes);
-
-                    bytesInPacket += valueAsBytes.length;
-                    totalBytesRead += valueAsBytes.length;
+                    if (isStream) {
+                        packet.writeBytes(StringLengthDataType.STRING_FIXED, bBuf, 0, numRead);
+                        bytesInPacket += numRead;
+                        totalBytesRead += numRead;
+                    } else {
+                        byte[] valueAsBytes = StringUtils.getBytes(cBuf, 0, numRead, clobEncoding);
+                        packet.writeBytes(StringSelfDataType.STRING_EOF, valueAsBytes);
+                        bytesInPacket += valueAsBytes.length;
+                        totalBytesRead += valueAsBytes.length;
+                    }
 
                     if (bytesInPacket >= packetIsFullAt) {
                         bytesReadAtLastSend = totalBytesRead;
 
-                        this.session.sendCommand(packet, true, 0);
+                        this.session.getProtocol().sendCommand(packet, true, 0);
 
                         bytesInPacket = 0;
                         packet.setPosition(0);
-                        packet.writeInteger(IntegerDataType.INT1, NativeConstants.COM_STMT_SEND_LONG_DATA);
-                        packet.writeInteger(IntegerDataType.INT4, this.serverStatementId);
-                        packet.writeInteger(IntegerDataType.INT2, parameterIndex);
+                        this.commandBuilder.buildComStmtSendLongDataHeader(packet, this.serverStatementId, parameterIndex);
                     }
                 }
 
-                if (totalBytesRead != bytesReadAtLastSend) {
-                    this.session.sendCommand(packet, true, 0);
-                }
-
-                if (!readAny) {
-                    this.session.sendCommand(packet, true, 0);
+                if (!readAny || totalBytesRead != bytesReadAtLastSend) {
+                    this.session.getProtocol().sendCommand(packet, true, 0);
                 }
             } catch (IOException ioEx) {
-                throw ExceptionFactory.createException(Messages.getString("ServerPreparedStatement.24") + ioEx.toString(), ioEx,
-                        this.session.getExceptionInterceptor());
+                throw ExceptionFactory.createException(
+                        (isStream ? Messages.getString("ServerPreparedStatement.24") : Messages.getString("ServerPreparedStatement.25")) + ioEx.toString(),
+                        ioEx, this.session.getExceptionInterceptor());
             } finally {
                 if (this.autoClosePStmtStreams.getValue()) {
-                    if (inStream != null) {
+                    if (streamOrReader != null) {
                         try {
-                            inStream.close();
+                            streamOrReader.close();
                         } catch (IOException ioEx) {
                             // ignore
                         }
@@ -693,7 +574,8 @@ public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQue
         this.session.checkClosed();
         synchronized (this.session) {
             try {
-                this.session.sendCommand(this.commandBuilder.buildComStmtReset(this.session.getSharedSendPacket(), this.serverStatementId), false, 0);
+                this.session.getProtocol().sendCommand(this.commandBuilder.buildComStmtReset(this.session.getSharedSendPacket(), this.serverStatementId), false,
+                        0);
             } finally {
                 this.session.clearInputStream();
             }
@@ -706,30 +588,29 @@ public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQue
      */
     @Override
     protected long[] computeMaxParameterSetSizeAndBatchSize(int numBatchedArgs) {
-
-        long sizeOfEntireBatch = 1 + /* com_execute */+4 /* stmt id */ + 1 /* flags */ + 4 /* batch count padding */;
         long maxSizeOfParameterSet = 0;
+        long sizeOfEntireBatch = 1 /* com_stmt_execute */ + 4 /* statement_id */ + 1 /* flags */ + 4 /* iteration_count */ + 1 /* new_params_bind_flag */;
+
+        boolean supportsQueryAttributes = this.session.getServerSession().supportsQueryAttributes();
+        if (supportsQueryAttributes) {
+            sizeOfEntireBatch += 9 /* parameter_count */;
+            sizeOfEntireBatch += (this.queryAttributesBindings.getCount() + 7) / 8 /* null_bitmap */;
+            for (int i = 0; i < this.queryAttributesBindings.getCount(); i++) {
+                BindValue queryAttribute = this.queryAttributesBindings.getAttributeValue(i);
+                sizeOfEntireBatch += 2 /* parameter_type */ + queryAttribute.getName().length() /* parameter_name */ + queryAttribute.getBinaryLength();
+            }
+        }
 
         for (int i = 0; i < numBatchedArgs; i++) {
-            ServerPreparedQueryBindValue[] paramArg = ((ServerPreparedQueryBindings) this.batchedArgs.get(i)).getBindValues();
+            long sizeOfParameterSet = (this.parameterCount + 7) / 8 /* null_bitmap */
+                    + this.parameterCount * 2 /* parameter_type */;
+            if (supportsQueryAttributes) {
+                sizeOfParameterSet += this.parameterCount /* parameter_name (all empty) */;
+            }
 
-            long sizeOfParameterSet = (this.parameterCount + 7) / 8; // for isNull
-            sizeOfParameterSet += this.parameterCount * 2; // have to send types
-
-            ServerPreparedQueryBindValue[] parameterBindings = this.queryBindings.getBindValues();
-            for (int j = 0; j < parameterBindings.length; j++) {
-                if (!paramArg[j].isNull()) {
-
-                    long size = paramArg[j].getBoundLength();
-
-                    if (paramArg[j].isStream()) {
-                        if (size != -1) {
-                            sizeOfParameterSet += size;
-                        }
-                    } else {
-                        sizeOfParameterSet += size;
-                    }
-                }
+            BindValue[] bindValues = ((QueryBindings) this.batchedArgs.get(i)).getBindValues();
+            for (int j = 0; j < bindValues.length; j++) {
+                sizeOfParameterSet += bindValues[j].getBinaryLength();
             }
 
             sizeOfEntireBatch += sizeOfParameterSet;
@@ -760,12 +641,7 @@ public class ServerPreparedQuery extends AbstractPreparedQuery<ServerPreparedQue
     }
 
     @Override
-    public <M extends Message> M fillSendPacket() {
-        return null; // we don't use this type of packet
-    }
-
-    @Override
-    public <M extends Message> M fillSendPacket(QueryBindings<?> bindings) {
+    public <M extends Message> M fillSendPacket(QueryBindings bindings) {
         return null; // we don't use this type of packet
     }
 

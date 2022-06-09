@@ -29,14 +29,15 @@
 
 package instrumentation;
 
+import java.sql.Savepoint;
+import java.util.Map;
+
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionWrapper;
+
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtMethod;
-
-import java.sql.Savepoint;
-import java.util.Map;
 
 public class CommonChecks {
     private static boolean verbose = false;

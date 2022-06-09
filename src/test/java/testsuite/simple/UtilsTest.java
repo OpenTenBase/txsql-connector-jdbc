@@ -98,7 +98,7 @@ public class UtilsTest extends BaseTestCase {
         assertFalse(Util.isJdbcPackage("java"));
         assertFalse(Util.isJdbcPackage("java.lang"));
         assertFalse(Util.isJdbcPackage("com"));
-        assertFalse(Util.isJdbcPackage("com.tencent.tdsql.mysql"));
+        assertFalse(Util.isJdbcPackage("com.mysql"));
     }
 
     /**

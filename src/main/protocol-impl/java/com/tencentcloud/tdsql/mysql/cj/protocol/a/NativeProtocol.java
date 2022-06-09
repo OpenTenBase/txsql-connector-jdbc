@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -30,15 +30,16 @@
 package com.tencentcloud.tdsql.mysql.cj.protocol.a;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.lang.ref.SoftReference;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
@@ -48,11 +49,25 @@ import java.net.UnknownHostException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.DataTruncation;
+import java.sql.Date;
 import java.sql.SQLWarning;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -63,12 +78,16 @@ import java.util.Optional;
 import java.util.TimeZone;
 import java.util.function.Supplier;
 
+import com.tencentcloud.tdsql.mysql.cj.BindValue;
 import com.tencentcloud.tdsql.mysql.cj.CharsetMapping;
 import com.tencentcloud.tdsql.mysql.cj.Constants;
 import com.tencentcloud.tdsql.mysql.cj.MessageBuilder;
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.MysqlType;
+import com.tencentcloud.tdsql.mysql.cj.NativeCharsetSettings;
+import com.tencentcloud.tdsql.mysql.cj.NativeSession;
 import com.tencentcloud.tdsql.mysql.cj.Query;
+import com.tencentcloud.tdsql.mysql.cj.QueryAttributesBindings;
 import com.tencentcloud.tdsql.mysql.cj.QueryResult;
 import com.tencentcloud.tdsql.mysql.cj.ServerPreparedQuery;
 import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
@@ -97,7 +116,6 @@ import com.tencentcloud.tdsql.mysql.cj.log.Log;
 import com.tencentcloud.tdsql.mysql.cj.log.ProfilerEvent;
 import com.tencentcloud.tdsql.mysql.cj.log.ProfilerEventHandler;
 import com.tencentcloud.tdsql.mysql.cj.protocol.AbstractProtocol;
-import com.tencentcloud.tdsql.mysql.cj.protocol.AuthenticationProvider;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ColumnDefinition;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ExportControlled;
 import com.tencentcloud.tdsql.mysql.cj.protocol.FullReadInputStream;
@@ -118,6 +136,10 @@ import com.tencentcloud.tdsql.mysql.cj.protocol.ResultsetRow;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ResultsetRows;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSession;
 import com.tencentcloud.tdsql.mysql.cj.protocol.SocketConnection;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ValueEncoder;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.IntegerDataType;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringLengthDataType;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringSelfDataType;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.result.OkPacket;
 import com.tencentcloud.tdsql.mysql.cj.result.Field;
 import com.tencentcloud.tdsql.mysql.cj.result.IntegerValueFactory;
@@ -165,7 +187,6 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
     private RuntimeProperty<Integer> maxAllowedPacket;
     private RuntimeProperty<Boolean> useServerPrepStmts;
 
-    //private boolean needToGrabQueryFromPacket;
     private boolean autoGenerateTestcaseScript;
 
     /** Does the server support long column info? */
@@ -184,12 +205,6 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
     protected Map<Class<? extends ProtocolEntity>, ProtocolEntityReader<? extends ProtocolEntity, ? extends Message>> PROTOCOL_ENTITY_CLASS_TO_TEXT_READER;
     protected Map<Class<? extends ProtocolEntity>, ProtocolEntityReader<? extends ProtocolEntity, ? extends Message>> PROTOCOL_ENTITY_CLASS_TO_BINARY_READER;
 
-    /**
-     * Does the character set of this connection match the character set of the
-     * platform
-     */
-    protected boolean platformDbCharsetMatches = true; // changed once we've connected.
-
     private int statementExecutionDepth = 0;
     private List<QueryInterceptor> queryInterceptors;
 
@@ -200,39 +215,45 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
 
     private BaseMetricsHolder metricsHolder;
 
+    static Map<Class<?>, Supplier<ValueEncoder>> DEFAULT_ENCODERS = new HashMap<>();
+    static {
+        DEFAULT_ENCODERS.put(BigDecimal.class, NumberValueEncoder::new);
+        DEFAULT_ENCODERS.put(BigInteger.class, NumberValueEncoder::new);
+        DEFAULT_ENCODERS.put(Blob.class, BlobValueEncoder::new);
+        DEFAULT_ENCODERS.put(Boolean.class, BooleanValueEncoder::new);
+        DEFAULT_ENCODERS.put(Byte.class, NumberValueEncoder::new);
+        DEFAULT_ENCODERS.put(byte[].class, ByteArrayValueEncoder::new);
+        DEFAULT_ENCODERS.put(Calendar.class, UtilCalendarValueEncoder::new);
+        DEFAULT_ENCODERS.put(Clob.class, ClobValueEncoder::new);
+        DEFAULT_ENCODERS.put(Date.class, SqlDateValueEncoder::new);
+        DEFAULT_ENCODERS.put(java.util.Date.class, UtilDateValueEncoder::new);
+        DEFAULT_ENCODERS.put(Double.class, NumberValueEncoder::new);
+        DEFAULT_ENCODERS.put(Duration.class, DurationValueEncoder::new);
+        DEFAULT_ENCODERS.put(Float.class, NumberValueEncoder::new);
+        DEFAULT_ENCODERS.put(InputStream.class, InputStreamValueEncoder::new);
+        DEFAULT_ENCODERS.put(Instant.class, InstantValueEncoder::new);
+        DEFAULT_ENCODERS.put(Integer.class, NumberValueEncoder::new);
+        DEFAULT_ENCODERS.put(LocalDate.class, LocalDateValueEncoder::new);
+        DEFAULT_ENCODERS.put(LocalDateTime.class, LocalDateTimeValueEncoder::new);
+        DEFAULT_ENCODERS.put(LocalTime.class, LocalTimeValueEncoder::new);
+        DEFAULT_ENCODERS.put(Long.class, NumberValueEncoder::new);
+        DEFAULT_ENCODERS.put(OffsetDateTime.class, OffsetDateTimeValueEncoder::new);
+        DEFAULT_ENCODERS.put(OffsetTime.class, OffsetTimeValueEncoder::new);
+        DEFAULT_ENCODERS.put(Reader.class, ReaderValueEncoder::new);
+        DEFAULT_ENCODERS.put(Short.class, NumberValueEncoder::new);
+        DEFAULT_ENCODERS.put(String.class, StringValueEncoder::new);
+        DEFAULT_ENCODERS.put(Time.class, SqlTimeValueEncoder::new);
+        DEFAULT_ENCODERS.put(Timestamp.class, SqlTimestampValueEncoder::new);
+        DEFAULT_ENCODERS.put(ZonedDateTime.class, ZonedDateTimeValueEncoder::new);
+    }
+
     /**
      * The comment (if any) that we'll prepend to all queries
      * sent to the server (to show up in "SHOW PROCESSLIST")
      */
     private String queryComment = null;
 
-    /**
-     * We store the platform 'encoding' here, only used to avoid munging filenames for LOAD DATA LOCAL INFILE...
-     */
-    private static String jvmPlatformCharset = null;
-
-    private NativeMessageBuilder commandBuilder = new NativeMessageBuilder(); // TODO use shared builder
-
-    static {
-        OutputStreamWriter outWriter = null;
-
-        //
-        // Use the I/O system to get the encoding (if possible), to avoid security restrictions on System.getProperty("file.encoding") in applets (why is that
-        // restricted?)
-        //
-        try {
-            outWriter = new OutputStreamWriter(new ByteArrayOutputStream());
-            jvmPlatformCharset = outWriter.getEncoding();
-        } finally {
-            try {
-                if (outWriter != null) {
-                    outWriter.close();
-                }
-            } catch (IOException ioEx) {
-                // ignore
-            }
-        }
-    }
+    private NativeMessageBuilder commandBuilder = null;
 
     public static NativeProtocol getInstance(Session session, SocketConnection socketConnection, PropertySet propertySet, Log log,
             TransactionEventHandler transactionManager) {
@@ -260,7 +281,6 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
         this.useServerPrepStmts = this.propertySet.getBooleanProperty(PropertyKey.useServerPrepStmts);
 
         this.reusablePacket = new NativePacketPayload(INITIAL_PACKET_SIZE);
-        //this.sendPacket = new Buffer(INITIAL_PACKET_SIZE);
 
         try {
             this.packetSender = new SimplePacketSender(this.socketConnection.getMysqlOutput());
@@ -269,8 +289,6 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
             throw ExceptionFactory.createCommunicationsException(this.propertySet, this.serverSession, this.getPacketSentTimeHolder(),
                     this.getPacketReceivedTimeHolder(), ioEx, getExceptionInterceptor());
         }
-
-        //this.needToGrabQueryFromPacket = (this.profileSQL || this.logSlowQueries || this.autoGenerateTestcaseScript);
 
         if (this.propertySet.getBooleanProperty(PropertyKey.logSlowQueries).getValue()) {
             calculateSlowQueryThreshold();
@@ -294,7 +312,7 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
 
     @Override
     public MessageBuilder<NativePacketPayload> getMessageBuilder() {
-        throw ExceptionFactory.createException(CJOperationNotSupportedException.class, "Not supported");
+        return getCommandBuilder();
     }
 
     public MessageSender<NativePacketPayload> getPacketSender() {
@@ -303,6 +321,28 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
 
     public MessageReader<NativePacketHeader, NativePacketPayload> getPacketReader() {
         return this.packetReader;
+    }
+
+    private NativeMessageBuilder getCommandBuilder() {
+        if (this.commandBuilder != null) {
+            return this.commandBuilder;
+        }
+        return this.commandBuilder = new NativeMessageBuilder(this.serverSession.supportsQueryAttributes());
+    }
+
+    public Supplier<ValueEncoder> getValueEncoderSupplier(Object obj) {
+        if (obj == null) {
+            return ByteArrayValueEncoder::new;
+        }
+        Supplier<ValueEncoder> res = DEFAULT_ENCODERS.get(obj.getClass());
+        if (res == null) {
+            Optional<Supplier<ValueEncoder>> mysqlType = DEFAULT_ENCODERS.entrySet().stream().filter(m -> m.getKey().isAssignableFrom(obj.getClass()))
+                    .map(m -> m.getValue()).findFirst();
+            if (mysqlType.isPresent()) {
+                res = mysqlType.get();
+            }
+        }
+        return res;
     }
 
     /**
@@ -318,16 +358,15 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
         long clientParam = this.serverSession.getClientParam();
 
         NativePacketPayload packet = new NativePacketPayload(SSL_REQUEST_LENGTH);
-        packet.writeInteger(NativeConstants.IntegerDataType.INT4, clientParam);
-        packet.writeInteger(NativeConstants.IntegerDataType.INT4, NativeConstants.MAX_PACKET_SIZE);
-        packet.writeInteger(NativeConstants.IntegerDataType.INT1, AuthenticationProvider.getCharsetForHandshake(this.authProvider.getEncodingForHandshake(),
-                this.serverSession.getCapabilities().getServerVersion()));
-        packet.writeBytes(NativeConstants.StringLengthDataType.STRING_FIXED, new byte[23]);  // Set of bytes reserved for future use.
+        packet.writeInteger(IntegerDataType.INT4, clientParam);
+        packet.writeInteger(IntegerDataType.INT4, NativeConstants.MAX_PACKET_SIZE);
+        packet.writeInteger(IntegerDataType.INT1, this.serverSession.getCharsetSettings().configurePreHandshake(false));
+        packet.writeBytes(StringLengthDataType.STRING_FIXED, new byte[23]);  // Set of bytes reserved for future use.
 
         send(packet, packet.getPosition());
 
         try {
-            this.socketConnection.performTlsHandshake(this.serverSession);
+            this.socketConnection.performTlsHandshake(this.serverSession, this.log);
 
             // i/o streams were replaced, build new packet sender/reader
             this.packetSender = new SimplePacketSender(this.socketConnection.getMysqlOutput());
@@ -352,11 +391,11 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
 
         NativePacketPayload buf = msg;
         buf.setPosition(1); // skip the packet type
-        errno = (int) buf.readInteger(NativeConstants.IntegerDataType.INT2);
+        errno = (int) buf.readInteger(IntegerDataType.INT2);
 
         String serverErrorMessage = "";
         try {
-            serverErrorMessage = buf.readString(NativeConstants.StringSelfDataType.STRING_TERM, "ASCII");
+            serverErrorMessage = buf.readString(StringSelfDataType.STRING_TERM, "ASCII");
         } catch (Exception e) {
             //
         }
@@ -377,6 +416,8 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
 
         // Create session state
         this.serverSession = new NativeServerSession(this.propertySet);
+
+        this.serverSession.setCharsetSettings(new NativeCharsetSettings((NativeSession) this.session));
 
         // Read the first packet
         this.serverSession.setCapabilities(readServerCapabilities());
@@ -499,11 +540,7 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
             rejectProtocol(buf);
         }
 
-        NativeCapabilities serverCapabilities = new NativeCapabilities();
-        serverCapabilities.setInitialHandshakePacket(buf);
-
-        return serverCapabilities;
-
+        return new NativeCapabilities(buf);
     }
 
     @Override
@@ -518,12 +555,13 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
         }
 
         try {
-            sendCommand(this.commandBuilder.buildComInitDb(getSharedSendPacket(), database), false, 0);
+            sendCommand(getCommandBuilder().buildComInitDb(getSharedSendPacket(), database), false, 0);
         } catch (CJException ex) {
             if (this.getPropertySet().getBooleanProperty(PropertyKey.createDatabaseIfNotExist).getValue()) {
-                sendCommand(this.commandBuilder.buildComQuery(getSharedSendPacket(), "CREATE DATABASE IF NOT EXISTS " + database), false, 0);
+                sendCommand(getCommandBuilder().buildComQuery(getSharedSendPacket(),
+                        "CREATE DATABASE IF NOT EXISTS " + StringUtils.quoteIdentifier(database, true)), false, 0);
 
-                sendCommand(this.commandBuilder.buildComInitDb(getSharedSendPacket(), database), false, 0);
+                sendCommand(getCommandBuilder().buildComInitDb(getSharedSendPacket(), database), false, 0);
             } else {
                 throw ExceptionFactory.createCommunicationsException(this.getPropertySet(), this.serverSession, this.getPacketSentTimeHolder(),
                         this.getPacketReceivedTimeHolder(), ex, getExceptionInterceptor());
@@ -536,6 +574,22 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
         try {
             NativePacketHeader header = this.packetReader.readHeader();
             NativePacketPayload buf = this.packetReader.readMessage(Optional.ofNullable(reuse), header);
+            this.packetSequence = header.getMessageSequence();
+            return buf;
+
+        } catch (IOException ioEx) {
+            throw ExceptionFactory.createCommunicationsException(this.propertySet, this.serverSession, this.getPacketSentTimeHolder(),
+                    this.getPacketReceivedTimeHolder(), ioEx, getExceptionInterceptor());
+        } catch (OutOfMemoryError oom) {
+            throw ExceptionFactory.createException(oom.getMessage(), MysqlErrorNumbers.SQL_STATE_MEMORY_ALLOCATION_ERROR, 0, false, oom,
+                    this.exceptionInterceptor);
+        }
+    }
+
+    public final NativePacketPayload probeMessage(NativePacketPayload reuse) {
+        try {
+            NativePacketHeader header = this.packetReader.probeHeader();
+            NativePacketPayload buf = this.packetReader.probeMessage(Optional.ofNullable(reuse), header);
             this.packetSequence = header.getMessageSequence();
             return buf;
 
@@ -721,18 +775,18 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
     public void checkErrorMessage(NativePacketPayload resultPacket) {
 
         resultPacket.setPosition(0);
-        byte statusCode = (byte) resultPacket.readInteger(NativeConstants.IntegerDataType.INT1);
+        byte statusCode = (byte) resultPacket.readInteger(IntegerDataType.INT1);
 
         // Error handling
         if (statusCode == (byte) 0xff) {
             String serverErrorMessage;
             int errno = 2000;
 
-            errno = (int) resultPacket.readInteger(NativeConstants.IntegerDataType.INT2);
+            errno = (int) resultPacket.readInteger(IntegerDataType.INT2);
 
             String xOpen = null;
 
-            serverErrorMessage = resultPacket.readString(NativeConstants.StringSelfDataType.STRING_TERM, this.serverSession.getErrorMessageEncoding());
+            serverErrorMessage = resultPacket.readString(StringSelfDataType.STRING_TERM, this.serverSession.getCharsetSettings().getErrorMessageEncoding());
 
             if (serverErrorMessage.charAt(0) == '#') {
 
@@ -859,7 +913,7 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
 
         // We don't know exactly how many bytes we're going to get from the query. Since we're dealing with UTF-8, the max is 4, so pad it
         // (4 * query) + space for headers
-        int packLength = 1 + (query.length() * 4) + 2;
+        int packLength = 1 /* com_query */ + (query.length() * 4) + 2;
 
         byte[] commentAsBytes = null;
 
@@ -870,25 +924,74 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
             packLength += 6; // for /*[space] [space]*/
         }
 
-        // TODO decide how to safely use the shared this.sendPacket
-        //if (this.sendPacket == null) {
-        NativePacketPayload sendPacket = new NativePacketPayload(packLength);
-        //}
+        boolean supportsQueryAttributes = this.serverSession.supportsQueryAttributes();
+        QueryAttributesBindings queryAttributes = null;
 
-        sendPacket.setPosition(0);
-
-        sendPacket.writeInteger(NativeConstants.IntegerDataType.INT1, NativeConstants.COM_QUERY);
-
-        if (commentAsBytes != null) {
-            sendPacket.writeBytes(NativeConstants.StringLengthDataType.STRING_FIXED, Constants.SLASH_STAR_SPACE_AS_BYTES);
-            sendPacket.writeBytes(NativeConstants.StringLengthDataType.STRING_FIXED, commentAsBytes);
-            sendPacket.writeBytes(NativeConstants.StringLengthDataType.STRING_FIXED, Constants.SPACE_STAR_SLASH_SPACE_AS_BYTES);
+        if (!supportsQueryAttributes && callingQuery != null && callingQuery.getQueryAttributesBindings().getCount() > 0) {
+            this.log.logWarn(Messages.getString("QueryAttributes.SetButNotSupported"));
         }
 
-        if (!this.platformDbCharsetMatches && StringUtils.startsWithIgnoreCaseAndWs(query, "LOAD DATA")) {
-            sendPacket.writeBytes(NativeConstants.StringLengthDataType.STRING_FIXED, StringUtils.getBytes(query));
+        if (supportsQueryAttributes) {
+            if (callingQuery != null) {
+                queryAttributes = callingQuery.getQueryAttributesBindings();
+            }
+
+            if (queryAttributes != null && queryAttributes.getCount() > 0) {
+                packLength += 9 /* parameter_count */ + 1 /* parameter_set_count */;
+                packLength += (queryAttributes.getCount() + 7) / 8 /* null_bitmap */ + 1 /* new_params_bind_flag */;
+                for (int i = 0; i < queryAttributes.getCount(); i++) {
+                    BindValue queryAttribute = queryAttributes.getAttributeValue(i);
+                    packLength += 2 /* parameter_type */ + queryAttribute.getName().length() /* parameter_name */ + queryAttribute.getBinaryLength();
+                }
+            } else {
+                packLength += 1 /* parameter_count */ + 1 /* parameter_set_count */;
+            }
+        }
+
+        // TODO decide how to safely use the shared this.sendPacket
+        NativePacketPayload sendPacket = new NativePacketPayload(packLength);
+
+        sendPacket.setPosition(0);
+        sendPacket.writeInteger(IntegerDataType.INT1, NativeConstants.COM_QUERY);
+
+        if (supportsQueryAttributes) {
+            if (queryAttributes != null && queryAttributes.getCount() > 0) {
+                sendPacket.writeInteger(IntegerDataType.INT_LENENC, queryAttributes.getCount());
+                sendPacket.writeInteger(IntegerDataType.INT_LENENC, 1); // parameter_set_count (always 1)
+                byte[] nullBitsBuffer = new byte[(queryAttributes.getCount() + 7) / 8];
+                for (int i = 0; i < queryAttributes.getCount(); i++) {
+                    if (queryAttributes.getAttributeValue(i).isNull()) {
+                        nullBitsBuffer[i >>> 3] |= 1 << (i & 7);
+                    }
+                }
+                sendPacket.writeBytes(StringLengthDataType.STRING_VAR, nullBitsBuffer);
+                sendPacket.writeInteger(IntegerDataType.INT1, 1); // new_params_bind_flag (always 1)
+                queryAttributes.runThroughAll(a -> {
+                    sendPacket.writeInteger(IntegerDataType.INT2, a.getFieldType());
+                    sendPacket.writeBytes(StringSelfDataType.STRING_LENENC, a.getName().getBytes());
+                });
+                queryAttributes.runThroughAll(a -> {
+                    if (!a.isNull()) {
+                        a.writeAsQueryAttribute(sendPacket);
+                    }
+                });
+            } else {
+                sendPacket.writeInteger(IntegerDataType.INT_LENENC, 0);
+                sendPacket.writeInteger(IntegerDataType.INT_LENENC, 1); // parameter_set_count (always 1)
+            }
+        }
+        sendPacket.setTag("QUERY");
+
+        if (commentAsBytes != null) {
+            sendPacket.writeBytes(StringLengthDataType.STRING_FIXED, Constants.SLASH_STAR_SPACE_AS_BYTES);
+            sendPacket.writeBytes(StringLengthDataType.STRING_FIXED, commentAsBytes);
+            sendPacket.writeBytes(StringLengthDataType.STRING_FIXED, Constants.SPACE_STAR_SLASH_SPACE_AS_BYTES);
+        }
+
+        if (!this.session.getServerSession().getCharsetSettings().doesPlatformDbCharsetMatches() && StringUtils.startsWithIgnoreCaseAndWs(query, "LOAD DATA")) {
+            sendPacket.writeBytes(StringLengthDataType.STRING_FIXED, StringUtils.getBytes(query));
         } else {
-            sendPacket.writeBytes(NativeConstants.StringLengthDataType.STRING_FIXED, StringUtils.getBytes(query, characterEncoding));
+            sendPacket.writeBytes(StringLengthDataType.STRING_FIXED, StringUtils.getBytes(query, characterEncoding));
         }
 
         return sendQueryPacket(callingQuery, sendPacket, maxRows, streamResults, cachedMetadata, resultSetFactory);
@@ -924,8 +1027,8 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
 
         byte[] queryBuf = queryPacket.getByteBuffer();
         int oldPacketPosition = queryPacket.getPosition(); // save the packet position
-
-        LazyString query = new LazyString(queryBuf, 1, (oldPacketPosition - 1));
+        int queryPosition = queryPacket.getTag("QUERY");
+        LazyString query = new LazyString(queryBuf, queryPosition, (oldPacketPosition - queryPosition));
 
         try {
 
@@ -964,9 +1067,9 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
                 long fetchEndTime = this.profileSQL ? getCurrentTimeNanosOrMillis() : 0L;
 
                 // Extract the actual query from the network packet
-                boolean truncated = oldPacketPosition > this.maxQuerySizeToLog.getValue();
-                int extractPosition = truncated ? this.maxQuerySizeToLog.getValue() + 1 : oldPacketPosition;
-                String extractedQuery = StringUtils.toString(queryBuf, 1, (extractPosition - 1));
+                boolean truncated = oldPacketPosition - queryPosition > this.maxQuerySizeToLog.getValue();
+                int extractPosition = truncated ? this.maxQuerySizeToLog.getValue() + queryPosition : oldPacketPosition;
+                String extractedQuery = StringUtils.toString(queryBuf, queryPosition, (extractPosition - queryPosition));
                 if (truncated) {
                     extractedQuery += Messages.getString("Protocol.2");
                 }
@@ -981,8 +1084,8 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
                                                 this.queryTimingUnits, Long.valueOf(queryDuration), extractedQuery }));
 
                         if (this.propertySet.getBooleanProperty(PropertyKey.explainSlowQueries).getValue()) {
-                            if (oldPacketPosition < MAX_QUERY_SIZE_TO_EXPLAIN) {
-                                queryPacket.setPosition(1); // skip first byte 
+                            if (oldPacketPosition - queryPosition < MAX_QUERY_SIZE_TO_EXPLAIN) {
+                                queryPacket.setPosition(queryPosition); // skip until the query is located in the packet 
                                 explainSlowQuery(query.toString(), extractedQuery);
                             } else {
                                 this.log.logWarn(Messages.getString("Protocol.3", new Object[] { MAX_QUERY_SIZE_TO_EXPLAIN }));
@@ -1167,7 +1270,7 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
                 || (versionMeetsMinimum(5, 6, 3) && StringUtils.startsWithIgnoreCaseAndWs(truncatedQuery, EXPLAINABLE_STATEMENT_EXTENSION) != -1)) {
 
             try {
-                NativePacketPayload resultPacket = sendCommand(this.commandBuilder.buildComQuery(getSharedSendPacket(), "EXPLAIN " + query), false, 0);
+                NativePacketPayload resultPacket = sendCommand(getCommandBuilder().buildComQuery(getSharedSendPacket(), "EXPLAIN " + query), false, 0);
 
                 Resultset rs = readAllResults(-1, false, resultPacket, false, null, new ResultsetFactory(Type.FORWARD_ONLY, null));
 
@@ -1230,7 +1333,7 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
 
             this.packetSequence = -1;
             NativePacketPayload packet = new NativePacketPayload(1);
-            send(this.commandBuilder.buildComQuit(packet), packet.getPosition());
+            send(getCommandBuilder().buildComQuit(packet), packet.getPosition());
         } finally {
             this.socketConnection.forceClose();
             this.localInfileInputStream = null;
@@ -1282,27 +1385,7 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
         this.packetSender = this.packetSender.undecorateAll();
         this.packetReader = this.packetReader.undecorateAll();
 
-        this.authProvider.changeUser(this.serverSession, user, password, database);
-    }
-
-    /**
-     * Determines if the database charset is the same as the platform charset
-     */
-    public void checkForCharsetMismatch() {
-        String characterEncoding = this.propertySet.getStringProperty(PropertyKey.characterEncoding).getValue();
-        if (characterEncoding != null) {
-            String encodingToCheck = jvmPlatformCharset;
-
-            if (encodingToCheck == null) {
-                encodingToCheck = Constants.PLATFORM_ENCODING;
-            }
-
-            if (encodingToCheck == null) {
-                this.platformDbCharsetMatches = false;
-            } else {
-                this.platformDbCharsetMatches = encodingToCheck.equals(characterEncoding);
-            }
-        }
+        this.authProvider.changeUser(user, password, database);
     }
 
     protected boolean useNanosForElapsedTime() {
@@ -1347,8 +1430,7 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
 
         beforeHandshake();
 
-        this.authProvider.connect(this.serverSession, user, password, database);
-
+        this.authProvider.connect(user, password, database);
     }
 
     protected boolean isDataAvailable() {
@@ -1388,22 +1470,6 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
 
             this.log.logTrace(dumpBuffer.toString());
         }
-    }
-
-    public boolean doesPlatformDbCharsetMatches() {
-        return this.platformDbCharsetMatches;
-    }
-
-    public String getPasswordCharacterEncoding() {
-        String encoding;
-        if ((encoding = this.propertySet.getStringProperty(PropertyKey.passwordCharacterEncoding).getStringValue()) != null) {
-            return encoding;
-        }
-        if ((encoding = this.propertySet.getStringProperty(PropertyKey.characterEncoding).getValue()) != null) {
-            return encoding;
-        }
-        return "UTF-8";
-
     }
 
     public boolean versionMeetsMinimum(int major, int minor, int subminor) {
@@ -1676,20 +1742,21 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
         T result = null;
         if (rowPacket.isEOFPacket()) {
             // read EOF packet
-            rowPacket.readInteger(NativeConstants.IntegerDataType.INT1); // skips the 'last packet' flag (packet signature)
-            this.warningCount = (int) rowPacket.readInteger(NativeConstants.IntegerDataType.INT2);
+            rowPacket.setPosition(1); // skip the packet signature header
+            this.warningCount = (int) rowPacket.readInteger(IntegerDataType.INT2);
             if (this.warningCount > 0) {
                 this.hadWarnings = true; // this is a 'latch', it's reset by sendCommand()
             }
 
-            this.serverSession.setStatusFlags((int) rowPacket.readInteger(NativeConstants.IntegerDataType.INT2), saveOldStatus);
+            this.serverSession.setStatusFlags((int) rowPacket.readInteger(IntegerDataType.INT2), saveOldStatus);
             checkTransactionState();
         } else {
             // read OK packet
-            OkPacket ok = OkPacket.parse(rowPacket, this.serverSession.getErrorMessageEncoding());
+            OkPacket ok = OkPacket.parse(rowPacket, this.serverSession.getCharsetSettings().getErrorMessageEncoding());
             result = (T) ok;
 
             this.serverSession.setStatusFlags(ok.getStatusFlags(), saveOldStatus);
+            this.serverSession.getServerSessionStateController().setSessionStateChanges(ok.getSessionStateChanges());
             checkTransactionState();
 
             this.warningCount = ok.getWarningCount();
@@ -1750,7 +1817,7 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
             int bytesRead = 0;
             while ((bytesRead = fileIn.read(fileBuf)) != -1) {
                 filePacket.setPosition(0);
-                filePacket.writeBytes(NativeConstants.StringLengthDataType.STRING_FIXED, fileBuf, 0, bytesRead);
+                filePacket.writeBytes(StringLengthDataType.STRING_FIXED, fileBuf, 0, bytesRead);
                 send(filePacket, filePacket.getPosition());
             }
         } catch (IOException ioEx) {
@@ -1932,7 +1999,7 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
     public void scanForAndThrowDataTruncation() {
         if (this.streamingData == null && this.propertySet.getBooleanProperty(PropertyKey.jdbcCompliantTruncation).getValue() && getWarningCount() > 0) {
             int warningCountOld = getWarningCount();
-            convertShowWarningsToSQLWarnings(getWarningCount(), true);
+            convertShowWarningsToSQLWarnings(true);
             setWarningCount(warningCountOld);
         }
     }
@@ -1966,7 +2033,7 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
                 && (xOpen.startsWith("40") || xOpen.startsWith("41")) && getStreamingData() == null) {
 
             try {
-                NativePacketPayload resultPacket = sendCommand(this.commandBuilder.buildComQuery(getSharedSendPacket(), "SHOW ENGINE INNODB STATUS"), false, 0);
+                NativePacketPayload resultPacket = sendCommand(getCommandBuilder().buildComQuery(getSharedSendPacket(), "SHOW ENGINE INNODB STATUS"), false, 0);
 
                 Resultset rs = readAllResults(-1, false, resultPacket, false, null, new ResultsetFactory(Type.FORWARD_ONLY, null));
 
@@ -2082,14 +2149,16 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
      * If 'forTruncationOnly' is true, only looks for truncation warnings, and
      * actually throws DataTruncation as an exception.
      * 
-     * @param warningCountIfKnown
-     *            the warning count (if known), otherwise set it to 0.
      * @param forTruncationOnly
      *            if this method should only scan for data truncation warnings
      * 
      * @return the SQLWarning chain (or null if no warnings)
      */
-    public SQLWarning convertShowWarningsToSQLWarnings(int warningCountIfKnown, boolean forTruncationOnly) {
+    public SQLWarning convertShowWarningsToSQLWarnings(boolean forTruncationOnly) {
+        if (this.warningCount == 0) {
+            return null;
+        }
+
         SQLWarning currentWarning = null;
         ResultsetRows rows = null;
 
@@ -2101,9 +2170,9 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
              * | Warning | 1265 | Data truncated for column 'field1' at row 1 |
              * +---------+------+---------------------------------------------+
              */
-            NativePacketPayload resultPacket = sendCommand(this.commandBuilder.buildComQuery(getSharedSendPacket(), "SHOW WARNINGS"), false, 0);
+            NativePacketPayload resultPacket = sendCommand(getCommandBuilder().buildComQuery(getSharedSendPacket(), "SHOW WARNINGS"), false, 0);
 
-            Resultset warnRs = readAllResults(-1, warningCountIfKnown > 99 /* stream large warning counts */, resultPacket, false, null,
+            Resultset warnRs = readAllResults(-1, this.warningCount > 99 /* stream large warning counts */, resultPacket, false, null,
                     new ResultsetFactory(Type.FORWARD_ONLY, Concurrency.READ_ONLY));
 
             int codeFieldIndex = warnRs.getColumnDefinition().findColumn("Code", false, 1) - 1;
@@ -2206,7 +2275,7 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
             }
 
             query.append("'");
-            sendCommand(this.commandBuilder.buildComQuery(null, query.toString()), false, 0);
+            sendCommand(getCommandBuilder().buildComQuery(null, query.toString()), false, 0);
         }
     }
 
@@ -2214,8 +2283,8 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
     public void initServerSession() {
         configureTimeZone();
 
-        if (this.session.getServerSession().getServerVariables().containsKey("max_allowed_packet")) {
-            int serverMaxAllowedPacket = this.session.getServerSession().getServerVariable("max_allowed_packet", -1);
+        if (this.serverSession.getServerVariables().containsKey("max_allowed_packet")) {
+            int serverMaxAllowedPacket = this.serverSession.getServerVariable("max_allowed_packet", -1);
 
             // use server value if maxAllowedPacket hasn't been given, or max_allowed_packet is smaller
             if (serverMaxAllowedPacket != -1 && (!this.maxAllowedPacket.isExplicitlySet() || serverMaxAllowedPacket < this.maxAllowedPacket.getValue())) {
@@ -2238,5 +2307,7 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
                 blobSendChunkSize.setValue(allowedBlobSendChunkSize);
             }
         }
+
+        this.serverSession.getCharsetSettings().configurePostHandshake(false);
     }
 }

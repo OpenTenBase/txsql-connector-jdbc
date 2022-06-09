@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2002, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -86,16 +86,23 @@ public class CallableStatementTest extends BaseTestCase {
 
         createProcedure("testInOutParam",
                 "(IN p1 VARCHAR(255), INOUT p2 INT)\nbegin\n DECLARE z INT;\nSET z = p2 + 1;\nSET p2 = z;\n" + "SELECT p1;\nSELECT CONCAT('zyxw', p1);\nend\n");
+        createProcedure("testInOutParam2", "(IN p1 VARCHAR(255), INOUT p2 VARCHAR(20))\nbegin\nSET p2=CONCAT(p1, p2);\nend\n");
 
         storedProc = this.conn.prepareCall("{call testInOutParam(?, ?)}");
-
         storedProc.setString(1, "abcd");
         storedProc.setInt(2, 4);
         storedProc.registerOutParameter(2, Types.INTEGER);
-
         storedProc.execute();
-
         assertEquals(5, storedProc.getInt(2));
+        storedProc.close();
+
+        storedProc = this.conn.prepareCall("{call testInOutParam2(?, ?)}");
+        storedProc.setString(1, "1");
+        storedProc.setBytes(2, "2".getBytes());
+        storedProc.registerOutParameter(2, Types.VARCHAR);
+        storedProc.execute();
+        assertEquals("12", storedProc.getString(2));
+        storedProc.close();
     }
 
     @Test
@@ -108,7 +115,13 @@ public class CallableStatementTest extends BaseTestCase {
 
             executeBatchedStoredProc(this.conn);
 
-            batchedConn = getConnectionWithProps("logger=" + BufferingLogger.class.getName() + ",rewriteBatchedStatements=true,profileSQL=true");
+            Properties props = new Properties();
+            props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+            props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
+            props.setProperty(PropertyKey.logger.getKeyName(), BufferingLogger.class.getName());
+            props.setProperty(PropertyKey.rewriteBatchedStatements.getKeyName(), "true");
+            props.setProperty(PropertyKey.profileSQL.getKeyName(), "true");
+            batchedConn = getConnectionWithProps(props);
 
             BufferingLogger.startLoggingToBuffer();
             executeBatchedStoredProc(batchedConn);
@@ -259,9 +272,6 @@ public class CallableStatementTest extends BaseTestCase {
 
         assertTrue("abc".equals(this.rs.getString(1)));
 
-        // TODO: This does not yet work in MySQL 5.0
-        // assertTrue(!storedProc.getMoreResults());
-        // assertTrue(storedProc.getUpdateCount() == 2);
         assertTrue(storedProc.getMoreResults());
 
         ResultSet nextResultSet = storedProc.getResultSet();
@@ -346,6 +356,8 @@ public class CallableStatementTest extends BaseTestCase {
         assertTrue(this.rs.getInt(1) == 1);
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheCallableStmts.getKeyName(), "true");
 
         Connection cachedSpConn = getConnectionWithProps(props);
@@ -374,6 +386,8 @@ public class CallableStatementTest extends BaseTestCase {
         CallableStatement storedProc = null;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.noAccessToProcedureBodies.getKeyName(), "true");
 
         Connection spConn = getConnectionWithProps(props);

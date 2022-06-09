@@ -31,6 +31,8 @@ package com.tencentcloud.tdsql.mysql.cj.xdevapi;
 
 import java.util.HashMap;
 
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonParser.EscapeChar;
+
 /**
  * Represents a JSON <b>string</b>.
  */
@@ -39,7 +41,7 @@ public class JsonString implements JsonValue {
     static HashMap<Character, String> escapeChars = new HashMap<>();
 
     static {
-        for (JsonParser.EscapeChar ec : JsonParser.EscapeChar.values()) {
+        for (EscapeChar ec : EscapeChar.values()) {
             escapeChars.put(ec.CHAR, ec.ESCAPED);
         }
     }

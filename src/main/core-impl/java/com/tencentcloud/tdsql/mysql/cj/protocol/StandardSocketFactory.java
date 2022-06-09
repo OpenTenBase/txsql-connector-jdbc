@@ -39,6 +39,7 @@ import java.net.SocketException;
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
+import com.tencentcloud.tdsql.mysql.cj.log.Log;
 
 /**
  * Socket factory for vanilla TCP/IP sockets (the standard)
@@ -90,7 +91,7 @@ public class StandardSocketFactory implements SocketFactory {
      * @throws IOException
      *             if an error occurs
      */
-    private void configureSocket(Socket sock, PropertySet pset) throws SocketException, IOException {
+    protected void configureSocket(Socket sock, PropertySet pset) throws SocketException, IOException {
         sock.setTcpNoDelay(pset.getBooleanProperty(PropertyKey.tcpNoDelay).getValue());
         sock.setKeepAlive(pset.getBooleanProperty(PropertyKey.tcpKeepAlive).getValue());
 
@@ -117,15 +118,12 @@ public class StandardSocketFactory implements SocketFactory {
 
         if (pset != null) {
             this.host = hostname;
-
             this.port = portNumber;
 
             String localSocketHostname = pset.getStringProperty(PropertyKey.localSocketAddress).getValue();
-            InetSocketAddress localSockAddr = null;
-            if (localSocketHostname != null && localSocketHostname.length() > 0) {
-                localSockAddr = new InetSocketAddress(InetAddress.getByName(localSocketHostname), 0);
-            }
-
+            InetSocketAddress localSockAddr = localSocketHostname != null && localSocketHostname.length() > 0
+                    ? new InetSocketAddress(InetAddress.getByName(localSocketHostname), 0)
+                    : null;
             int connectTimeout = pset.getIntegerProperty(PropertyKey.connectTimeout).getValue();
 
             if (this.host != null) {
@@ -182,11 +180,16 @@ public class StandardSocketFactory implements SocketFactory {
         this.rawSocket.setSoTimeout(getRealTimeout(this.socketTimeoutBackup));
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public <T extends Closeable> T performTlsHandshake(SocketConnection socketConnection, ServerSession serverSession) throws IOException {
-        this.sslSocket = ExportControlled.performTlsHandshake(this.rawSocket, socketConnection,
-                serverSession == null ? null : serverSession.getServerVersion());
+        return performTlsHandshake(socketConnection, serverSession, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T extends Closeable> T performTlsHandshake(SocketConnection socketConnection, ServerSession serverSession, Log log) throws IOException {
+        this.sslSocket = ExportControlled.performTlsHandshake(this.rawSocket, socketConnection, serverSession == null ? null : serverSession.getServerVersion(),
+                log);
         return (T) this.sslSocket;
     }
 

@@ -29,8 +29,6 @@
 
 package com.tencentcloud.tdsql.mysql.cj.jdbc.ha;
 
-import com.tencentcloud.tdsql.mysql.cj.jdbc.jmx.ReplicationGroupManager;
-
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,7 +39,7 @@ import java.util.Set;
 public class ReplicationConnectionGroupManager {
     private static HashMap<String, ReplicationConnectionGroup> GROUP_MAP = new HashMap<>();
 
-    private static ReplicationGroupManager mbean = new ReplicationGroupManager();
+    private static com.tencentcloud.tdsql.mysql.cj.jdbc.jmx.ReplicationGroupManager mbean = new com.tencentcloud.tdsql.mysql.cj.jdbc.jmx.ReplicationGroupManager();
 
     private static boolean hasRegisteredJmx = false;
 

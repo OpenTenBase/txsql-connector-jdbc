@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2002, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -58,6 +58,7 @@ import java.util.Map;
 
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.MysqlType;
+import com.tencentcloud.tdsql.mysql.cj.QueryInfo;
 import com.tencentcloud.tdsql.mysql.cj.PreparedQuery;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
@@ -71,6 +72,7 @@ import com.tencentcloud.tdsql.mysql.cj.protocol.a.result.ResultsetRowsStatic;
 import com.tencentcloud.tdsql.mysql.cj.result.DefaultColumnDefinition;
 import com.tencentcloud.tdsql.mysql.cj.result.Field;
 import com.tencentcloud.tdsql.mysql.cj.result.Row;
+import com.tencentcloud.tdsql.mysql.cj.util.SearchMode;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 import com.tencentcloud.tdsql.mysql.cj.util.Util;
 
@@ -156,7 +158,7 @@ public class CallableStatement extends ClientPreparedStatement implements java.s
          *            procedure or function.
          */
         CallableStatementParamInfo(CallableStatementParamInfo fullParamInfo) {
-            this.nativeSql = ((PreparedQuery<?>) CallableStatement.this.query).getOriginalSql();
+            this.nativeSql = ((PreparedQuery) CallableStatement.this.query).getOriginalSql();
             this.dbInUse = CallableStatement.this.getCurrentDatabase();
             this.isFunctionCall = fullParamInfo.isFunctionCall;
             @SuppressWarnings("synthetic-access")
@@ -191,7 +193,7 @@ public class CallableStatement extends ClientPreparedStatement implements java.s
         CallableStatementParamInfo(java.sql.ResultSet paramTypesRs) throws SQLException {
             boolean hadRows = paramTypesRs.last();
 
-            this.nativeSql = ((PreparedQuery<?>) CallableStatement.this.query).getOriginalSql();
+            this.nativeSql = ((PreparedQuery) CallableStatement.this.query).getOriginalSql();
             this.dbInUse = CallableStatement.this.getCurrentDatabase();
             this.isFunctionCall = CallableStatement.this.callingStoredFunction;
 
@@ -457,7 +459,7 @@ public class CallableStatement extends ClientPreparedStatement implements java.s
         this.callingStoredFunction = this.paramInfo.isFunctionCall;
 
         if (this.callingStoredFunction) {
-            ((PreparedQuery<?>) this.query).setParameterCount(((PreparedQuery<?>) this.query).getParameterCount() + 1);
+            ((PreparedQuery) this.query).setParameterCount(((PreparedQuery) this.query).getParameterCount() + 1);
         }
 
         this.retrieveGeneratedKeys = true; // not provided for in the JDBC spec
@@ -519,7 +521,7 @@ public class CallableStatement extends ClientPreparedStatement implements java.s
                 parameterCountFromMetaData--;
             }
 
-            PreparedQuery<?> q = ((PreparedQuery<?>) this.query);
+            PreparedQuery q = ((PreparedQuery) this.query);
             if (this.paramInfo != null && q.getParameterCount() != parameterCountFromMetaData) {
                 this.placeholderToParameterIndexMap = new int[q.getParameterCount()];
 
@@ -530,7 +532,7 @@ public class CallableStatement extends ClientPreparedStatement implements java.s
                     int parenOpenPos = q.getOriginalSql().indexOf('(', startPos + 4);
 
                     if (parenOpenPos != -1) {
-                        int parenClosePos = StringUtils.indexOfIgnoreCase(parenOpenPos, q.getOriginalSql(), ")", "'", "'", StringUtils.SEARCH_MODE__ALL);
+                        int parenClosePos = StringUtils.indexOfIgnoreCase(parenOpenPos, q.getOriginalSql(), ")", "'", "'", SearchMode.__FULL);
 
                         if (parenClosePos != -1) {
                             List<?> parsedParameters = StringUtils.split(q.getOriginalSql().substring(parenOpenPos + 1, parenClosePos), ",", "'\"", "'\"",
@@ -591,7 +593,7 @@ public class CallableStatement extends ClientPreparedStatement implements java.s
             determineParameterTypes();
             generateParameterMap();
 
-            ((PreparedQuery<?>) this.query).setParameterCount(((PreparedQuery<?>) this.query).getParameterCount() + 1);
+            ((PreparedQuery) this.query).setParameterCount(((PreparedQuery) this.query).getParameterCount() + 1);
         }
 
         this.retrieveGeneratedKeys = true; // not provided for in the JDBC spec
@@ -705,8 +707,8 @@ public class CallableStatement extends ClientPreparedStatement implements java.s
      */
     private void fakeParameterTypes(boolean isReallyProcedure) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            String encoding = this.connection.getSession().getServerSession().getCharacterSetMetadata();
-            int collationIndex = this.connection.getSession().getServerSession().getMetadataCollationIndex();
+            String encoding = this.connection.getSession().getServerSession().getCharsetSettings().getMetadataEncoding();
+            int collationIndex = this.connection.getSession().getServerSession().getCharsetSettings().getMetadataCollationIndex();
             Field[] fields = new Field[13];
 
             fields[0] = new Field("", "PROCEDURE_CAT", collationIndex, encoding, MysqlType.CHAR, 0);
@@ -731,7 +733,7 @@ public class CallableStatement extends ClientPreparedStatement implements java.s
 
             ArrayList<Row> resultRows = new ArrayList<>();
 
-            for (int i = 0; i < ((PreparedQuery<?>) this.query).getParameterCount(); i++) {
+            for (int i = 0; i < ((PreparedQuery) this.query).getParameterCount(); i++) {
                 byte[][] row = new byte[13][];
                 row[0] = null; // PROCEDURE_CAT
                 row[1] = null; // PROCEDURE_SCHEM
@@ -900,7 +902,8 @@ public class CallableStatement extends ClientPreparedStatement implements java.s
     }
 
     private String extractProcedureName() throws SQLException {
-        String sanitizedSql = StringUtils.stripComments(((PreparedQuery<?>) this.query).getOriginalSql(), "`\"'", "`\"'", true, false, true, true);
+        String sanitizedSql = StringUtils.stripCommentsAndHints(((PreparedQuery) this.query).getOriginalSql(), "`'\"", "`'\"",
+                !this.session.getServerSession().isNoBackslashEscapesSet());
 
         // TODO: Do this with less memory allocation
         int endCallIndex = StringUtils.indexOfIgnoreCase(sanitizedSql, "CALL ");
@@ -1979,40 +1982,7 @@ public class CallableStatement extends ClientPreparedStatement implements java.s
 
                         try {
                             setPstmt = ((Wrapper) this.connection.clientPrepareStatement(queryBuf.toString())).unwrap(ClientPreparedStatement.class);
-
-                            if (((PreparedQuery<?>) this.query).getQueryBindings().getBindValues()[inParamInfo.index].isNull()) {
-                                setPstmt.setBytesNoEscapeNoQuotes(1, "NULL".getBytes());
-
-                            } else {
-                                byte[] parameterAsBytes = getBytesRepresentation(inParamInfo.index + 1);
-
-                                if (parameterAsBytes != null) {
-                                    if (parameterAsBytes.length > 8 && parameterAsBytes[0] == '_' && parameterAsBytes[1] == 'b' && parameterAsBytes[2] == 'i'
-                                            && parameterAsBytes[3] == 'n' && parameterAsBytes[4] == 'a' && parameterAsBytes[5] == 'r'
-                                            && parameterAsBytes[6] == 'y' && parameterAsBytes[7] == '\'') {
-                                        setPstmt.setBytesNoEscapeNoQuotes(1, parameterAsBytes);
-                                    } else {
-                                        switch (inParamInfo.desiredMysqlType) {
-                                            case BIT:
-                                            case BINARY:
-                                            case GEOMETRY:
-                                            case TINYBLOB:
-                                            case BLOB:
-                                            case MEDIUMBLOB:
-                                            case LONGBLOB:
-                                            case VARBINARY:
-                                                setPstmt.setBytes(1, parameterAsBytes);
-                                                break;
-                                            default:
-                                                // the inherited PreparedStatement methods have already escaped and quoted these parameters
-                                                setPstmt.setBytesNoEscape(1, parameterAsBytes);
-                                        }
-                                    }
-                                } else {
-                                    setPstmt.setNull(1, MysqlType.NULL);
-                                }
-                            }
-
+                            setPstmt.getQueryBindings().setFromBindValue(0, ((PreparedQuery) this.query).getQueryBindings().getBindValues()[inParamInfo.index]);
                             setPstmt.executeUpdate();
                         } finally {
                             if (setPstmt != null) {
@@ -2110,7 +2080,7 @@ public class CallableStatement extends ClientPreparedStatement implements java.s
                             }
                         }
 
-                        this.setBytesNoEscapeNoQuotes(outParamIndex, StringUtils.getBytes(outParameterName, this.charEncoding));
+                        this.setBytes(outParamIndex, StringUtils.getBytes(outParameterName, this.charEncoding), false);
                     }
                 }
             }
@@ -2330,7 +2300,20 @@ public class CallableStatement extends ClientPreparedStatement implements java.s
 
     @Override
     protected boolean checkReadOnlySafeStatement() throws SQLException {
-        return (super.checkReadOnlySafeStatement() || this.checkReadOnlyProcedure());
+        if (QueryInfo.isReadOnlySafeQuery(((PreparedQuery) this.query).getOriginalSql(), this.session.getServerSession().isNoBackslashEscapesSet())) {
+            String sql = ((PreparedQuery) this.query).getOriginalSql();
+            int statementKeywordPos = QueryInfo.indexOfStatementKeyword(sql, this.session.getServerSession().isNoBackslashEscapesSet());
+            if (StringUtils.startsWithIgnoreCaseAndWs(sql, "CALL", statementKeywordPos)
+                    || StringUtils.startsWithIgnoreCaseAndWs(sql, "SELECT", statementKeywordPos)) {
+                // "CALL" and "SELECT" are read-only safe but the routine they call may not be.
+                if (!this.connection.isReadOnly()) { // Only proceed with checking the routine body if really needed.
+                    return true;
+                }
+                return checkReadOnlyProcedure();
+            }
+            return true;
+        }
+        return !this.connection.isReadOnly();
     }
 
     @Override

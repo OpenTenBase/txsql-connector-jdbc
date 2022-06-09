@@ -145,7 +145,7 @@ public abstract class CoreSession implements Session {
 
     @Override
     public long getThreadId() {
-        return this.protocol.getServerSession().getThreadId();
+        return this.protocol.getServerSession().getCapabilities().getThreadId();
     }
 
     @Override

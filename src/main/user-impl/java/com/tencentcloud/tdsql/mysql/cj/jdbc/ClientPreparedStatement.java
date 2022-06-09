@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2002, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -31,7 +31,6 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
 import java.io.InputStream;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
@@ -55,14 +54,16 @@ import java.util.Calendar;
 import com.tencentcloud.tdsql.mysql.cj.BindValue;
 import com.tencentcloud.tdsql.mysql.cj.CancelQueryTask;
 import com.tencentcloud.tdsql.mysql.cj.ClientPreparedQuery;
-import com.tencentcloud.tdsql.mysql.cj.ClientPreparedQueryBindings;
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.MysqlType;
+import com.tencentcloud.tdsql.mysql.cj.NativeQueryBindValue;
+import com.tencentcloud.tdsql.mysql.cj.NativeQueryBindings;
 import com.tencentcloud.tdsql.mysql.cj.NativeSession;
-import com.tencentcloud.tdsql.mysql.cj.ParseInfo;
 import com.tencentcloud.tdsql.mysql.cj.PreparedQuery;
 import com.tencentcloud.tdsql.mysql.cj.Query;
 import com.tencentcloud.tdsql.mysql.cj.QueryBindings;
+import com.tencentcloud.tdsql.mysql.cj.QueryInfo;
+import com.tencentcloud.tdsql.mysql.cj.QueryReturnType;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.FeatureNotAvailableException;
@@ -80,7 +81,6 @@ import com.tencentcloud.tdsql.mysql.cj.protocol.ColumnDefinition;
 import com.tencentcloud.tdsql.mysql.cj.protocol.Message;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativePacketPayload;
 import com.tencentcloud.tdsql.mysql.cj.result.Field;
-import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 import com.tencentcloud.tdsql.mysql.cj.util.Util;
 
 /**
@@ -95,11 +95,10 @@ import com.tencentcloud.tdsql.mysql.cj.util.Util;
  * If arbitrary parameter type conversions are required, then the setObject method should be used with a target SQL type.
  * </p>
  */
-public class ClientPreparedStatement extends StatementImpl implements JdbcPreparedStatement {
+public class ClientPreparedStatement extends com.tencentcloud.tdsql.mysql.cj.jdbc.StatementImpl implements JdbcPreparedStatement {
 
     /**
-     * Does the batch (if any) contain "plain" statements added by
-     * Statement.addBatch(String)?
+     * Does the batch (if any) contain "plain" statements added by Statement.addBatch(String)?
      * 
      * If so, we can't re-write it to use multi-value or multi-queries.
      */
@@ -143,14 +142,14 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
      *            the SQL for this statement
      * @param db
      *            the database this statement should be issued against
-     * @param cachedParseInfo
-     *            already created parseInfo or null.
+     * @param cachedQueryInfo
+     *            already created {@link QueryInfo} or null.
      * @return ClientPreparedStatement instance
      * @throws SQLException
      *             if a database access error occurs
      */
-    protected static ClientPreparedStatement getInstance(JdbcConnection conn, String sql, String db, ParseInfo cachedParseInfo) throws SQLException {
-        return new ClientPreparedStatement(conn, sql, db, cachedParseInfo);
+    protected static ClientPreparedStatement getInstance(JdbcConnection conn, String sql, String db, QueryInfo cachedQueryInfo) throws SQLException {
+        return new ClientPreparedStatement(conn, sql, db, cachedQueryInfo);
     }
 
     @Override
@@ -202,31 +201,31 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
      *            the SQL for this statement
      * @param db
      *            the database this statement should be issued against
-     * @param cachedParseInfo
-     *            already created parseInfo or null.
+     * @param cachedQueryInfo
+     *            already created {@link QueryInfo} or null.
      * 
      * @throws SQLException
      *             if a database access error occurs
      */
-    public ClientPreparedStatement(JdbcConnection conn, String sql, String db, ParseInfo cachedParseInfo) throws SQLException {
+    public ClientPreparedStatement(JdbcConnection conn, String sql, String db, QueryInfo cachedQueryInfo) throws SQLException {
         this(conn, db);
 
         try {
-            ((PreparedQuery<?>) this.query).checkNullOrEmptyQuery(sql);
-            ((PreparedQuery<?>) this.query).setOriginalSql(sql);
-            ((PreparedQuery<?>) this.query).setParseInfo(cachedParseInfo != null ? cachedParseInfo : new ParseInfo(sql, this.session, this.charEncoding));
+            ((PreparedQuery) this.query).checkNullOrEmptyQuery(sql);
+            ((PreparedQuery) this.query).setOriginalSql(sql);
+            ((PreparedQuery) this.query).setQueryInfo(cachedQueryInfo != null ? cachedQueryInfo : new QueryInfo(sql, this.session, this.charEncoding));
         } catch (CJException e) {
             throw SQLExceptionsMapping.translateException(e, this.exceptionInterceptor);
         }
 
         this.doPingInstead = sql.startsWith(PING_MARKER);
 
-        initializeFromParseInfo();
+        initializeFromQueryInfo();
     }
 
     @Override
-    public QueryBindings<?> getQueryBindings() {
-        return ((PreparedQuery<?>) this.query).getQueryBindings();
+    public QueryBindings getQueryBindings() {
+        return ((PreparedQuery) this.query).getQueryBindings();
     }
 
     /**
@@ -239,20 +238,14 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
         StringBuilder buf = new StringBuilder();
         buf.append(this.getClass().getName());
         buf.append(": ");
-
-        try {
-            buf.append(asSql());
-        } catch (SQLException sqlEx) {
-            buf.append("EXCEPTION: " + sqlEx.toString());
-        }
-
+        buf.append(((PreparedQuery) this.query).asSql());
         return buf.toString();
     }
 
     @Override
     public void addBatch() throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            QueryBindings<?> queryBindings = ((PreparedQuery<?>) this.query).getQueryBindings();
+            QueryBindings queryBindings = ((PreparedQuery) this.query).getQueryBindings();
             queryBindings.checkAllParametersSet();
             this.query.addBatch(queryBindings.clone());
         }
@@ -264,16 +257,6 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
             this.batchHasPlainStatements = true;
 
             super.addBatch(sql);
-        }
-    }
-
-    public String asSql() throws SQLException {
-        return ((PreparedQuery<?>) this.query).asSql(false);
-    }
-
-    public String asSql(boolean quoteStreamsAndUnknowns) throws SQLException {
-        synchronized (checkClosed().getConnectionMutex()) {
-            return ((PreparedQuery<?>) this.query).asSql(quoteStreamsAndUnknowns);
         }
     }
 
@@ -289,7 +272,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     @Override
     public void clearParameters() throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            for (BindValue bv : ((PreparedQuery<?>) this.query).getQueryBindings().getBindValues()) {
+            for (BindValue bv : ((PreparedQuery) this.query).getQueryBindings().getBindValues()) {
                 bv.reset();
             }
         }
@@ -304,7 +287,8 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
      */
     protected boolean checkReadOnlySafeStatement() throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            return ((PreparedQuery<?>) this.query).getParseInfo().getFirstStmtChar() == 'S' || !this.connection.isReadOnly();
+            return QueryInfo.isReadOnlySafeQuery(((PreparedQuery) this.query).getOriginalSql(), this.session.getServerSession().isNoBackslashEscapesSet())
+                    || !this.connection.isReadOnly();
         }
     }
 
@@ -324,7 +308,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
             this.lastQueryIsOnDupKeyUpdate = false;
 
             if (this.retrieveGeneratedKeys) {
-                this.lastQueryIsOnDupKeyUpdate = containsOnDuplicateKeyUpdateInSQL();
+                this.lastQueryIsOnDupKeyUpdate = containsOnDuplicateKeyUpdate();
             }
 
             this.batchedGeneratedKeys = null;
@@ -343,7 +327,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
             setupStreamingTimeout(locallyScopedConn);
 
-            Message sendPacket = ((PreparedQuery<?>) this.query).fillSendPacket();
+            Message sendPacket = ((PreparedQuery) this.query).fillSendPacket(((PreparedQuery) this.query).getQueryBindings());
 
             String oldDb = null;
 
@@ -359,27 +343,26 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
             boolean cacheResultSetMetadata = locallyScopedConn.getPropertySet().getBooleanProperty(PropertyKey.cacheResultSetMetadata).getValue();
             if (cacheResultSetMetadata) {
-                cachedMetadata = locallyScopedConn.getCachedMetaData(((PreparedQuery<?>) this.query).getOriginalSql());
+                cachedMetadata = locallyScopedConn.getCachedMetaData(((PreparedQuery) this.query).getOriginalSql());
             }
 
             //
             // Only apply max_rows to selects
             //
-            locallyScopedConn.setSessionMaxRows(((PreparedQuery<?>) this.query).getParseInfo().getFirstStmtChar() == 'S' ? this.maxRows : -1);
+            locallyScopedConn.setSessionMaxRows(getQueryInfo().getFirstStmtChar() == 'S' ? this.maxRows : -1);
 
-            rs = executeInternal(this.maxRows, sendPacket, createStreamingResultSet(),
-                    (((PreparedQuery<?>) this.query).getParseInfo().getFirstStmtChar() == 'S'), cachedMetadata, false);
+            rs = executeInternal(this.maxRows, sendPacket, createStreamingResultSet(), (getQueryInfo().getFirstStmtChar() == 'S'), cachedMetadata, false);
 
             if (cachedMetadata != null) {
-                locallyScopedConn.initializeResultsMetadataFromCache(((PreparedQuery<?>) this.query).getOriginalSql(), cachedMetadata, rs);
+                locallyScopedConn.initializeResultsMetadataFromCache(((PreparedQuery) this.query).getOriginalSql(), cachedMetadata, rs);
             } else {
                 if (rs.hasRows() && cacheResultSetMetadata) {
-                    locallyScopedConn.initializeResultsMetadataFromCache(((PreparedQuery<?>) this.query).getOriginalSql(), null /* will be created */, rs);
+                    locallyScopedConn.initializeResultsMetadataFromCache(((PreparedQuery) this.query).getOriginalSql(), null /* will be created */, rs);
                 }
             }
 
             if (this.retrieveGeneratedKeys) {
-                rs.setFirstCharOfQuery(((PreparedQuery<?>) this.query).getParseInfo().getFirstStmtChar());
+                rs.setFirstCharOfQuery(getQueryInfo().getFirstStmtChar());
             }
 
             if (oldDb != null) {
@@ -422,7 +405,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
                 if (!this.batchHasPlainStatements && this.rewriteBatchedStatements.getValue()) {
 
-                    if (((PreparedQuery<?>) this.query).getParseInfo().canRewriteAsMultiValueInsertAtSqlLevel()) {
+                    if (getQueryInfo().isRewritableWithMultiValuesClause()) {
                         return executeBatchedInserts(batchTimeout);
                     }
 
@@ -442,9 +425,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     }
 
     /**
-     * Rewrites the already prepared statement into a multi-statement
-     * query of 'statementsPerBatch' values and executes the entire batch
-     * using this new statement.
+     * Rewrites the already prepared statement into a multi-statement query and executes the entire batch using this new statement.
      * 
      * @param batchTimeout
      *            timeout for the batch execution
@@ -457,7 +438,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
         synchronized (checkClosed().getConnectionMutex()) {
             // This is kind of an abuse, but it gets the job done
             if (this.batchedValuesClause == null) {
-                this.batchedValuesClause = ((PreparedQuery<?>) this.query).getOriginalSql() + ";";
+                this.batchedValuesClause = ((PreparedQuery) this.query).getOriginalSql() + ";";
             }
 
             JdbcConnection locallyScopedConn = this.connection;
@@ -474,7 +455,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
                     this.batchedGeneratedKeys = new ArrayList<>(numBatchedArgs);
                 }
 
-                int numValuesPerBatch = ((PreparedQuery<?>) this.query).computeBatchSize(numBatchedArgs);
+                int numValuesPerBatch = ((PreparedQuery) this.query).computeBatchSize(numBatchedArgs);
 
                 if (numBatchedArgs < numValuesPerBatch) {
                     numValuesPerBatch = numBatchedArgs;
@@ -486,7 +467,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
                 int numberToExecuteAsMultiValue = 0;
                 int batchCounter = 0;
                 int updateCountCounter = 0;
-                long[] updateCounts = new long[numBatchedArgs * ((PreparedQuery<?>) this.query).getParseInfo().numberOfQueries];
+                long[] updateCounts = new long[numBatchedArgs * getQueryInfo().getNumberOfQueries()];
                 SQLException sqlEx = null;
 
                 try {
@@ -604,20 +585,10 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     }
 
     protected int setOneBatchedParameterSet(java.sql.PreparedStatement batchedStatement, int batchedParamIndex, Object paramSet) throws SQLException {
-        QueryBindings<?> paramArg = (QueryBindings<?>) paramSet;
-
-        BindValue[] bindValues = paramArg.getBindValues();
-
+        BindValue[] bindValues = ((QueryBindings) paramSet).getBindValues();
+        QueryBindings batchedStatementBindings = ((PreparedQuery) ((ClientPreparedStatement) batchedStatement).getQuery()).getQueryBindings();
         for (int j = 0; j < bindValues.length; j++) {
-            if (bindValues[j].isNull()) {
-                batchedStatement.setNull(batchedParamIndex++, MysqlType.NULL.getJdbcType());
-            } else {
-                if (bindValues[j].isStream()) {
-                    batchedStatement.setBinaryStream(batchedParamIndex++, bindValues[j].getStreamValue(), bindValues[j].getStreamLength());
-                } else {
-                    ((JdbcPreparedStatement) batchedStatement).setBytesNoEscapeNoQuotes(batchedParamIndex++, bindValues[j].getByteValue());
-                }
-            }
+            batchedStatementBindings.setFromBindValue((batchedParamIndex++) - 1, bindValues[j]);
         }
 
         return batchedParamIndex;
@@ -625,7 +596,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
     private String generateMultiStatementForBatch(int numBatches) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            String origSql = ((PreparedQuery<?>) this.query).getOriginalSql();
+            String origSql = ((PreparedQuery) this.query).getOriginalSql();
             StringBuilder newStatementSql = new StringBuilder((origSql.length() + 1) * numBatches);
 
             newStatementSql.append(origSql);
@@ -640,9 +611,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     }
 
     /**
-     * Rewrites the already prepared statement into a multi-value insert
-     * statement of 'statementsPerBatch' values and executes the entire batch
-     * using this new statement.
+     * Rewrites the already prepared statement into a multi-value insert statement and executes the entire batch using this new statement.
      * 
      * @param batchTimeout
      *            timeout for the batch execution
@@ -653,13 +622,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
      */
     protected long[] executeBatchedInserts(int batchTimeout) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            String valuesClause = ((PreparedQuery<?>) this.query).getParseInfo().getValuesClause();
-
             JdbcConnection locallyScopedConn = this.connection;
-
-            if (valuesClause == null) {
-                return executeBatchSerially(batchTimeout);
-            }
 
             int numBatchedArgs = this.query.getBatchedArgs().size();
 
@@ -667,7 +630,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
                 this.batchedGeneratedKeys = new ArrayList<>(numBatchedArgs);
             }
 
-            int numValuesPerBatch = ((PreparedQuery<?>) this.query).computeBatchSize(numBatchedArgs);
+            int numValuesPerBatch = ((PreparedQuery) this.query).computeBatchSize(numBatchedArgs);
 
             if (numBatchedArgs < numValuesPerBatch) {
                 numValuesPerBatch = numBatchedArgs;
@@ -756,7 +719,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
                     }
 
                     if (numBatchedArgs > 1) {
-                        long updCount = updateCountRunningTotal > 0 ? SUCCESS_NO_INFO : 0;
+                        long updCount = updateCountRunningTotal > 0 ? java.sql.Statement.SUCCESS_NO_INFO : 0;
                         for (int j = 0; j < numBatchedArgs; j++) {
                             updateCounts[j] = updCount;
                         }
@@ -813,11 +776,11 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
                         this.batchedGeneratedKeys = new ArrayList<>(nbrCommands);
                     }
 
-                    int batchCommandIndex = ((PreparedQuery<?>) this.query).getBatchCommandIndex();
+                    int batchCommandIndex = ((PreparedQuery) this.query).getBatchCommandIndex();
 
                     for (batchCommandIndex = 0; batchCommandIndex < nbrCommands; batchCommandIndex++) {
 
-                        ((PreparedQuery<?>) this.query).setBatchCommandIndex(batchCommandIndex);
+                        ((PreparedQuery) this.query).setBatchCommandIndex(batchCommandIndex);
 
                         Object arg = this.query.getBatchedArgs().get(batchCommandIndex);
 
@@ -828,11 +791,11 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
                                 // limit one generated key per OnDuplicateKey statement
                                 getBatchedGeneratedKeys(this.results.getFirstCharOfQuery() == 'I' && containsOnDuplicateKeyInString((String) arg) ? 1 : 0);
                             } else {
-                                QueryBindings<?> queryBindings = (QueryBindings<?>) arg;
+                                QueryBindings queryBindings = (QueryBindings) arg;
                                 updateCounts[batchCommandIndex] = executeUpdateInternal(queryBindings, true);
 
                                 // limit one generated key per OnDuplicateKey statement
-                                getBatchedGeneratedKeys(containsOnDuplicateKeyUpdateInSQL() ? 1 : 0);
+                                getBatchedGeneratedKeys(containsOnDuplicateKeyUpdate() ? 1 : 0);
                             }
                         } catch (SQLException ex) {
                             updateCounts[batchCommandIndex] = EXECUTE_FAILED;
@@ -856,7 +819,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
                     try {
                         checkClosed();
                     } catch (StatementIsClosedException connectionClosedEx) {
-                        int batchCommandIndex = ((PreparedQuery<?>) this.query).getBatchCommandIndex();
+                        int batchCommandIndex = ((PreparedQuery) this.query).getBatchCommandIndex();
                         updateCounts[batchCommandIndex] = EXECUTE_FAILED;
 
                         long[] newUpdateCounts = new long[batchCommandIndex];
@@ -869,7 +832,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
                     throw npe; // we don't know why this happened, punt
                 } finally {
-                    ((PreparedQuery<?>) this.query).setBatchCommandIndex(-1);
+                    ((PreparedQuery) this.query).setBatchCommandIndex(-1);
 
                     stopQueryTimer(timeoutTask, false, false);
                     resetCancelledState();
@@ -913,8 +876,8 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
                 JdbcConnection locallyScopedConnection = this.connection;
 
-                ((PreparedQuery<?>) this.query).getQueryBindings()
-                        .setNumberOfExecutions(((PreparedQuery<?>) this.query).getQueryBindings().getNumberOfExecutions() + 1);
+                ((PreparedQuery) this.query).getQueryBindings()
+                        .setNumberOfExecutions(((PreparedQuery) this.query).getQueryBindings().getNumberOfExecutions() + 1);
 
                 ResultSetInternalMethods rs;
 
@@ -959,7 +922,13 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
             JdbcConnection locallyScopedConn = this.connection;
 
-            checkForDml(((PreparedQuery<?>) this.query).getOriginalSql(), ((PreparedQuery<?>) this.query).getParseInfo().getFirstStmtChar());
+            if (!this.doPingInstead) {
+                QueryReturnType queryReturnType = getQueryInfo().getQueryReturnType();
+                if (queryReturnType != QueryReturnType.PRODUCES_RESULT_SET && queryReturnType != QueryReturnType.MAY_PRODUCE_RESULT_SET) {
+                    throw SQLError.createSQLException(Messages.getString("Statement.57"), MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT,
+                            getExceptionInterceptor());
+                }
+            }
 
             this.batchedGeneratedKeys = null;
 
@@ -977,7 +946,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
             setupStreamingTimeout(locallyScopedConn);
 
-            Message sendPacket = ((PreparedQuery<?>) this.query).fillSendPacket();
+            Message sendPacket = ((PreparedQuery) this.query).fillSendPacket(((PreparedQuery) this.query).getQueryBindings());
 
             String oldDb = null;
 
@@ -992,7 +961,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
             CachedResultSetMetaData cachedMetadata = null;
             boolean cacheResultSetMetadata = locallyScopedConn.getPropertySet().getBooleanProperty(PropertyKey.cacheResultSetMetadata).getValue();
 
-            String origSql = ((PreparedQuery<?>) this.query).getOriginalSql();
+            String origSql = ((PreparedQuery) this.query).getOriginalSql();
 
             if (cacheResultSetMetadata) {
                 cachedMetadata = locallyScopedConn.getCachedMetaData(origSql);
@@ -1037,7 +1006,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
                 this.batchedGeneratedKeys = null;
             }
 
-            return executeUpdateInternal(((PreparedQuery<?>) this.query).getQueryBindings(), isBatch);
+            return executeUpdateInternal(((PreparedQuery) this.query).getQueryBindings(), isBatch);
         }
     }
 
@@ -1054,7 +1023,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
      * @throws SQLException
      *             if a database error occurs
      */
-    protected long executeUpdateInternal(QueryBindings<?> bindings, boolean isReallyBatch) throws SQLException {
+    protected long executeUpdateInternal(QueryBindings bindings, boolean isReallyBatch) throws SQLException {
 
         synchronized (checkClosed().getConnectionMutex()) {
 
@@ -1065,7 +1034,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
                         MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor);
             }
 
-            if ((((PreparedQuery<?>) this.query).getParseInfo().getFirstStmtChar() == 'S') && isSelectQuery()) {
+            if (!isNonResultSetProducingQuery()) {
                 throw SQLError.createSQLException(Messages.getString("PreparedStatement.37"), "01S03", this.exceptionInterceptor);
             }
 
@@ -1075,7 +1044,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
             ResultSetInternalMethods rs = null;
 
-            Message sendPacket = ((PreparedQuery<?>) this.query).fillSendPacket(bindings);
+            Message sendPacket = ((PreparedQuery) this.query).fillSendPacket(bindings);
 
             String oldDb = null;
 
@@ -1092,7 +1061,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
             rs = executeInternal(-1, sendPacket, false, false, null, isReallyBatch);
 
             if (this.retrieveGeneratedKeys) {
-                rs.setFirstCharOfQuery(((PreparedQuery<?>) this.query).getParseInfo().getFirstStmtChar());
+                rs.setFirstCharOfQuery(getQueryInfo().getFirstStmtChar());
             }
 
             if (oldDb != null) {
@@ -1103,7 +1072,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
             this.updateCount = rs.getUpdateCount();
 
-            if (containsOnDuplicateKeyUpdateInSQL() && this.compensateForOnDuplicateKeyUpdate) {
+            if (containsOnDuplicateKeyUpdate() && this.compensateForOnDuplicateKeyUpdate) {
                 if (this.updateCount == 2 || this.updateCount == 0) {
                     this.updateCount = 1;
                 }
@@ -1115,8 +1084,8 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
         }
     }
 
-    protected boolean containsOnDuplicateKeyUpdateInSQL() {
-        return ((PreparedQuery<?>) this.query).getParseInfo().containsOnDuplicateKeyUpdateInSQL();
+    protected boolean containsOnDuplicateKeyUpdate() {
+        return getQueryInfo().containsOnDuplicateKeyUpdate();
     }
 
     /**
@@ -1132,10 +1101,12 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
      */
     protected ClientPreparedStatement prepareBatchedInsertSQL(JdbcConnection localConn, int numBatches) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ClientPreparedStatement pstmt = new ClientPreparedStatement(localConn, "Rewritten batch of: " + ((PreparedQuery<?>) this.query).getOriginalSql(),
-                    this.getCurrentDatabase(), ((PreparedQuery<?>) this.query).getParseInfo().getParseInfoForBatch(numBatches));
+            ClientPreparedStatement pstmt = new ClientPreparedStatement(localConn, "Rewritten batch of: " + ((PreparedQuery) this.query).getOriginalSql(),
+                    this.getCurrentDatabase(), getQueryInfo().getQueryInfoForBatch(numBatches));
             pstmt.setRetrieveGeneratedKeys(this.retrieveGeneratedKeys);
             pstmt.rewrittenBatchSize = numBatches;
+
+            getQueryAttributesBindings().runThroughAll(a -> ((JdbcStatement) pstmt).setAttribute(a.getName(), a.getValue()));
 
             return pstmt;
         }
@@ -1150,14 +1121,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     @Override
     public byte[] getBytesRepresentation(int parameterIndex) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            return ((PreparedQuery<?>) this.query).getQueryBindings().getBytesRepresentation(getCoreParameterIndex(parameterIndex));
-        }
-    }
-
-    @Override
-    public byte[] getOrigBytes(int parameterIndex) throws SQLException {
-        synchronized (checkClosed().getConnectionMutex()) {
-            return ((PreparedQuery<?>) this.query).getQueryBindings().getOrigBytes(getCoreParameterIndex(parameterIndex));
+            return ((PreparedQuery) this.query).getQueryBindings().getBytesRepresentation(getCoreParameterIndex(parameterIndex));
         }
     }
 
@@ -1172,7 +1136,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
             // CALL's are trapped further up and you end up with a  CallableStatement anyway.
             //
 
-            if (!isSelectQuery()) {
+            if (!isResultSetProducingQuery()) {
                 return null;
             }
 
@@ -1181,12 +1145,12 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
             if (this.pstmtResultMetaData == null) {
                 try {
-                    mdStmt = new ClientPreparedStatement(this.connection, ((PreparedQuery<?>) this.query).getOriginalSql(), this.getCurrentDatabase(),
-                            ((PreparedQuery<?>) this.query).getParseInfo());
+                    mdStmt = new ClientPreparedStatement(this.connection, ((PreparedQuery) this.query).getOriginalSql(), this.getCurrentDatabase(),
+                            getQueryInfo());
 
                     mdStmt.setMaxRows(1);
 
-                    int paramCount = ((PreparedQuery<?>) this.query).getParameterCount();
+                    int paramCount = ((PreparedQuery) this.query).getParameterCount();
 
                     for (int i = 1; i <= paramCount; i++) {
                         mdStmt.setString(i, null);
@@ -1236,11 +1200,26 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
         }
     }
 
-    protected boolean isSelectQuery() throws SQLException {
-        synchronized (checkClosed().getConnectionMutex()) {
-            return StringUtils.startsWithIgnoreCaseAndWs(
-                    StringUtils.stripComments(((PreparedQuery<?>) this.query).getOriginalSql(), "'\"", "'\"", true, false, true, true), "SELECT");
-        }
+    /**
+     * Checks if the given SQL query is a result set producing query.
+     * 
+     * @return
+     *         <code>true</code> if the query produces a result set, <code>false</code> otherwise.
+     */
+    protected boolean isResultSetProducingQuery() {
+        QueryReturnType queryReturnType = getQueryInfo().getQueryReturnType();
+        return queryReturnType == QueryReturnType.PRODUCES_RESULT_SET || queryReturnType == QueryReturnType.MAY_PRODUCE_RESULT_SET;
+    }
+
+    /**
+     * Checks if the given SQL query does not return a result set.
+     * 
+     * @return
+     *         <code>true</code> if the query does not produce a result set, <code>false</code> otherwise.
+     */
+    private boolean isNonResultSetProducingQuery() {
+        QueryReturnType queryReturnType = getQueryInfo().getQueryReturnType();
+        return queryReturnType == QueryReturnType.DOES_NOT_PRODUCE_RESULT_SET || queryReturnType == QueryReturnType.MAY_PRODUCE_RESULT_SET;
     }
 
     @Override
@@ -1248,9 +1227,9 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
         synchronized (checkClosed().getConnectionMutex()) {
             if (this.parameterMetaData == null) {
                 if (this.session.getPropertySet().getBooleanProperty(PropertyKey.generateSimpleParameterMetadata).getValue()) {
-                    this.parameterMetaData = new MysqlParameterMetadata(((PreparedQuery<?>) this.query).getParameterCount());
+                    this.parameterMetaData = new MysqlParameterMetadata(((PreparedQuery) this.query).getParameterCount());
                 } else {
-                    this.parameterMetaData = new MysqlParameterMetadata(this.session, null, ((PreparedQuery<?>) this.query).getParameterCount(),
+                    this.parameterMetaData = new MysqlParameterMetadata(this.session, null, ((PreparedQuery) this.query).getParameterCount(),
                             this.exceptionInterceptor);
                 }
             }
@@ -1260,19 +1239,16 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     }
 
     @Override
-    public ParseInfo getParseInfo() {
-        return ((PreparedQuery<?>) this.query).getParseInfo();
+    public QueryInfo getQueryInfo() {
+        return ((PreparedQuery) this.query).getQueryInfo();
     }
 
-    @SuppressWarnings("unchecked")
-    private void initializeFromParseInfo() throws SQLException {
+    private void initializeFromQueryInfo() throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
 
-            int parameterCount = ((PreparedQuery<ClientPreparedQueryBindings>) this.query).getParseInfo().getStaticSql().length - 1;
-            ((PreparedQuery<?>) this.query).setParameterCount(parameterCount);
-            ((PreparedQuery<ClientPreparedQueryBindings>) this.query).setQueryBindings(new ClientPreparedQueryBindings(parameterCount, this.session));
-            ((ClientPreparedQuery) this.query).getQueryBindings().setLoadDataQuery(((PreparedQuery<?>) this.query).getParseInfo().isFoundLoadData());
-
+            int parameterCount = getQueryInfo().getStaticSqlParts().length - 1;
+            ((PreparedQuery) this.query).setParameterCount(parameterCount);
+            ((PreparedQuery) this.query).setQueryBindings(new NativeQueryBindings(parameterCount, this.session, NativeQueryBindValue::new));
             clearParameters();
         }
     }
@@ -1280,7 +1256,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     @Override
     public boolean isNull(int paramIndex) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            return ((PreparedQuery<?>) this.query).getQueryBindings().getBindValues()[getCoreParameterIndex(paramIndex)].isNull();
+            return ((PreparedQuery) this.query).getQueryBindings().getBindValues()[getCoreParameterIndex(paramIndex)].isNull();
         }
     }
 
@@ -1301,7 +1277,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
             }
 
             if (this.useUsageAdvisor) {
-                QueryBindings<?> qb = ((PreparedQuery<?>) this.query).getQueryBindings();
+                QueryBindings qb = ((PreparedQuery) this.query).getQueryBindings();
                 if (qb == null || qb.getNumberOfExecutions() <= 1) {
                     this.session.getProfilerEventHandler().processEvent(ProfilerEvent.TYPE_USAGE, this.session, this, null, 0, new Throwable(),
                             Messages.getString("PreparedStatement.43"));
@@ -1310,8 +1286,8 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
             super.realClose(calledExplicitly, closeOpenResults);
 
-            ((PreparedQuery<?>) this.query).setOriginalSql(null);
-            ((PreparedQuery<?>) this.query).setQueryBindings(null);
+            ((PreparedQuery) this.query).setOriginalSql(null);
+            ((PreparedQuery) this.query).setQueryBindings(null);
         }
     }
 
@@ -1319,14 +1295,10 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     public String getPreparedSql() {
         synchronized (checkClosed().getConnectionMutex()) {
             if (this.rewrittenBatchSize == 0) {
-                return ((PreparedQuery<?>) this.query).getOriginalSql();
+                return ((PreparedQuery) this.query).getOriginalSql();
             }
 
-            try {
-                return ((PreparedQuery<?>) this.query).getParseInfo().getSqlForBatch();
-            } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException(e);
-            }
+            return getQueryInfo().getSqlForBatch();
         }
     }
 
@@ -1334,7 +1306,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     public int getUpdateCount() throws SQLException {
         int count = super.getUpdateCount();
 
-        if (containsOnDuplicateKeyUpdateInSQL() && this.compensateForOnDuplicateKeyUpdate) {
+        if (containsOnDuplicateKeyUpdate() && this.compensateForOnDuplicateKeyUpdate) {
             if (count == 2 || count == 0) {
                 count = 1;
             }
@@ -1350,7 +1322,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
 
     public ParameterBindings getParameterBindings() throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            return new ParameterBindingsImpl((PreparedQuery<?>) this.query, this.session, this.resultSetFactory);
+            return new ParameterBindingsImpl((PreparedQuery) this.query, this.session, this.resultSetFactory);
         }
     }
 
@@ -1369,10 +1341,10 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
             if ((paramIndex < 1)) {
                 throw SQLError.createSQLException(Messages.getString("PreparedStatement.49") + paramIndex + Messages.getString("PreparedStatement.50"),
                         MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor);
-            } else if (paramIndex > ((PreparedQuery<?>) this.query).getParameterCount()) {
+            } else if (paramIndex > ((PreparedQuery) this.query).getParameterCount()) {
                 throw SQLError.createSQLException(
                         Messages.getString("PreparedStatement.51") + paramIndex + Messages.getString("PreparedStatement.52")
-                                + ((PreparedQuery<?>) this.query).getParameterCount() + Messages.getString("PreparedStatement.53"),
+                                + ((PreparedQuery) this.query).getParameterCount() + Messages.getString("PreparedStatement.53"),
                         MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, this.exceptionInterceptor);
             } else if (parameterIndexOffset == -1 && paramIndex == 1) {
                 throw SQLError.createSQLException(Messages.getString("PreparedStatement.63"), MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT,
@@ -1395,232 +1367,222 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     @Override
     public void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setAsciiStream(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setAsciiStream(getCoreParameterIndex(parameterIndex), x, -1);
         }
     }
 
     @Override
     public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setAsciiStream(getCoreParameterIndex(parameterIndex), x, length);
+            ((PreparedQuery) this.query).getQueryBindings().setAsciiStream(getCoreParameterIndex(parameterIndex), x, length);
         }
     }
 
     @Override
     public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setAsciiStream(getCoreParameterIndex(parameterIndex), x, length);
+            ((PreparedQuery) this.query).getQueryBindings().setAsciiStream(getCoreParameterIndex(parameterIndex), x, (int) length);
         }
     }
 
     @Override
     public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setBigDecimal(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setBigDecimal(getCoreParameterIndex(parameterIndex), x);
         }
     }
 
     @Override
     public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setBinaryStream(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setBinaryStream(getCoreParameterIndex(parameterIndex), x, -1);
         }
     }
 
     @Override
     public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setBinaryStream(getCoreParameterIndex(parameterIndex), x, length);
+            ((PreparedQuery) this.query).getQueryBindings().setBinaryStream(getCoreParameterIndex(parameterIndex), x, length);
         }
     }
 
     @Override
     public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setBinaryStream(getCoreParameterIndex(parameterIndex), x, length);
+            ((PreparedQuery) this.query).getQueryBindings().setBinaryStream(getCoreParameterIndex(parameterIndex), x, (int) length);
         }
     }
 
     @Override
     public void setBlob(int i, java.sql.Blob x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setBlob(getCoreParameterIndex(i), x);
+            ((PreparedQuery) this.query).getQueryBindings().setBlob(getCoreParameterIndex(i), x);
         }
     }
 
     @Override
     public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setBlob(getCoreParameterIndex(parameterIndex), inputStream);
+            ((PreparedQuery) this.query).getQueryBindings().setBinaryStream(getCoreParameterIndex(parameterIndex), inputStream, -1);
         }
     }
 
     @Override
     public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setBlob(getCoreParameterIndex(parameterIndex), inputStream, length);
+            ((PreparedQuery) this.query).getQueryBindings().setBinaryStream(getCoreParameterIndex(parameterIndex), inputStream, (int) length);
         }
     }
 
     @Override
     public void setBoolean(int parameterIndex, boolean x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setBoolean(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setBoolean(getCoreParameterIndex(parameterIndex), x);
         }
     }
 
     @Override
     public void setByte(int parameterIndex, byte x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setByte(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setByte(getCoreParameterIndex(parameterIndex), x);
         }
     }
 
     @Override
     public void setBytes(int parameterIndex, byte[] x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setBytes(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setBytes(getCoreParameterIndex(parameterIndex), x, true);
         }
     }
 
     @Override
-    public void setBytes(int parameterIndex, byte[] x, boolean checkForIntroducer, boolean escapeForMBChars) throws SQLException {
+    public void setBytes(int parameterIndex, byte[] x, boolean escapeIfNeeded) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setBytes(getCoreParameterIndex(parameterIndex), x, checkForIntroducer, escapeForMBChars);
+            ((PreparedQuery) this.query).getQueryBindings().setBytes(getCoreParameterIndex(parameterIndex), x, escapeIfNeeded);
         }
-    }
-
-    @Override
-    public void setBytesNoEscape(int parameterIndex, byte[] parameterAsBytes) throws SQLException {
-        ((PreparedQuery<?>) this.query).getQueryBindings().setBytesNoEscape(getCoreParameterIndex(parameterIndex), parameterAsBytes);
-    }
-
-    @Override
-    public void setBytesNoEscapeNoQuotes(int parameterIndex, byte[] parameterAsBytes) throws SQLException {
-        ((PreparedQuery<?>) this.query).getQueryBindings().setBytesNoEscapeNoQuotes(getCoreParameterIndex(parameterIndex), parameterAsBytes);
     }
 
     @Override
     public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setCharacterStream(getCoreParameterIndex(parameterIndex), reader);
+            ((PreparedQuery) this.query).getQueryBindings().setCharacterStream(getCoreParameterIndex(parameterIndex), reader, -1);
         }
     }
 
     @Override
     public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setCharacterStream(getCoreParameterIndex(parameterIndex), reader, length);
+            ((PreparedQuery) this.query).getQueryBindings().setCharacterStream(getCoreParameterIndex(parameterIndex), reader, length);
         }
     }
 
     @Override
     public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setCharacterStream(getCoreParameterIndex(parameterIndex), reader, length);
+            ((PreparedQuery) this.query).getQueryBindings().setCharacterStream(getCoreParameterIndex(parameterIndex), reader, (int) length);
         }
     }
 
     @Override
     public void setClob(int parameterIndex, Reader reader) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setCharacterStream(getCoreParameterIndex(parameterIndex), reader);
+            ((PreparedQuery) this.query).getQueryBindings().setCharacterStream(getCoreParameterIndex(parameterIndex), reader, -1);
         }
     }
 
     @Override
     public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setCharacterStream(getCoreParameterIndex(parameterIndex), reader, length);
+            ((PreparedQuery) this.query).getQueryBindings().setCharacterStream(getCoreParameterIndex(parameterIndex), reader, (int) length);
         }
     }
 
     @Override
     public void setClob(int i, Clob x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setClob(getCoreParameterIndex(i), x);
+            ((PreparedQuery) this.query).getQueryBindings().setClob(getCoreParameterIndex(i), x);
         }
     }
 
     @Override
     public void setDate(int parameterIndex, Date x) throws java.sql.SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setDate(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setDate(getCoreParameterIndex(parameterIndex), x, null);
         }
     }
 
     @Override
     public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setDate(getCoreParameterIndex(parameterIndex), x, cal);
+            ((PreparedQuery) this.query).getQueryBindings().setDate(getCoreParameterIndex(parameterIndex), x, cal);
         }
     }
 
     @Override
     public void setDouble(int parameterIndex, double x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setDouble(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setDouble(getCoreParameterIndex(parameterIndex), x);
         }
     }
 
     @Override
     public void setFloat(int parameterIndex, float x) throws SQLException {
-        ((PreparedQuery<?>) this.query).getQueryBindings().setFloat(getCoreParameterIndex(parameterIndex), x);
+        ((PreparedQuery) this.query).getQueryBindings().setFloat(getCoreParameterIndex(parameterIndex), x);
     }
 
     @Override
     public void setInt(int parameterIndex, int x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setInt(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setInt(getCoreParameterIndex(parameterIndex), x);
         }
     }
 
     @Override
     public void setLong(int parameterIndex, long x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setLong(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setLong(getCoreParameterIndex(parameterIndex), x);
         }
     }
 
     @Override
     public void setBigInteger(int parameterIndex, BigInteger x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setBigInteger(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setBigInteger(getCoreParameterIndex(parameterIndex), x);
         }
     }
 
     @Override
     public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setNCharacterStream(getCoreParameterIndex(parameterIndex), value);
+            ((PreparedQuery) this.query).getQueryBindings().setNCharacterStream(getCoreParameterIndex(parameterIndex), value, -1);
         }
     }
 
     @Override
     public void setNCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setNCharacterStream(getCoreParameterIndex(parameterIndex), reader, length);
+            ((PreparedQuery) this.query).getQueryBindings().setNCharacterStream(getCoreParameterIndex(parameterIndex), reader, length);
         }
     }
 
     @Override
     public void setNClob(int parameterIndex, Reader reader) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setNClob(getCoreParameterIndex(parameterIndex), reader);
+            ((PreparedQuery) this.query).getQueryBindings().setNCharacterStream(getCoreParameterIndex(parameterIndex), reader, -1);
         }
     }
 
     @Override
     public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setNClob(getCoreParameterIndex(parameterIndex), reader, length);
+            ((PreparedQuery) this.query).getQueryBindings().setNCharacterStream(getCoreParameterIndex(parameterIndex), reader, length);
         }
     }
 
     @Override
     public void setNClob(int parameterIndex, NClob value) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setNClob(getCoreParameterIndex(parameterIndex), value);
+            ((PreparedQuery) this.query).getQueryBindings().setNClob(getCoreParameterIndex(parameterIndex), value);
         }
     }
 
@@ -1641,21 +1603,21 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     @Override
     public void setNString(int parameterIndex, String x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setNString(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setNString(getCoreParameterIndex(parameterIndex), x);
         }
     }
 
     @Override
     public void setNull(int parameterIndex, int sqlType) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setNull(getCoreParameterIndex(parameterIndex)); // MySQL ignores sqlType
+            ((PreparedQuery) this.query).getQueryBindings().setNull(getCoreParameterIndex(parameterIndex)); // MySQL ignores sqlType
         }
     }
 
     @Override
     public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setNull(getCoreParameterIndex(parameterIndex));
+            ((PreparedQuery) this.query).getQueryBindings().setNull(getCoreParameterIndex(parameterIndex));
         }
     }
 
@@ -1667,7 +1629,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     @Override
     public void setObject(int parameterIndex, Object parameterObj) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setObject(getCoreParameterIndex(parameterIndex), parameterObj);
+            ((PreparedQuery) this.query).getQueryBindings().setObject(getCoreParameterIndex(parameterIndex), parameterObj);
         }
     }
 
@@ -1675,8 +1637,8 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     public void setObject(int parameterIndex, Object parameterObj, int targetSqlType) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
             try {
-                ((PreparedQuery<?>) this.query).getQueryBindings().setObject(getCoreParameterIndex(parameterIndex), parameterObj,
-                        MysqlType.getByJdbcType(targetSqlType));
+                ((PreparedQuery) this.query).getQueryBindings().setObject(getCoreParameterIndex(parameterIndex), parameterObj,
+                        MysqlType.getByJdbcType(targetSqlType), -1);
             } catch (FeatureNotAvailableException nae) {
                 throw SQLError.createSQLFeatureNotSupportedException(Messages.getString("Statement.UnsupportedSQLType") + JDBCType.valueOf(targetSqlType),
                         MysqlErrorNumbers.SQL_STATE_DRIVER_NOT_CAPABLE, this.exceptionInterceptor);
@@ -1688,7 +1650,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     public void setObject(int parameterIndex, Object parameterObj, SQLType targetSqlType) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
             if (targetSqlType instanceof MysqlType) {
-                ((PreparedQuery<?>) this.query).getQueryBindings().setObject(getCoreParameterIndex(parameterIndex), parameterObj, (MysqlType) targetSqlType);
+                ((PreparedQuery) this.query).getQueryBindings().setObject(getCoreParameterIndex(parameterIndex), parameterObj, (MysqlType) targetSqlType, -1);
             } else {
                 setObject(parameterIndex, parameterObj, targetSqlType.getVendorTypeNumber());
             }
@@ -1699,7 +1661,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     public void setObject(int parameterIndex, Object parameterObj, int targetSqlType, int scale) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
             try {
-                ((PreparedQuery<?>) this.query).getQueryBindings().setObject(getCoreParameterIndex(parameterIndex), parameterObj,
+                ((PreparedQuery) this.query).getQueryBindings().setObject(getCoreParameterIndex(parameterIndex), parameterObj,
                         MysqlType.getByJdbcType(targetSqlType), scale);
             } catch (FeatureNotAvailableException nae) {
                 throw SQLError.createSQLFeatureNotSupportedException(Messages.getString("Statement.UnsupportedSQLType") + JDBCType.valueOf(targetSqlType),
@@ -1712,8 +1674,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
             if (targetSqlType instanceof MysqlType) {
-                ((PreparedQuery<?>) this.query).getQueryBindings().setObject(getCoreParameterIndex(parameterIndex), x, (MysqlType) targetSqlType,
-                        scaleOrLength);
+                ((PreparedQuery) this.query).getQueryBindings().setObject(getCoreParameterIndex(parameterIndex), x, (MysqlType) targetSqlType, scaleOrLength);
             } else {
                 setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), scaleOrLength);
             }
@@ -1733,7 +1694,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     @Override
     public void setShort(int parameterIndex, short x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setShort(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setShort(getCoreParameterIndex(parameterIndex), x);
         }
     }
 
@@ -1750,42 +1711,35 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     @Override
     public void setString(int parameterIndex, String x) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setString(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setString(getCoreParameterIndex(parameterIndex), x);
         }
     }
 
     @Override
     public void setTime(int parameterIndex, Time x) throws java.sql.SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setTime(getCoreParameterIndex(parameterIndex), x);
+            ((PreparedQuery) this.query).getQueryBindings().setTime(getCoreParameterIndex(parameterIndex), x, null);
         }
     }
 
     @Override
     public void setTime(int parameterIndex, java.sql.Time x, Calendar cal) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setTime(getCoreParameterIndex(parameterIndex), x, cal);
+            ((PreparedQuery) this.query).getQueryBindings().setTime(getCoreParameterIndex(parameterIndex), x, cal);
         }
     }
 
     @Override
     public void setTimestamp(int parameterIndex, Timestamp x) throws java.sql.SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setTimestamp(getCoreParameterIndex(parameterIndex), x, MysqlType.TIMESTAMP);
+            ((PreparedQuery) this.query).getQueryBindings().setTimestamp(getCoreParameterIndex(parameterIndex), x, null, null, MysqlType.TIMESTAMP);
         }
     }
 
     @Override
     public void setTimestamp(int parameterIndex, java.sql.Timestamp x, Calendar cal) throws SQLException {
         synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setTimestamp(getCoreParameterIndex(parameterIndex), x, cal, MysqlType.TIMESTAMP);
-        }
-    }
-
-    public void setTimestamp(int parameterIndex, Timestamp x, Calendar targetCalendar, int fractionalLength) throws SQLException {
-        synchronized (checkClosed().getConnectionMutex()) {
-            ((PreparedQuery<?>) this.query).getQueryBindings().setTimestamp(getCoreParameterIndex(parameterIndex), x, targetCalendar, fractionalLength,
-                    MysqlType.TIMESTAMP);
+            ((PreparedQuery) this.query).getQueryBindings().setTimestamp(getCoreParameterIndex(parameterIndex), x, cal, null, MysqlType.TIMESTAMP);
         }
     }
 
@@ -1793,7 +1747,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
     @Override
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
         setBinaryStream(parameterIndex, x, length);
-        ((PreparedQuery<?>) this.query).getQueryBindings().getBindValues()[getCoreParameterIndex(parameterIndex)].setMysqlType(MysqlType.TEXT); // TODO was Types.CLOB
+        ((PreparedQuery) this.query).getQueryBindings().getBindValues()[getCoreParameterIndex(parameterIndex)].setMysqlType(MysqlType.TEXT);
     }
 
     @Override
@@ -1802,7 +1756,7 @@ public class ClientPreparedStatement extends StatementImpl implements JdbcPrepar
             setNull(parameterIndex, MysqlType.VARCHAR);
         } else {
             setString(parameterIndex, arg.toString());
-            ((PreparedQuery<?>) this.query).getQueryBindings().getBindValues()[getCoreParameterIndex(parameterIndex)].setMysqlType(MysqlType.VARCHAR); // TODO was Types.DATALINK
+            ((PreparedQuery) this.query).getQueryBindings().getBindValues()[getCoreParameterIndex(parameterIndex)].setMysqlType(MysqlType.VARCHAR);
         }
     }
 }

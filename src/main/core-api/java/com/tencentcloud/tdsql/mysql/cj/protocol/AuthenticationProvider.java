@@ -29,24 +29,18 @@
 
 package com.tencentcloud.tdsql.mysql.cj.protocol;
 
-import com.tencentcloud.tdsql.mysql.cj.CharsetMapping;
-import com.tencentcloud.tdsql.mysql.cj.Messages;
-import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
 
 public interface AuthenticationProvider<M extends Message> {
 
     void init(Protocol<M> prot, PropertySet propertySet, ExceptionInterceptor exceptionInterceptor);
 
-    void connect(ServerSession serverSession, String username, String password, String database);
+    void connect(String username, String password, String database);
 
     /**
      * Re-authenticates as the given user and password
      * 
-     * @param serverSession
-     *            {@link ServerSession} object
      * @param username
      *            user name
      * @param password
@@ -54,35 +48,5 @@ public interface AuthenticationProvider<M extends Message> {
      * @param database
      *            db name
      */
-    void changeUser(ServerSession serverSession, String username, String password, String database);
-
-    String getEncodingForHandshake();
-
-    /**
-     * Get the MySQL collation index for the handshake packet. A single byte will be added to the packet corresponding to the collation index
-     * found for the requested Java encoding name.
-     * 
-     * If the index is &gt; 255 which may be valid at some point in the future, an exception will be thrown. At the time of this implementation
-     * the index cannot be &gt; 255 and only the COM_CHANGE_USER rpc, not the handshake response, can handle a value &gt; 255.
-     * 
-     * @param enc
-     *            The Java encoding name used to lookup the collation index
-     * @param sv
-     *            server version
-     * @return collation index
-     */
-    static byte getCharsetForHandshake(String enc, ServerVersion sv) {
-        int charsetIndex = 0;
-        if (enc != null) {
-            charsetIndex = CharsetMapping.getCollationIndexForJavaEncoding(enc, sv);
-        }
-        if (charsetIndex == 0) {
-            charsetIndex = CharsetMapping.MYSQL_COLLATION_INDEX_utf8;
-        }
-        if (charsetIndex > 255) {
-            throw ExceptionFactory.createException(Messages.getString("MysqlIO.113", new Object[] { enc }));
-        }
-        return (byte) charsetIndex;
-    }
-
+    void changeUser(String username, String password, String database);
 }

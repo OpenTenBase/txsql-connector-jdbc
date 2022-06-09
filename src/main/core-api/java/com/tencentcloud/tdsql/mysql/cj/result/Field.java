@@ -29,9 +29,7 @@
 
 package com.tencentcloud.tdsql.mysql.cj.result;
 
-import com.tencentcloud.tdsql.mysql.cj.CharsetMapping;
 import com.tencentcloud.tdsql.mysql.cj.MysqlType;
-import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ProtocolEntity;
 import com.tencentcloud.tdsql.mysql.cj.util.LazyString;
 
@@ -180,12 +178,6 @@ public class Field implements ProtocolEntity {
      */
     public String getEncoding() {
         return this.encoding;
-    }
-
-    // TODO Remove this after DBMD isn't using ByteArrayRow results.
-    public void setEncoding(String javaEncodingName, ServerVersion version) {
-        this.encoding = javaEncodingName;
-        this.collationIndex = CharsetMapping.getCollationIndexForJavaEncoding(javaEncodingName, version);
     }
 
     public String getColumnLabel() {

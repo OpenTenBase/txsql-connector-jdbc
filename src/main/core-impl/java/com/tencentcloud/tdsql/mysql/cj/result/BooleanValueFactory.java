@@ -94,13 +94,12 @@ public class BooleanValueFactory extends DefaultValueFactory<Boolean> {
             return createFromLong(0);
         }
 
-        // TODO: Too expensive to convert from other charset to ASCII here? UTF-8 (e.g.) doesn't need any conversion before being sent to the decoder
         String s = StringUtils.toString(bytes, offset, length, f.getEncoding());
         byte[] newBytes = s.getBytes();
 
-        if (s.equalsIgnoreCase("Y") || s.equalsIgnoreCase("true")) {
+        if (s.equalsIgnoreCase("Y") || s.equalsIgnoreCase("yes") || s.equalsIgnoreCase("T") || s.equalsIgnoreCase("true")) {
             return createFromLong(1);
-        } else if (s.equalsIgnoreCase("N") || s.equalsIgnoreCase("false")) {
+        } else if (s.equalsIgnoreCase("N") || s.equalsIgnoreCase("no") || s.equalsIgnoreCase("F") || s.equalsIgnoreCase("false")) {
             return createFromLong(0);
         } else if (s.contains("e") || s.contains("E") || s.matches("-?\\d*\\.\\d*")) {
             // floating point

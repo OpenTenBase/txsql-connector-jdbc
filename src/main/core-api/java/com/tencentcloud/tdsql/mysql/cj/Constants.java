@@ -96,6 +96,8 @@ public class Constants {
     public static final BigDecimal BIG_DECIMAL_MAX_FLOAT_VALUE = BigDecimal.valueOf(Float.MAX_VALUE);
     public static final BigDecimal BIG_DECIMAL_MAX_NEGATIVE_FLOAT_VALUE = BigDecimal.valueOf(-Float.MAX_VALUE);
 
+    public static final int UNSIGNED_BYTE_MAX_VALUE = 255;
+
     /**
      * Prevents instantiation
      */

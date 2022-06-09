@@ -34,16 +34,11 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetEncoder;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Timer;
@@ -62,7 +57,6 @@ import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptorChain;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.OperationCancelledException;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
 import com.tencentcloud.tdsql.mysql.cj.interceptors.QueryInterceptor;
 import com.tencentcloud.tdsql.mysql.cj.log.Log;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ColumnDefinition;
@@ -70,7 +64,6 @@ import com.tencentcloud.tdsql.mysql.cj.protocol.NetworkResources;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ProtocolEntityFactory;
 import com.tencentcloud.tdsql.mysql.cj.protocol.Resultset;
 import com.tencentcloud.tdsql.mysql.cj.protocol.Resultset.Type;
-import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSession;
 import com.tencentcloud.tdsql.mysql.cj.protocol.SocketConnection;
 import com.tencentcloud.tdsql.mysql.cj.protocol.SocketFactory;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeMessageBuilder;
@@ -80,7 +73,6 @@ import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeServerSession;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeSocketConnection;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.ResultsetFactory;
 import com.tencentcloud.tdsql.mysql.cj.result.Field;
-import com.tencentcloud.tdsql.mysql.cj.result.IntegerValueFactory;
 import com.tencentcloud.tdsql.mysql.cj.result.LongValueFactory;
 import com.tencentcloud.tdsql.mysql.cj.result.Row;
 import com.tencentcloud.tdsql.mysql.cj.result.StringValueFactory;
@@ -93,29 +85,13 @@ public class NativeSession extends CoreSession implements Serializable {
 
     private CacheAdapter<String, Map<String, String>> serverConfigCache;
 
-    /**
-     * Actual collation index to mysql charset name map of user defined charsets for given server URLs.
-     */
-    private static final Map<String, Map<Integer, String>> customIndexToCharsetMapByUrl = new HashMap<>();
-
-    /**
-     * Actual mysql charset name to mblen map of user defined charsets for given server URLs.
-     */
-    private static final Map<String, Map<String, Integer>> customCharsetToMblenMapByUrl = new HashMap<>();
-
-    /**
-     * If a CharsetEncoder is required for escaping. Needed for SJIS and related
-     * problems with \u00A5.
-     */
-    private boolean requiresEscapingEncoder;
-
     /** When did the last query finish? */
     private long lastQueryFinishedTime = 0;
 
     /** Does this connection need to be tested? */
     private boolean needsPing = false;
 
-    private NativeMessageBuilder commandBuilder = new NativeMessageBuilder(); // TODO use shared builder
+    private NativeMessageBuilder commandBuilder = null;
 
     /** Has this session been closed? */
     private boolean isClosed = true;
@@ -156,10 +132,9 @@ public class NativeSession extends CoreSession implements Serializable {
         // protocol is responsible for building a session and authenticating (using AuthenticationProvider) internally
         this.protocol.connect(user, password, database);
 
-        // error messages are returned according to character_set_results which, at this point, is set from the response packet
-        this.protocol.getServerSession().setErrorMessageEncoding(this.protocol.getAuthenticationProvider().getEncodingForHandshake());
-
         this.isClosed = false;
+
+        this.commandBuilder = new NativeMessageBuilder(this.getServerSession().supportsQueryAttributes());
     }
 
     // TODO: this method should not be used in user-level APIs
@@ -213,12 +188,12 @@ public class NativeSession extends CoreSession implements Serializable {
     }
 
     public void enableMultiQueries() {
-        sendCommand(this.commandBuilder.buildComSetOption(((NativeProtocol) this.protocol).getSharedSendPacket(), 0), false, 0);
+        this.protocol.sendCommand(this.commandBuilder.buildComSetOption(((NativeProtocol) this.protocol).getSharedSendPacket(), 0), false, 0);
         ((NativeServerSession) getServerSession()).preserveOldTransactionState();
     }
 
     public void disableMultiQueries() {
-        sendCommand(this.commandBuilder.buildComSetOption(((NativeProtocol) this.protocol).getSharedSendPacket(), 1), false, 0);
+        this.protocol.sendCommand(this.commandBuilder.buildComSetOption(((NativeProtocol) this.protocol).getSharedSendPacket(), 1), false, 0);
         ((NativeServerSession) getServerSession()).preserveOldTransactionState();
     }
 
@@ -254,9 +229,9 @@ public class NativeSession extends CoreSession implements Serializable {
      */
     public void shutdownServer() {
         if (versionMeetsMinimum(5, 7, 9)) {
-            sendCommand(this.commandBuilder.buildComQuery(getSharedSendPacket(), "SHUTDOWN"), false, 0);
+            this.protocol.sendCommand(this.commandBuilder.buildComQuery(getSharedSendPacket(), "SHUTDOWN"), false, 0);
         } else {
-            sendCommand(this.commandBuilder.buildComShutdown(getSharedSendPacket()), false, 0);
+            this.protocol.sendCommand(this.commandBuilder.buildComShutdown(getSharedSendPacket()), false, 0);
         }
     }
 
@@ -268,13 +243,6 @@ public class NativeSession extends CoreSession implements Serializable {
     public int getSocketTimeout() {
         RuntimeProperty<Integer> sto = getPropertySet().getProperty(PropertyKey.socketTimeout);
         return sto.getValue();
-    }
-
-    /**
-     * Determines if the database charset is the same as the platform charset
-     */
-    public void checkForCharsetMismatch() {
-        ((NativeProtocol) this.protocol).checkForCharsetMismatch();
     }
 
     /**
@@ -305,10 +273,6 @@ public class NativeSession extends CoreSession implements Serializable {
 
     public long getCurrentTimeNanosOrMillis() {
         return ((NativeProtocol) this.protocol).getCurrentTimeNanosOrMillis();
-    }
-
-    public final NativePacketPayload sendCommand(NativePacketPayload queryPacket, boolean skipCheck, int timeoutMillis) {
-        return (NativePacketPayload) this.protocol.sendCommand(queryPacket, skipCheck, timeoutMillis);
     }
 
     public long getSlowQueryThreshold() {
@@ -353,282 +317,6 @@ public class NativeSession extends CoreSession implements Serializable {
         this.protocol.setLocalInfileInputStream(stream);
     }
 
-    /**
-     * Configures client-side properties for character set information.
-     */
-    private void configureCharsetProperties() {
-        if (this.characterEncoding.getValue() != null) {
-            // Attempt to use the encoding, and bail out if it can't be used
-            try {
-                String testString = "abc";
-                StringUtils.getBytes(testString, this.characterEncoding.getValue());
-            } catch (WrongArgumentException waEx) {
-                // Try the MySQL character encoding, then....
-                String oldEncoding = this.characterEncoding.getValue();
-
-                this.characterEncoding.setValue(CharsetMapping.getJavaEncodingForMysqlCharset(oldEncoding));
-
-                if (this.characterEncoding.getValue() == null) {
-                    throw ExceptionFactory.createException(WrongArgumentException.class, Messages.getString("Connection.5", new Object[] { oldEncoding }),
-                            getExceptionInterceptor());
-                }
-
-                String testString = "abc";
-                StringUtils.getBytes(testString, this.characterEncoding.getValue());
-            }
-        }
-    }
-
-    /**
-     * Sets up client character set. This must be done before any further communication with the server!
-     * 
-     * @param dontCheckServerMatch
-     *            if true then send the SET NAMES query even if server charset already matches the new value
-     * @return true if this routine actually configured the client character
-     *         set, or false if the driver needs to use 'older' methods to
-     *         detect the character set, as it is connected to a MySQL server
-     *         older than 4.1.0
-     * @throws CJException
-     *             if an exception happens while sending 'SET NAMES' to the
-     *             server, or the server sends character set information that
-     *             the client doesn't know about.
-     */
-    public boolean configureClientCharacterSet(boolean dontCheckServerMatch) {
-        String realJavaEncoding = this.characterEncoding.getValue();
-        RuntimeProperty<String> characterSetResults = getPropertySet().getProperty(PropertyKey.characterSetResults);
-        boolean characterSetAlreadyConfigured = false;
-
-        try {
-            characterSetAlreadyConfigured = true;
-
-            configureCharsetProperties();
-            realJavaEncoding = this.characterEncoding.getValue(); // we need to do this again to grab this for versions > 4.1.0
-
-            String connectionCollationSuffix = "";
-            String connectionCollationCharset = null;
-
-            String connectionCollation = getPropertySet().getStringProperty(PropertyKey.connectionCollation).getStringValue();
-            if (connectionCollation != null) {
-                for (int i = 1; i < CharsetMapping.COLLATION_INDEX_TO_COLLATION_NAME.length; i++) {
-                    if (CharsetMapping.COLLATION_INDEX_TO_COLLATION_NAME[i].equals(connectionCollation)) {
-                        connectionCollationSuffix = " COLLATE " + CharsetMapping.COLLATION_INDEX_TO_COLLATION_NAME[i];
-                        connectionCollationCharset = CharsetMapping.COLLATION_INDEX_TO_CHARSET[i].charsetName;
-                        realJavaEncoding = CharsetMapping.getJavaEncodingForCollationIndex(i);
-                    }
-                }
-            }
-
-            try {
-                String serverEncodingToSet = CharsetMapping.getJavaEncodingForCollationIndex(this.protocol.getServerSession().getServerDefaultCollationIndex());
-
-                if (serverEncodingToSet == null || serverEncodingToSet.length() == 0) {
-                    if (realJavaEncoding != null) {
-                        // user knows best, try it
-                        this.characterEncoding.setValue(realJavaEncoding);
-                    } else {
-                        throw ExceptionFactory.createException(
-                                Messages.getString("Connection.6", new Object[] { this.protocol.getServerSession().getServerDefaultCollationIndex() }),
-                                getExceptionInterceptor());
-                    }
-                }
-
-                // "latin1" on MySQL-4.1.0+ is actually CP1252, not ISO8859_1
-                if ("ISO8859_1".equalsIgnoreCase(serverEncodingToSet)) {
-                    serverEncodingToSet = "Cp1252";
-                }
-                if ("UnicodeBig".equalsIgnoreCase(serverEncodingToSet) || "UTF-16".equalsIgnoreCase(serverEncodingToSet)
-                        || "UTF-16LE".equalsIgnoreCase(serverEncodingToSet) || "UTF-32".equalsIgnoreCase(serverEncodingToSet)) {
-                    serverEncodingToSet = "UTF-8";
-                }
-
-                this.characterEncoding.setValue(serverEncodingToSet);
-
-            } catch (ArrayIndexOutOfBoundsException outOfBoundsEx) {
-                if (realJavaEncoding != null) {
-                    // user knows best, try it
-                    this.characterEncoding.setValue(realJavaEncoding);
-                } else {
-                    throw ExceptionFactory.createException(
-                            Messages.getString("Connection.6", new Object[] { this.protocol.getServerSession().getServerDefaultCollationIndex() }),
-                            getExceptionInterceptor());
-                }
-            }
-
-            if (this.characterEncoding.getValue() == null) {
-                // punt?
-                this.characterEncoding.setValue("ISO8859_1");
-            }
-
-            if (realJavaEncoding != null) {
-
-                //
-                // Now, inform the server what character set we will be using from now-on...
-                //
-                if (realJavaEncoding.equalsIgnoreCase("UTF-8") || realJavaEncoding.equalsIgnoreCase("UTF8")) {
-                    // charset names are case-sensitive
-                    String utf8CharsetName = connectionCollationSuffix.length() > 0 ? connectionCollationCharset : "utf8mb4";
-
-                    if (dontCheckServerMatch || !this.protocol.getServerSession().characterSetNamesMatches("utf8")
-                            || (!this.protocol.getServerSession().characterSetNamesMatches("utf8mb4")) || (connectionCollationSuffix.length() > 0
-                                    && !connectionCollation.equalsIgnoreCase(this.protocol.getServerSession().getServerVariable("collation_server")))) {
-
-                        sendCommand(this.commandBuilder.buildComQuery(null, "SET NAMES " + utf8CharsetName + connectionCollationSuffix), false, 0);
-
-                        this.protocol.getServerSession().getServerVariables().put("character_set_client", utf8CharsetName);
-                        this.protocol.getServerSession().getServerVariables().put("character_set_connection", utf8CharsetName);
-                    }
-
-                    this.characterEncoding.setValue(realJavaEncoding);
-                } /* not utf-8 */else {
-                    String mysqlCharsetName = connectionCollationSuffix.length() > 0 ? connectionCollationCharset
-                            : CharsetMapping.getMysqlCharsetForJavaEncoding(realJavaEncoding.toUpperCase(Locale.ENGLISH),
-                                    getServerSession().getServerVersion());
-
-                    if (mysqlCharsetName != null) {
-
-                        if (dontCheckServerMatch || !this.protocol.getServerSession().characterSetNamesMatches(mysqlCharsetName)) {
-                            sendCommand(this.commandBuilder.buildComQuery(null, "SET NAMES " + mysqlCharsetName + connectionCollationSuffix), false, 0);
-
-                            this.protocol.getServerSession().getServerVariables().put("character_set_client", mysqlCharsetName);
-                            this.protocol.getServerSession().getServerVariables().put("character_set_connection", mysqlCharsetName);
-                        }
-                    }
-
-                    // Switch driver's encoding now, since the server knows what we're sending...
-                    //
-                    this.characterEncoding.setValue(realJavaEncoding);
-                }
-            } else if (this.characterEncoding.getValue() != null) {
-                // Tell the server we'll use the server default charset to send our queries from now on....
-                String mysqlCharsetName = connectionCollationSuffix.length() > 0 ? connectionCollationCharset : getServerSession().getServerDefaultCharset();
-
-                boolean ucs2 = false;
-                if ("ucs2".equalsIgnoreCase(mysqlCharsetName) || "utf16".equalsIgnoreCase(mysqlCharsetName) || "utf16le".equalsIgnoreCase(mysqlCharsetName)
-                        || "utf32".equalsIgnoreCase(mysqlCharsetName)) {
-                    mysqlCharsetName = "utf8";
-                    ucs2 = true;
-                    if (characterSetResults.getValue() == null) {
-                        characterSetResults.setValue("UTF-8");
-                    }
-                }
-
-                if (dontCheckServerMatch || !this.protocol.getServerSession().characterSetNamesMatches(mysqlCharsetName) || ucs2) {
-                    sendCommand(this.commandBuilder.buildComQuery(null, "SET NAMES " + mysqlCharsetName + connectionCollationSuffix), false, 0);
-
-                    this.protocol.getServerSession().getServerVariables().put("character_set_client", mysqlCharsetName);
-                    this.protocol.getServerSession().getServerVariables().put("character_set_connection", mysqlCharsetName);
-                }
-
-                realJavaEncoding = this.characterEncoding.getValue();
-            }
-
-            //
-            // We know how to deal with any charset coming back from the database, so tell the server not to do conversion if the user hasn't 'forced' a
-            // result-set character set
-            //
-
-            String onServer = this.protocol.getServerSession().getServerVariable("character_set_results");
-            if (characterSetResults.getValue() == null) {
-
-                //
-                // Only send if needed, if we're caching server variables we -have- to send, because we don't know what it was before we cached them.
-                //
-                if (onServer != null && onServer.length() > 0 && !"NULL".equalsIgnoreCase(onServer)) {
-                    sendCommand(this.commandBuilder.buildComQuery(null, "SET character_set_results = NULL"), false, 0);
-                    this.protocol.getServerSession().getServerVariables().put(ServerSession.LOCAL_CHARACTER_SET_RESULTS, null);
-                } else {
-                    this.protocol.getServerSession().getServerVariables().put(ServerSession.LOCAL_CHARACTER_SET_RESULTS, onServer);
-                }
-            } else {
-
-                String charsetResults = characterSetResults.getValue();
-                String mysqlEncodingName = null;
-
-                if ("UTF-8".equalsIgnoreCase(charsetResults) || "UTF8".equalsIgnoreCase(charsetResults)) {
-                    mysqlEncodingName = "utf8";
-                } else if ("null".equalsIgnoreCase(charsetResults)) {
-                    mysqlEncodingName = "NULL";
-                } else {
-                    mysqlEncodingName = CharsetMapping.getMysqlCharsetForJavaEncoding(charsetResults.toUpperCase(Locale.ENGLISH),
-                            getServerSession().getServerVersion());
-                }
-
-                //
-                // Only change the value if needed
-                //
-
-                if (mysqlEncodingName == null) {
-                    throw ExceptionFactory.createException(WrongArgumentException.class, Messages.getString("Connection.7", new Object[] { charsetResults }),
-                            getExceptionInterceptor());
-                }
-
-                if (!mysqlEncodingName.equalsIgnoreCase(this.protocol.getServerSession().getServerVariable("character_set_results"))) {
-                    StringBuilder setBuf = new StringBuilder("SET character_set_results = ".length() + mysqlEncodingName.length());
-                    setBuf.append("SET character_set_results = ").append(mysqlEncodingName);
-
-                    sendCommand(this.commandBuilder.buildComQuery(null, setBuf.toString()), false, 0);
-
-                    this.protocol.getServerSession().getServerVariables().put(ServerSession.LOCAL_CHARACTER_SET_RESULTS, mysqlEncodingName);
-
-                    // We have to set errorMessageEncoding according to new value of charsetResults for server version 5.5 and higher
-                    this.protocol.getServerSession().setErrorMessageEncoding(charsetResults);
-
-                } else {
-                    this.protocol.getServerSession().getServerVariables().put(ServerSession.LOCAL_CHARACTER_SET_RESULTS, onServer);
-                }
-            }
-
-        } finally {
-            // Failsafe, make sure that the driver's notion of character encoding matches what the user has specified.
-            //
-            this.characterEncoding.setValue(realJavaEncoding);
-        }
-
-        /**
-         * Check if we need a CharsetEncoder for escaping codepoints that are
-         * transformed to backslash (0x5c) in the connection encoding.
-         */
-        try {
-            CharsetEncoder enc = Charset.forName(this.characterEncoding.getValue()).newEncoder();
-            CharBuffer cbuf = CharBuffer.allocate(1);
-            ByteBuffer bbuf = ByteBuffer.allocate(1);
-
-            cbuf.put("\u00a5");
-            cbuf.position(0);
-            enc.encode(cbuf, bbuf, true);
-            if (bbuf.get(0) == '\\') {
-                this.requiresEscapingEncoder = true;
-            } else {
-                cbuf.clear();
-                bbuf.clear();
-
-                cbuf.put("\u20a9");
-                cbuf.position(0);
-                enc.encode(cbuf, bbuf, true);
-                if (bbuf.get(0) == '\\') {
-                    this.requiresEscapingEncoder = true;
-                }
-            }
-        } catch (java.nio.charset.UnsupportedCharsetException ucex) {
-            // fallback to String API
-            byte bbuf[] = StringUtils.getBytes("\u00a5", this.characterEncoding.getValue());
-            if (bbuf[0] == '\\') {
-                this.requiresEscapingEncoder = true;
-            } else {
-                bbuf = StringUtils.getBytes("\u20a9", this.characterEncoding.getValue());
-                if (bbuf[0] == '\\') {
-                    this.requiresEscapingEncoder = true;
-                }
-            }
-        }
-
-        return characterSetAlreadyConfigured;
-    }
-
-    public boolean getRequiresEscapingEncoder() {
-        return this.requiresEscapingEncoder;
-    }
-
     private void createConfigCacheIfNeeded(Object syncMutex) {
         synchronized (syncMutex) {
             if (this.serverConfigCache != null) {
@@ -636,9 +324,7 @@ public class NativeSession extends CoreSession implements Serializable {
             }
 
             try {
-                Class<?> factoryClass;
-
-                factoryClass = Class.forName(getPropertySet().getStringProperty(PropertyKey.serverConfigCacheFactory).getStringValue());
+                Class<?> factoryClass = Class.forName(getPropertySet().getStringProperty(PropertyKey.serverConfigCacheFactory).getStringValue());
 
                 @SuppressWarnings("unchecked")
                 CacheAdapterFactory<String, Map<String, String>> cacheFactory = ((CacheAdapterFactory<String, Map<String, String>>) factoryClass.newInstance());
@@ -671,11 +357,11 @@ public class NativeSession extends CoreSession implements Serializable {
                 }
             } catch (ClassNotFoundException e) {
                 throw ExceptionFactory.createException(Messages.getString("Connection.CantFindCacheFactory",
-                        new Object[] { getPropertySet().getStringProperty(PropertyKey.parseInfoCacheFactory).getValue(), PropertyKey.parseInfoCacheFactory }),
+                        new Object[] { getPropertySet().getStringProperty(PropertyKey.queryInfoCacheFactory).getValue(), PropertyKey.queryInfoCacheFactory }),
                         e, getExceptionInterceptor());
             } catch (InstantiationException | IllegalAccessException | CJException e) {
                 throw ExceptionFactory.createException(Messages.getString("Connection.CantLoadCacheFactory",
-                        new Object[] { getPropertySet().getStringProperty(PropertyKey.parseInfoCacheFactory).getValue(), PropertyKey.parseInfoCacheFactory }),
+                        new Object[] { getPropertySet().getStringProperty(PropertyKey.queryInfoCacheFactory).getValue(), PropertyKey.queryInfoCacheFactory }),
                         e, getExceptionInterceptor());
             }
         }
@@ -705,8 +391,11 @@ public class NativeSession extends CoreSession implements Serializable {
 
                 if (cachedServerVersion != null && getServerSession().getServerVersion() != null
                         && cachedServerVersion.equals(getServerSession().getServerVersion().toString())) {
-                    this.protocol.getServerSession().setServerVariables(cachedVariableMap);
-
+                    Map<String, String> localVariableMap = this.protocol.getServerSession().getServerVariables();
+                    Map<String, String> newLocalVariableMap = new HashMap<>();
+                    newLocalVariableMap.putAll(cachedVariableMap);
+                    newLocalVariableMap.putAll(localVariableMap); // preserving variables already configured on previous session initialization steps
+                    this.protocol.getServerSession().setServerVariables(newLocalVariableMap);
                     return;
                 }
 
@@ -761,7 +450,8 @@ public class NativeSession extends CoreSession implements Serializable {
                 }
                 queryBuf.append(", @@wait_timeout AS wait_timeout");
 
-                NativePacketPayload resultPacket = sendCommand(this.commandBuilder.buildComQuery(null, queryBuf.toString()), false, 0);
+                NativePacketPayload resultPacket = (NativePacketPayload) this.protocol.sendCommand(this.commandBuilder.buildComQuery(null, queryBuf.toString()),
+                        false, 0);
                 Resultset rs = ((NativeProtocol) this.protocol).readAllResults(-1, false, resultPacket, false, null,
                         new ResultsetFactory(Type.FORWARD_ONLY, null));
                 Field[] f = rs.getColumnDefinition().getFields();
@@ -770,13 +460,15 @@ public class NativeSession extends CoreSession implements Serializable {
                     Row r;
                     if ((r = rs.getRows().next()) != null) {
                         for (int i = 0; i < f.length; i++) {
-                            this.protocol.getServerSession().getServerVariables().put(f[i].getColumnLabel(), r.getValue(i, vf));
+                            String value = r.getValue(i, vf);
+                            this.protocol.getServerSession().getServerVariables().put(f[i].getColumnLabel(), value);
                         }
                     }
                 }
 
             } else {
-                NativePacketPayload resultPacket = sendCommand(this.commandBuilder.buildComQuery(null, versionComment + "SHOW VARIABLES"), false, 0);
+                NativePacketPayload resultPacket = (NativePacketPayload) this.protocol
+                        .sendCommand(this.commandBuilder.buildComQuery(null, versionComment + "SHOW VARIABLES"), false, 0);
                 Resultset rs = ((NativeProtocol) this.protocol).readAllResults(-1, false, resultPacket, false, null,
                         new ResultsetFactory(Type.FORWARD_ONLY, null));
                 ValueFactory<String> vf = new StringValueFactory(this.propertySet);
@@ -791,7 +483,9 @@ public class NativeSession extends CoreSession implements Serializable {
 
         if (this.cacheServerConfiguration.getValue()) {
             this.protocol.getServerSession().getServerVariables().put(SERVER_VERSION_STRING_VAR_NAME, getServerSession().getServerVersion().toString());
-            this.serverConfigCache.put(this.hostInfo.getDatabaseUrl(), this.protocol.getServerSession().getServerVariables());
+            Map<String, String> localVariableMap = new HashMap<>();
+            localVariableMap.putAll(this.protocol.getServerSession().getServerVariables());
+            this.serverConfigCache.put(this.hostInfo.getDatabaseUrl(), Collections.unmodifiableMap(localVariableMap));
         }
     }
 
@@ -816,115 +510,9 @@ public class NativeSession extends CoreSession implements Serializable {
                         separator = ",";
                     }
                 }
-                sendCommand(this.commandBuilder.buildComQuery(null, query.toString()), false, 0);
+                this.protocol.sendCommand(this.commandBuilder.buildComQuery(null, query.toString()), false, 0);
             }
         }
-    }
-
-    /**
-     * Builds the map needed for 4.1.0 and newer servers that maps field-level
-     * charset/collation info to a java character encoding name.
-     */
-    public void buildCollationMapping() {
-
-        Map<Integer, String> customCharset = null;
-        Map<String, Integer> customMblen = null;
-
-        String databaseURL = this.hostInfo.getDatabaseUrl();
-
-        if (this.cacheServerConfiguration.getValue()) {
-            synchronized (customIndexToCharsetMapByUrl) {
-                customCharset = customIndexToCharsetMapByUrl.get(databaseURL);
-                customMblen = customCharsetToMblenMapByUrl.get(databaseURL);
-            }
-        }
-
-        if (customCharset == null && getPropertySet().getBooleanProperty(PropertyKey.detectCustomCollations).getValue()) {
-            customCharset = new HashMap<>();
-            customMblen = new HashMap<>();
-
-            ValueFactory<Integer> ivf = new IntegerValueFactory(getPropertySet());
-
-            try {
-                NativePacketPayload resultPacket = sendCommand(this.commandBuilder.buildComQuery(null, "SHOW COLLATION"), false, 0);
-                Resultset rs = ((NativeProtocol) this.protocol).readAllResults(-1, false, resultPacket, false, null,
-                        new ResultsetFactory(Type.FORWARD_ONLY, null));
-                ValueFactory<String> svf = new StringValueFactory(this.propertySet);
-                Row r;
-                while ((r = rs.getRows().next()) != null) {
-                    int collationIndex = ((Number) r.getValue(2, ivf)).intValue();
-                    String charsetName = r.getValue(1, svf);
-
-                    // if no static map for charsetIndex or server has a different mapping then our static map, adding it to custom map 
-                    if (collationIndex >= CharsetMapping.MAP_SIZE || !charsetName.equals(CharsetMapping.getMysqlCharsetNameForCollationIndex(collationIndex))) {
-                        customCharset.put(collationIndex, charsetName);
-                    }
-
-                    // if no static map for charsetName adding to custom map
-                    if (!CharsetMapping.CHARSET_NAME_TO_CHARSET.containsKey(charsetName)) {
-                        customMblen.put(charsetName, null);
-                    }
-                }
-            } catch (IOException e) {
-                throw ExceptionFactory.createException(e.getMessage(), e, this.exceptionInterceptor);
-            }
-
-            // if there is a number of custom charsets we should execute SHOW CHARACTER SET to know theirs mblen
-            if (customMblen.size() > 0) {
-                try {
-                    NativePacketPayload resultPacket = sendCommand(this.commandBuilder.buildComQuery(null, "SHOW CHARACTER SET"), false, 0);
-                    Resultset rs = ((NativeProtocol) this.protocol).readAllResults(-1, false, resultPacket, false, null,
-                            new ResultsetFactory(Type.FORWARD_ONLY, null));
-
-                    int charsetColumn = rs.getColumnDefinition().getColumnNameToIndex().get("Charset");
-                    int maxlenColumn = rs.getColumnDefinition().getColumnNameToIndex().get("Maxlen");
-
-                    ValueFactory<String> svf = new StringValueFactory(this.propertySet);
-                    Row r;
-                    while ((r = rs.getRows().next()) != null) {
-                        String charsetName = r.getValue(charsetColumn, svf);
-                        if (customMblen.containsKey(charsetName)) {
-                            customMblen.put(charsetName, r.getValue(maxlenColumn, ivf));
-                        }
-                    }
-                } catch (IOException e) {
-                    throw ExceptionFactory.createException(e.getMessage(), e, this.exceptionInterceptor);
-                }
-            }
-
-            if (this.cacheServerConfiguration.getValue()) {
-                synchronized (customIndexToCharsetMapByUrl) {
-                    customIndexToCharsetMapByUrl.put(databaseURL, customCharset);
-                    customCharsetToMblenMapByUrl.put(databaseURL, customMblen);
-                }
-            }
-        }
-
-        // set charset maps
-        if (customCharset != null) {
-            ((NativeServerSession) this.protocol.getServerSession()).indexToCustomMysqlCharset = Collections.unmodifiableMap(customCharset);
-        }
-        if (customMblen != null) {
-            ((NativeServerSession) this.protocol.getServerSession()).mysqlCharsetToCustomMblen = Collections.unmodifiableMap(customMblen);
-        }
-
-        // Trying to workaround server collations with index > 255. Such index doesn't fit into server greeting packet, 0 is sent instead.
-        // Now we could set io.serverCharsetIndex according to "collation_server" value.
-        if (this.protocol.getServerSession().getServerDefaultCollationIndex() == 0) {
-            String collationServer = this.protocol.getServerSession().getServerVariable("collation_server");
-            if (collationServer != null) {
-                for (int i = 1; i < CharsetMapping.COLLATION_INDEX_TO_COLLATION_NAME.length; i++) {
-                    if (CharsetMapping.COLLATION_INDEX_TO_COLLATION_NAME[i].equals(collationServer)) {
-                        this.protocol.getServerSession().setServerDefaultCollationIndex(i);
-                        break;
-                    }
-                }
-            } else {
-                // We can't do more, just trying to use utf8mb4_general_ci because the most of collations in that range are utf8mb4.
-                this.protocol.getServerSession().setServerDefaultCollationIndex(45);
-            }
-        }
-
     }
 
     public String getProcessHost() {
@@ -937,7 +525,8 @@ public class NativeSession extends CoreSession implements Serializable {
                 this.log.logWarn(String.format(
                         "Connection id %d not found in \"SHOW PROCESSLIST\", assuming 32-bit overflow, using SELECT CONNECTION_ID() instead", threadId));
 
-                NativePacketPayload resultPacket = sendCommand(this.commandBuilder.buildComQuery(null, "SELECT CONNECTION_ID()"), false, 0);
+                NativePacketPayload resultPacket = (NativePacketPayload) this.protocol
+                        .sendCommand(this.commandBuilder.buildComQuery(null, "SELECT CONNECTION_ID()"), false, 0);
                 Resultset rs = ((NativeProtocol) this.protocol).readAllResults(-1, false, resultPacket, false, null,
                         new ResultsetFactory(Type.FORWARD_ONLY, null));
 
@@ -969,11 +558,11 @@ public class NativeSession extends CoreSession implements Serializable {
 
             NativePacketPayload resultPacket = versionMeetsMinimum(5, 6, 0) // performance_schema.threads in MySQL 5.5 does not contain PROCESSLIST_HOST column
                     && ps != null && ("1".contentEquals(ps) || "ON".contentEquals(ps))
-                            ? sendCommand(this.commandBuilder.buildComQuery(null,
+                            ? (NativePacketPayload) this.protocol.sendCommand(this.commandBuilder.buildComQuery(null,
                                     "select PROCESSLIST_ID, PROCESSLIST_USER, PROCESSLIST_HOST from performance_schema.threads where PROCESSLIST_ID="
                                             + threadId),
                                     false, 0)
-                            : sendCommand(this.commandBuilder.buildComQuery(null, "SHOW PROCESSLIST"), false, 0);
+                            : (NativePacketPayload) this.protocol.sendCommand(this.commandBuilder.buildComQuery(null, "SHOW PROCESSLIST"), false, 0);
 
             Resultset rs = ((NativeProtocol) this.protocol).readAllResults(-1, false, resultPacket, false, null, new ResultsetFactory(Type.FORWARD_ONLY, null));
 
@@ -1005,7 +594,8 @@ public class NativeSession extends CoreSession implements Serializable {
     public String queryServerVariable(String varName) {
         try {
 
-            NativePacketPayload resultPacket = sendCommand(this.commandBuilder.buildComQuery(null, "SELECT " + varName), false, 0);
+            NativePacketPayload resultPacket = (NativePacketPayload) this.protocol.sendCommand(this.commandBuilder.buildComQuery(null, "SELECT " + varName),
+                    false, 0);
             Resultset rs = ((NativeProtocol) this.protocol).readAllResults(-1, false, resultPacket, false, null, new ResultsetFactory(Type.FORWARD_ONLY, null));
 
             ValueFactory<String> svf = new StringValueFactory(this.propertySet);
@@ -1148,7 +738,7 @@ public class NativeSession extends CoreSession implements Serializable {
             throw ExceptionFactory.createException(Messages.getString("Connection.exceededConnectionLifetime"),
                     MysqlErrorNumbers.SQL_STATE_COMMUNICATION_LINK_FAILURE, 0, false, null, this.exceptionInterceptor);
         }
-        sendCommand(this.commandBuilder.buildComPing(null), false, timeoutMillis); // it isn't safe to use a shared packet here 
+        this.protocol.sendCommand(this.commandBuilder.buildComPing(null), false, timeoutMillis); // it isn't safe to use a shared packet here 
     }
 
     public long getConnectionCreationTimeMillis() {

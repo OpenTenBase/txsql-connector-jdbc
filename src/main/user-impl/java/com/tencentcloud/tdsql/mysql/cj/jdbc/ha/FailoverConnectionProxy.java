@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2010, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -48,7 +48,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
 import com.tencentcloud.tdsql.mysql.cj.util.Util;
 
 /**
- * A proxy for a dynamic com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection implementation that provides failover features for list of hosts. Connection switching occurs on
+ * A proxy for a dynamic com.mysql.cj.jdbc.JdbcConnection implementation that provides failover features for list of hosts. Connection switching occurs on
  * communications related exceptions and/or user defined settings, namely when one of the conditions set in 'secondsBeforeRetrySource' or
  * 'queriesBeforeRetrySource' is met.
  */
@@ -499,7 +499,7 @@ public class FailoverConnectionProxy extends MultiHostConnectionProxy {
      * This is the continuation of MultiHostConnectionProxy#invoke(Object, Method, Object[]).
      */
     @Override
-    public synchronized Object invokeMore(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invokeMore(Object proxy, Method method, Object[] args) throws Throwable {
         String methodName = method.getName();
 
         if (METHOD_SET_READ_ONLY.equals(methodName)) {

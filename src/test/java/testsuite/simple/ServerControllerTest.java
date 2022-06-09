@@ -43,7 +43,7 @@ public class ServerControllerTest extends BaseTestCase {
     /**
      * Demonstrates usage of the ServerController class.
      * 
-     * This test is only run if the property 'com.tencent.tdsql.mysql.jdbc.test.ServerController.basedir' is set.
+     * This test is only run if the property 'com.mysql.jdbc.test.ServerController.basedir' is set.
      * 
      * @throws Exception
      */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -29,6 +29,8 @@
 
 package com.tencentcloud.tdsql.mysql.cj.protocol.x;
 
+import java.util.List;
+
 import com.google.protobuf.ByteString;
 import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -40,32 +42,29 @@ import com.tencentcloud.tdsql.mysql.cj.x.protobuf.MysqlxDatatypes.Scalar;
 import com.tencentcloud.tdsql.mysql.cj.x.protobuf.MysqlxNotice.Frame;
 import com.tencentcloud.tdsql.mysql.cj.x.protobuf.MysqlxNotice.SessionStateChanged;
 import com.tencentcloud.tdsql.mysql.cj.x.protobuf.MysqlxNotice.SessionVariableChanged;
-import java.util.List;
 
 /**
  * ProtocolEntity representing a {@link Notice} message.
  */
 public class Notice implements ProtocolEntity {
 
-    public static Notice getInstance(com.tencentcloud.tdsql.mysql.cj.protocol.x.XMessage message) {
+    public static Notice getInstance(XMessage message) {
         Frame notice = (Frame) message.getMessage();
-        if (notice.getScope() != Frame.Scope.GLOBAL) { // TODO should we handle global notices somehow? What frame types are applicable there?
-            switch (notice.getType()) {
-                case Frame.Type.WARNING_VALUE:
-                    return new XWarning(notice);
+        switch (notice.getType()) {
+            case Frame.Type.WARNING_VALUE:
+                return new XWarning(notice);
 
-                case Frame.Type.SESSION_VARIABLE_CHANGED_VALUE:
-                    return new XSessionVariableChanged(notice);
+            case Frame.Type.SESSION_VARIABLE_CHANGED_VALUE:
+                return new XSessionVariableChanged(notice);
 
-                case Frame.Type.SESSION_STATE_CHANGED_VALUE:
-                    return new XSessionStateChanged(notice);
+            case Frame.Type.SESSION_STATE_CHANGED_VALUE:
+                return new XSessionStateChanged(notice);
 
-                case Frame.Type.GROUP_REPLICATION_STATE_CHANGED_VALUE:
-                    // TODO
-                    break;
-                default:
-                    break;
-            }
+            case Frame.Type.GROUP_REPLICATION_STATE_CHANGED_VALUE:
+                // TODO
+                break;
+            default:
+                break;
         }
         return new Notice(notice);
     }
@@ -109,7 +108,7 @@ public class Notice implements ProtocolEntity {
     @SuppressWarnings("unchecked")
     static <T extends GeneratedMessageV3> T parseNotice(ByteString payload, Class<T> noticeClass) {
         try {
-            Parser<T> parser = (Parser<T>) com.tencentcloud.tdsql.mysql.cj.protocol.x.MessageConstants.MESSAGE_CLASS_TO_PARSER.get(noticeClass);
+            Parser<T> parser = (Parser<T>) MessageConstants.MESSAGE_CLASS_TO_PARSER.get(noticeClass);
             return parser.parseFrom(payload);
         } catch (InvalidProtocolBufferException ex) {
             throw new CJCommunicationsException(ex);

@@ -77,5 +77,5 @@ public interface BalanceStrategy {
      *             strategy.
      */
     abstract JdbcConnection pickConnection(InvocationHandler proxy, List<String> configuredHosts, Map<String, JdbcConnection> liveConnections,
-                                           long[] responseTimes, int numRetries) throws SQLException;
+            long[] responseTimes, int numRetries) throws SQLException;
 }

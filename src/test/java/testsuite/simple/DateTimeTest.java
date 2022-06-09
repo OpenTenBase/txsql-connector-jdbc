@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -150,6 +150,8 @@ public class DateTimeTest extends BaseTestCase {
     private void initConnections(TimeZone senderTz, String connectionTZ) throws Exception {
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
 
         // applying 8.0 defaults to old servers
@@ -227,6 +229,8 @@ public class DateTimeTest extends BaseTestCase {
         Calendar cal_02 = GregorianCalendar.getInstance(tz_plus_02_00);
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
 
@@ -277,9 +281,9 @@ public class DateTimeTest extends BaseTestCase {
                                         /* Unsupported conversions */
 
                                         assertThrows(props, tVarchar, sqlDate_at_senderTz, MysqlType.TIME, senderTz,
-                                                ".* Conversion from java.sql.Date to TIME is not supported.");
+                                                ".*Conversion from java.sql.Date to TIME is not supported.");
                                         assertThrows(props, tDate, sqlDate_at_senderTz, MysqlType.INT, senderTz,
-                                                ".* Conversion from java.sql.Date to INT is not supported.");
+                                                ".*Conversion from java.sql.Date to INT is not supported.");
 
                                         /* Into YEAR field */
 
@@ -461,6 +465,8 @@ public class DateTimeTest extends BaseTestCase {
         Calendar cal_02 = GregorianCalendar.getInstance(tz_plus_02_00);
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
 
@@ -525,6 +531,8 @@ public class DateTimeTest extends BaseTestCase {
                                                         .format(withFract ? TIME_FORMATTER_WITH_MILLIS_NO_OFFCET : TimeUtil.TIME_FORMATTER_NO_FRACT_NO_OFFSET)
                                                 : expTimeNoMs;
 
+                                        String expDate8_0_28 = zdt_19700101_120000_123_at_senderTz.format(DateTimeFormatter.ofPattern("20HH-mm-ss"));
+
                                         String expTimeNoMsCal = zdt_19700101_120000_123_at_calendarTz.toLocalTime()
                                                 .format(TimeUtil.TIME_FORMATTER_NO_FRACT_NO_OFFSET);
                                         String expTimeCal = sendFractionalSeconds && sendTimeFract
@@ -562,7 +570,9 @@ public class DateTimeTest extends BaseTestCase {
 
                                         /* Into DATE field */
 
-                                        String expDateErr = incorrectDateErr.replace("X", expTimeSendTimeFract);
+                                        String expDateErr = incorrectDateErr.replace("X",
+                                                useSSPS && !(sendTimeFract && sendFractionalSeconds) && versionMeetsMinimum(8, 0, 28) ? expDate8_0_28
+                                                        : expTimeSendTimeFract);
                                         String expDateErrWithCal = incorrectDateErr.replace("X", expTimeCal);
 
                                         if (useSSPS) {
@@ -624,7 +634,9 @@ public class DateTimeTest extends BaseTestCase {
 
                                         String expDatetime = expDate + " " + expTimeSendTimeFract;
                                         String expDatetimeWithCal = expDate + " " + expTimeCal;
-                                        String expDatetimeErr = incorrectDatetimeErr.replace("X", expTimeSendTimeFract);
+                                        String expDatetimeErr = incorrectDatetimeErr.replace("X",
+                                                useSSPS && !(sendTimeFract && sendFractionalSeconds) && versionMeetsMinimum(8, 0, 28) ? expDate8_0_28
+                                                        : expTimeSendTimeFract);
                                         String expDatetimeErrWithCal = incorrectDatetimeErr.replace("X", expTimeCal);
 
                                         if (useSSPS) {
@@ -775,6 +787,8 @@ public class DateTimeTest extends BaseTestCase {
         id = 0;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
 
@@ -1065,6 +1079,8 @@ public class DateTimeTest extends BaseTestCase {
         id = 0;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
 
@@ -1334,6 +1350,8 @@ public class DateTimeTest extends BaseTestCase {
         id = 0;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
 
@@ -1591,6 +1609,8 @@ public class DateTimeTest extends BaseTestCase {
         id = 0;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
 
@@ -1648,9 +1668,9 @@ public class DateTimeTest extends BaseTestCase {
                                         /* Unsupported conversions */
 
                                         assertThrows(props, tVarchar, ld_20200101, MysqlType.TIME, senderTz,
-                                                ".* Conversion from java.time.LocalDate to TIME is not supported.");
+                                                ".*Conversion from java.time.LocalDate to TIME is not supported.");
                                         assertThrows(props, tDate, ld_20200101, MysqlType.INT, senderTz,
-                                                ".* Conversion from java.time.LocalDate to INT is not supported.");
+                                                ".*Conversion from java.time.LocalDate to INT is not supported.");
 
                                         /* Into YEAR field */
 
@@ -1777,6 +1797,8 @@ public class DateTimeTest extends BaseTestCase {
         id = 0;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
 
@@ -1832,6 +1854,8 @@ public class DateTimeTest extends BaseTestCase {
                                         String expTimeNoMs = zdt_no_date_120000_123456_on_wire.format(TimeUtil.TIME_FORMATTER_NO_FRACT_NO_OFFSET);
                                         String expTime6 = zdt_no_date_120000_123456_on_wire.format(timeFmt);
                                         String expTime9 = zdt_no_date_120000_123456_on_wire.format(timeFmtForChars);
+                                        String expTime8_0_28 = zdt_no_date_120000_123456_on_wire.format(DateTimeFormatter.ofPattern("20HH-mm-ss"));
+
                                         String expDatetimeDef = zdt_no_date_120000_123456_on_wire
                                                 .format(useSSPS ? dateTimeFmt : DateTimeFormatter.ofPattern("20HH-mm-ss 00:00:00"));
                                         String expDefTimestamp = zdt_no_date_120000_123456_on_wire.withZoneSameInstant(tz_UTC.toZoneId()).format(dateTimeFmt);
@@ -1844,20 +1868,24 @@ public class DateTimeTest extends BaseTestCase {
                                                 : "");
 
                                         String expDateErr6 = incorrectDateErr.replace("X", expTime6);
-                                        String expDateErr9 = incorrectDateErr.replace("X", expTime9);
+
+                                        String expDateErr9 = incorrectDateErr.replace("X",
+                                                useSSPS && !sendFractionalSeconds && versionMeetsMinimum(8, 0, 28) ? expTime8_0_28 : expTime9);
+
                                         String expDatetimeErr6 = incorrectDatetimeErr.replace("X", expTime6);
-                                        String expDatetimeErr9 = incorrectDatetimeErr.replace("X", expTime9);
+                                        String expDatetimeErr9 = incorrectDatetimeErr.replace("X",
+                                                useSSPS && !sendFractionalSeconds && versionMeetsMinimum(8, 0, 28) ? expTime8_0_28 : expTime9);
 
                                         /* Unsupported conversions */
 
                                         assertThrows(props, tVarchar, orig_lt, MysqlType.DATE, senderTz,
-                                                ".* Conversion from java.time.LocalTime to DATE is not supported.");
+                                                ".*Conversion from java.time.LocalTime to DATE is not supported.");
                                         assertThrows(props, tVarchar, orig_lt, MysqlType.DATETIME, senderTz,
-                                                ".* Conversion from java.time.LocalTime to DATETIME is not supported.");
+                                                ".*Conversion from java.time.LocalTime to DATETIME is not supported.");
                                         assertThrows(props, tVarchar, orig_lt, MysqlType.TIMESTAMP, senderTz,
-                                                ".* Conversion from java.time.LocalTime to TIMESTAMP is not supported.");
+                                                ".*Conversion from java.time.LocalTime to TIMESTAMP is not supported.");
                                         assertThrows(props, tVarchar, orig_lt, MysqlType.YEAR, senderTz,
-                                                ".* Conversion from java.time.LocalTime to YEAR is not supported.");
+                                                ".*Conversion from java.time.LocalTime to YEAR is not supported.");
 
                                         /* Into YEAR field */
 
@@ -1987,6 +2015,8 @@ public class DateTimeTest extends BaseTestCase {
         id = 0;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
 
@@ -2237,6 +2267,8 @@ public class DateTimeTest extends BaseTestCase {
         id = 0;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
 
@@ -2297,6 +2329,10 @@ public class DateTimeTest extends BaseTestCase {
                                         String expTimeNoMs = zdt_no_date_120000_123456_on_wire.format(TimeUtil.TIME_FORMATTER_NO_FRACT_NO_OFFSET);
                                         String expTime = zdt_no_date_120000_123456_on_wire.format(timeFmt);
                                         String expTimeTz = ot_120000_123456_05_00.format(timeFmtTz).replace("+", "\\+");
+                                        String expTimeTz8_0_28 = ot_120000_123456_05_00.format(DateTimeFormatter.ofPattern("20HH-mm-ss X:00:00")).replace("+",
+                                                "");
+                                        String expDatetimeTz8_0_28 = ot_120000_123456_05_00.format(DateTimeFormatter.ofPattern("20HH-mm-ss X:00:00.000000"))
+                                                .replace("+", "");
 
                                         String expDatetimeDef = zdt_no_date_120000_123456_on_wire
                                                 .format(useSSPS ? dateTimeFmt : DateTimeFormatter.ofPattern("20HH-mm-ss 00:00:00"));
@@ -2310,21 +2346,23 @@ public class DateTimeTest extends BaseTestCase {
                                                 : "");
 
                                         String expDateErr = incorrectDateErr.replace("X", expTime);
-                                        String expDateErrTz = incorrectDateErr.replace("X", expTimeTz);
+                                        String expDateErrTz = incorrectDateErr.replace("X",
+                                                useSSPS && !sendFractionalSeconds && versionMeetsMinimum(8, 0, 28) ? expTimeTz8_0_28 : expTimeTz);
                                         String expTimeErrTz = incorrectTimeErr.replace("X", expTimeTz);
                                         String expDatetimeErr = incorrectDatetimeErr.replace("X", expTime);
-                                        String expDatetimeErrTz = incorrectDatetimeErr.replace("X", expTimeTz);
+                                        String expDatetimeErrTz = incorrectDatetimeErr.replace("X",
+                                                useSSPS && !sendFractionalSeconds && versionMeetsMinimum(8, 0, 28) ? expDatetimeTz8_0_28 : expTimeTz);
 
                                         /* Unsupported conversions */
 
                                         assertThrows(props, tVarchar, ot_120000_123456_05_00, MysqlType.DATE, senderTz,
-                                                ".* Conversion from java.time.OffsetTime to DATE is not supported.");
+                                                ".*Conversion from java.time.OffsetTime to DATE is not supported.");
                                         assertThrows(props, tVarchar, ot_120000_123456_05_00, MysqlType.DATETIME, senderTz,
-                                                ".* Conversion from java.time.OffsetTime to DATETIME is not supported.");
+                                                ".*Conversion from java.time.OffsetTime to DATETIME is not supported.");
                                         assertThrows(props, tVarchar, ot_120000_123456_05_00, MysqlType.TIMESTAMP, senderTz,
-                                                ".* Conversion from java.time.OffsetTime to TIMESTAMP is not supported.");
+                                                ".*Conversion from java.time.OffsetTime to TIMESTAMP is not supported.");
                                         assertThrows(props, tVarchar, ot_120000_123456_05_00, MysqlType.YEAR, senderTz,
-                                                ".* Conversion from java.time.OffsetTime to YEAR is not supported.");
+                                                ".*Conversion from java.time.OffsetTime to YEAR is not supported.");
 
                                         /* Into YEAR field */
 
@@ -2444,6 +2482,9 @@ public class DateTimeTest extends BaseTestCase {
     public void testOffsetDatetimeSetters() throws Exception {
         boolean withFract = versionMeetsMinimum(5, 6, 4); // fractional seconds are not supported in previous versions
         boolean allowsOffset = versionMeetsMinimum(8, 0, 19);
+        // Starting from MySQL 8.0.22 server also converts string values in TIMESTAMP_WITH_TIMEZONE format to the session time zone
+        // for column types other than TIMESTAMP and DATETIME. In MySQL 8.0.26 it was reverted, restored in MySQL 8.0.28.
+        boolean serverConvertsTzForAllTypes = versionMeetsMinimum(8, 0, 22) && !versionMeetsMinimum(8, 0, 26) || versionMeetsMinimum(8, 0, 28);
 
         createTable(tYear, "(id INT, d YEAR)");
         createTable(tDate, "(id INT, d DATE)");
@@ -2463,6 +2504,8 @@ public class DateTimeTest extends BaseTestCase {
         TimeZone serverTz;
         try (Connection testConn = getConnectionWithProps(props)) {
             serverTz = ((MysqlConnection) testConn).getSession().getServerSession().getSessionTimeZone();
+            System.out.println("Local tz: " + TimeZone.getDefault());
+            System.out.println("Server tz: " + serverTz);
         }
 
         OffsetDateTime odt_20200101_120000_123456_05_00 = OffsetDateTime.of(2020, 1, 1, 12, 00, 00, withFract ? 123456000 : 0, ZoneOffset.ofHours(5));
@@ -2529,9 +2572,8 @@ public class DateTimeTest extends BaseTestCase {
                                         String expDate = zdt_20200101_120000_123456_on_wire.format(TimeUtil.DATE_FORMATTER);
                                         String expDateDef = zdt_no_date_120000_123456_on_wire
                                                 .format(useSSPS ? TimeUtil.DATE_FORMATTER : DateTimeFormatter.ofPattern("20HH-mm-ss"));
-                                        // Starting from MySQL 8.0.22 TIMESTAMP_WITH_TIMEZONE value is also converted to the server time zone by server
-                                        // for column types other than TIMESTAMP or DATETIME
-                                        String expDateChar = versionMeetsMinimum(8, 0, 22)
+
+                                        String expDateChar = serverConvertsTzForAllTypes
                                                 ? odt_20200101_120000_123456_05_00.atZoneSameInstant(sessionTz.toZoneId()).format(TimeUtil.DATE_FORMATTER)
                                                 : odt_20200101_120000_123456_05_00.format(TimeUtil.DATE_FORMATTER);
                                         String expDateTS = zdt_TS_on_wire.format(TimeUtil.DATE_FORMATTER);
@@ -2539,7 +2581,7 @@ public class DateTimeTest extends BaseTestCase {
                                         String expTimeNoMs = zdt_20200101_120000_123456_on_wire.format(TimeUtil.TIME_FORMATTER_NO_FRACT_NO_OFFSET);
                                         String expTime = zdt_20200101_120000_123456_on_wire.format(timeFmt);
 
-                                        String expTime2 = versionMeetsMinimum(8, 0, 22)
+                                        String expTime2 = serverConvertsTzForAllTypes
                                                 ? odt_20200101_120000_123456_05_00.atZoneSameInstant(sessionTz.toZoneId()).format(timeFmt)
                                                 : odt_20200101_120000_123456_05_00.format(timeFmt);
                                         String expTimeTS = zdt_TS_on_wire.format(timeFmt);
@@ -2815,6 +2857,9 @@ public class DateTimeTest extends BaseTestCase {
     public void testZonedDatetimeSetters() throws Exception {
         boolean withFract = versionMeetsMinimum(5, 6, 4); // fractional seconds are not supported in previous versions
         boolean allowsOffset = versionMeetsMinimum(8, 0, 19);
+        // Starting from MySQL 8.0.22 server also converts string values in TIMESTAMP_WITH_TIMEZONE format to the session time zone
+        // for column types other than TIMESTAMP and DATETIME. In MySQL 8.0.26 it was reverted, restored in MySQL 8.0.28.
+        boolean serverConvertsTzForAllTypes = versionMeetsMinimum(8, 0, 22) && !versionMeetsMinimum(8, 0, 26) || versionMeetsMinimum(8, 0, 28);
 
         createTable(tYear, "(id INT, d YEAR)");
         createTable(tDate, "(id INT, d DATE)");
@@ -2826,12 +2871,16 @@ public class DateTimeTest extends BaseTestCase {
         id = 0;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
 
         TimeZone serverTz;
         try (Connection testConn = getConnectionWithProps(props)) {
             serverTz = ((MysqlConnection) testConn).getSession().getServerSession().getSessionTimeZone();
+            System.out.println("Local tz: " + TimeZone.getDefault());
+            System.out.println("Server tz: " + serverTz);
         }
 
         ZonedDateTime zdt_20200101_120000_123456_05_00 = ZonedDateTime.of(withFract ? ldt_20200101_120000_123456 : ldt_20200101_120000_123456.withNano(0),
@@ -2898,16 +2947,14 @@ public class DateTimeTest extends BaseTestCase {
                                         String expDate = zdt_20200101_120000_123456_on_wire.format(TimeUtil.DATE_FORMATTER);
                                         String expDateDef = zdt_no_date_120000_123456_on_wire
                                                 .format(useSSPS ? TimeUtil.DATE_FORMATTER : DateTimeFormatter.ofPattern("20HH-mm-ss"));
-                                        // Starting from MySQL 8.0.22 TIMESTAMP_WITH_TIMEZONE value is also converted to the server time zone by server
-                                        // for column types other than TIMESTAMP or DATETIME
-                                        String expDateChar = versionMeetsMinimum(8, 0, 22)
+                                        String expDateChar = serverConvertsTzForAllTypes
                                                 ? zdt_20200101_120000_123456_05_00.withZoneSameInstant(sessionTz.toZoneId()).format(TimeUtil.DATE_FORMATTER)
                                                 : zdt_20200101_120000_123456_05_00.format(TimeUtil.DATE_FORMATTER);
                                         String expDateTS = zdt_TS_on_wire.format(TimeUtil.DATE_FORMATTER);
 
                                         String expTimeNoMs = zdt_20200101_120000_123456_on_wire.format(TimeUtil.TIME_FORMATTER_NO_FRACT_NO_OFFSET);
                                         String expTime = zdt_20200101_120000_123456_on_wire.format(timeFmt);
-                                        String expTime2 = versionMeetsMinimum(8, 0, 22)
+                                        String expTime2 = serverConvertsTzForAllTypes
                                                 ? zdt_20200101_120000_123456_05_00.withZoneSameInstant(sessionTz.toZoneId()).format(timeFmt)
                                                 : zdt_20200101_120000_123456_05_00.format(timeFmt);
                                         String expTimeTS = zdt_TS_on_wire.format(timeFmt);
@@ -3185,6 +3232,8 @@ public class DateTimeTest extends BaseTestCase {
         id = 0;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
 
         for (TimeZone senderTz : this.senderTimeZones) {
@@ -3227,13 +3276,13 @@ public class DateTimeTest extends BaseTestCase {
                                         /* Unsupported conversions */
 
                                         assertThrows(props, tVarchar, dur, MysqlType.DATE, senderTz,
-                                                ".* Conversion from java.time.Duration to DATE is not supported.");
+                                                ".*Conversion from java.time.Duration to DATE is not supported.");
                                         assertThrows(props, tVarchar, dur, MysqlType.DATETIME, senderTz,
-                                                ".* Conversion from java.time.Duration to DATETIME is not supported.");
+                                                ".*Conversion from java.time.Duration to DATETIME is not supported.");
                                         assertThrows(props, tVarchar, dur, MysqlType.TIMESTAMP, senderTz,
-                                                ".* Conversion from java.time.Duration to TIMESTAMP is not supported.");
+                                                ".*Conversion from java.time.Duration to TIMESTAMP is not supported.");
                                         assertThrows(props, tVarchar, dur, MysqlType.YEAR, senderTz,
-                                                ".* Conversion from java.time.Duration to YEAR is not supported.");
+                                                ".*Conversion from java.time.Duration to YEAR is not supported.");
 
                                         /* Into TIME field */
 
@@ -3389,9 +3438,10 @@ public class DateTimeTest extends BaseTestCase {
                 testConn = this.utcConnections.get(getKey(props));
                 Statement localStmt = testConn.createStatement();
                 localStmt.execute("set @@time_zone='+00:00'");
-                ResultSet localRs = localStmt.executeQuery("SELECT * FROM " + tableName + " WHERE id = " + id + " AND d = '" + expectedUTCValue + "'"
-                        + (expectedUnixTimestamp != null ? " AND unix_timestamp(d) = " + expectedUnixTimestamp : ""));
-                assertTrue(localRs.next());
+                String sql = "SELECT * FROM " + tableName + " WHERE id = " + id + " AND d = '" + expectedUTCValue + "'"
+                        + (expectedUnixTimestamp != null ? " AND unix_timestamp(d) = " + expectedUnixTimestamp : "");
+                ResultSet localRs = localStmt.executeQuery(sql);
+                assertTrue(localRs.next(), parameter + "\n" + targetSqlType + "\n" + senderTz + "\n" + useMethod + "\n" + sql);
                 localStmt.close();
             }
         } finally {
@@ -3407,6 +3457,8 @@ public class DateTimeTest extends BaseTestCase {
         Calendar cal_05 = GregorianCalendar.getInstance(tz_plus_05_00);
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
 
         final TimeZone origTz = TimeZone.getDefault();
@@ -3536,6 +3588,8 @@ public class DateTimeTest extends BaseTestCase {
         Calendar cal_05 = GregorianCalendar.getInstance(tz_plus_05_00);
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
 
         final TimeZone origTz = TimeZone.getDefault();
@@ -3756,6 +3810,8 @@ public class DateTimeTest extends BaseTestCase {
         Calendar cal_05 = GregorianCalendar.getInstance(tz_plus_05_00);
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
@@ -3882,6 +3938,8 @@ public class DateTimeTest extends BaseTestCase {
         this.stmt.executeUpdate("INSERT INTO " + tDatetime + " VALUES ('" + ldt_20200101_020000_123456.toString() + "')");
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
@@ -3997,6 +4055,8 @@ public class DateTimeTest extends BaseTestCase {
         Calendar cal_05 = GregorianCalendar.getInstance(tz_plus_05_00);
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
 
         final TimeZone origTz = TimeZone.getDefault();
@@ -4352,6 +4412,8 @@ public class DateTimeTest extends BaseTestCase {
         id = 0;
 
         Properties props = new Properties();
+        props.setProperty(PropertyKey.sslMode.getKeyName(), "DISABLED");
+        props.setProperty(PropertyKey.allowPublicKeyRetrieval.getKeyName(), "true");
         props.setProperty(PropertyKey.cacheDefaultTimeZone.getKeyName(), "false");
         props.setProperty(PropertyKey.connectionTimeZone.getKeyName(), "SERVER");
 

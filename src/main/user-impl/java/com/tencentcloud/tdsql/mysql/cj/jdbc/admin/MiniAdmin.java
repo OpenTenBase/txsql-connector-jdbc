@@ -37,7 +37,6 @@ import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.Driver;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
 
 /**
  * Utility functions for admin functionality from Java.
@@ -61,7 +60,7 @@ public class MiniAdmin {
 
         if (!(conn instanceof JdbcConnection)) {
             throw SQLError.createSQLException(Messages.getString("MiniAdmin.1"), MysqlErrorNumbers.SQL_STATE_GENERAL_ERROR,
-                    ((ConnectionImpl) conn).getExceptionInterceptor());
+                    ((com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl) conn).getExceptionInterceptor());
         }
 
         this.conn = (JdbcConnection) conn;

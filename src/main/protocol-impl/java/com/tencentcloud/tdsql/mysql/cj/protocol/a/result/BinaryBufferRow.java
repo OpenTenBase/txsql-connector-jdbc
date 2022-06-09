@@ -36,11 +36,13 @@ import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ColumnDefinition;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ValueDecoder;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.IntegerDataType;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringLengthDataType;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringSelfDataType;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativePacketPayload;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeUtils;
 import com.tencentcloud.tdsql.mysql.cj.result.Row;
 import com.tencentcloud.tdsql.mysql.cj.result.ValueFactory;
-import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants;
 
 /**
  * A BufferRow implementation that holds one row packet from a server-side prepared statement (which is re-used by the driver,
@@ -122,7 +124,7 @@ public class BinaryBufferRow extends AbstractBufferRow {
             if (type != MysqlType.FIELD_TYPE_NULL) {
                 int length = NativeUtils.getBinaryEncodedLength(this.metadata.getFields()[i].getMysqlTypeId());
                 if (length == 0) {
-                    this.rowFromServer.skipBytes(NativeConstants.StringSelfDataType.STRING_LENENC);
+                    this.rowFromServer.skipBytes(StringSelfDataType.STRING_LENENC);
                 } else if (length == -1) {
                     throw ExceptionFactory.createException(Messages.getString("MysqlIO.97", new Object[] { type, i + 1, this.metadata.getFields().length }),
                             this.exceptionInterceptor);
@@ -154,17 +156,17 @@ public class BinaryBufferRow extends AbstractBufferRow {
                 return null;
 
             case MysqlType.FIELD_TYPE_TINY:
-                return this.rowFromServer.readBytes(NativeConstants.StringLengthDataType.STRING_FIXED, 1);
+                return this.rowFromServer.readBytes(StringLengthDataType.STRING_FIXED, 1);
 
             default:
                 int length = NativeUtils.getBinaryEncodedLength(type);
                 if (length == 0) {
-                    return this.rowFromServer.readBytes(NativeConstants.StringSelfDataType.STRING_LENENC);
+                    return this.rowFromServer.readBytes(StringSelfDataType.STRING_LENENC);
                 } else if (length == -1) {
                     throw ExceptionFactory.createException(Messages.getString("MysqlIO.97", new Object[] { type, index + 1, this.metadata.getFields().length }),
                             this.exceptionInterceptor);
                 } else {
-                    return this.rowFromServer.readBytes(NativeConstants.StringLengthDataType.STRING_FIXED, length);
+                    return this.rowFromServer.readBytes(StringLengthDataType.STRING_FIXED, length);
                 }
         }
     }
@@ -200,7 +202,7 @@ public class BinaryBufferRow extends AbstractBufferRow {
         int len = this.metadata.getFields().length;
         int nullCount = (len + 9) / 8;
 
-        byte[] nullBitMask = this.rowFromServer.readBytes(NativeConstants.StringLengthDataType.STRING_FIXED, nullCount);
+        byte[] nullBitMask = this.rowFromServer.readBytes(StringLengthDataType.STRING_FIXED, nullCount);
 
         this.homePosition = this.rowFromServer.getPosition();
 
@@ -233,7 +235,7 @@ public class BinaryBufferRow extends AbstractBufferRow {
         int length = NativeUtils.getBinaryEncodedLength(type);
         if (!getNull(columnIndex)) {
             if (length == 0) {
-                length = (int) this.rowFromServer.readInteger(NativeConstants.IntegerDataType.INT_LENENC);
+                length = (int) this.rowFromServer.readInteger(IntegerDataType.INT_LENENC);
             } else if (length == -1) {
                 throw ExceptionFactory.createException(
                         Messages.getString("MysqlIO.97", new Object[] { type, columnIndex + 1, this.metadata.getFields().length }), this.exceptionInterceptor);
@@ -267,7 +269,7 @@ public class BinaryBufferRow extends AbstractBufferRow {
 
             int length = NativeUtils.getBinaryEncodedLength(type);
             if (length == 0) {
-                this.rowFromServer.writeBytes(NativeConstants.StringSelfDataType.STRING_LENENC, value);
+                this.rowFromServer.writeBytes(StringSelfDataType.STRING_LENENC, value);
             } else if (length == -1) {
                 throw ExceptionFactory.createException(
                         Messages.getString("MysqlIO.97", new Object[] { type, columnIndex + 1, this.metadata.getFields().length }), this.exceptionInterceptor);
@@ -278,12 +280,12 @@ public class BinaryBufferRow extends AbstractBufferRow {
                             this.exceptionInterceptor);
                 }
                 // write value
-                this.rowFromServer.writeBytes(NativeConstants.StringLengthDataType.STRING_FIXED, value);
+                this.rowFromServer.writeBytes(StringLengthDataType.STRING_FIXED, value);
             }
         }
 
         if (backup != null) {
-            this.rowFromServer.writeBytes(NativeConstants.StringLengthDataType.STRING_FIXED, backup);
+            this.rowFromServer.writeBytes(StringLengthDataType.STRING_FIXED, backup);
         }
     }
 }

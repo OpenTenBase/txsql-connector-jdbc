@@ -42,8 +42,11 @@ public interface ServerCapabilities {
 
     ServerVersion getServerVersion();
 
-    void setServerVersion(ServerVersion serverVersion);
+    long getThreadId();
+
+    void setThreadId(long threadId);
 
     boolean serverSupportsFracSecs();
 
+    int getServerDefaultCollationIndex();
 }

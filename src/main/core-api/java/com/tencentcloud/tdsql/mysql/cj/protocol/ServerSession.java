@@ -29,10 +29,12 @@
 
 package com.tencentcloud.tdsql.mysql.cj.protocol;
 
+import com.tencentcloud.tdsql.mysql.cj.CharsetSettings;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJOperationNotSupportedException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
 import java.util.Map;
 import java.util.TimeZone;
-
-import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
 
 /**
  * Keeps the effective states of server/session variables,
@@ -59,8 +61,6 @@ public interface ServerSession {
      * Old SERVER_STATUS_IN_TRANS state was 1 and current one is 0.
      */
     public static int TRANSACTION_COMPLETED = 3;
-
-    public static final String LOCAL_CHARACTER_SET_RESULTS = "local.character_set_results";
 
     ServerCapabilities getCapabilities();
 
@@ -89,20 +89,6 @@ public interface ServerSession {
     int getOldStatusFlags();
 
     void setOldStatusFlags(int statusFlags);
-
-    /**
-     * 
-     * @return Collation index which server provided in handshake greeting packet
-     */
-    int getServerDefaultCollationIndex();
-
-    /**
-     * Stores collation index which server provided in handshake greeting packet.
-     * 
-     * @param serverDefaultCollationIndex
-     *            collation index
-     */
-    void setServerDefaultCollationIndex(int serverDefaultCollationIndex);
 
     /**
      * 
@@ -135,11 +121,13 @@ public interface ServerSession {
 
     void setClientParam(long clientParam);
 
+    boolean hasLongColumnInfo();
+
     boolean useMultiResults();
 
     boolean isEOFDeprecated();
 
-    boolean hasLongColumnInfo();
+    boolean supportsQueryAttributes();
 
     Map<String, String> getServerVariables();
 
@@ -148,8 +136,6 @@ public interface ServerSession {
     int getServerVariable(String variableName, int fallbackValue);
 
     void setServerVariables(Map<String, String> serverVariables);
-
-    boolean characterSetNamesMatches(String mysqlEncodingName);
 
     /**
      * Get the version of the MySQL server we are talking to.
@@ -171,46 +157,6 @@ public interface ServerSession {
     boolean isVersion(ServerVersion version);
 
     /**
-     * 
-     * @return the server's default character set name according to collation index from server greeting,
-     *         or value of 'character_set_server' variable if there is no mapping for that index
-     */
-    String getServerDefaultCharset();
-
-    String getErrorMessageEncoding();
-
-    void setErrorMessageEncoding(String errorMessageEncoding);
-
-    int getMaxBytesPerChar(String javaCharsetName);
-
-    int getMaxBytesPerChar(Integer charsetIndex, String javaCharsetName);
-
-    /**
-     * Returns the Java character encoding name for the given MySQL server
-     * collation index
-     * 
-     * @param collationIndex
-     *            collation index
-     * @return the Java character encoding name for the given MySQL server
-     *         collation index
-     */
-    String getEncodingForIndex(int collationIndex);
-
-    void configureCharacterSets();
-
-    String getCharacterSetMetadata();
-
-    void setCharacterSetMetadata(String characterSetMetadata);
-
-    int getMetadataCollationIndex();
-
-    void setMetadataCollationIndex(int metadataCollationIndex);
-
-    String getCharacterSetResultsOnServer();
-
-    void setCharacterSetResultsOnServer(String characterSetResultsOnServer);
-
-    /**
      * Is the server configured to use lower-case table names only?
      * 
      * @return true if lower_case_table_names is 'on'
@@ -227,10 +173,6 @@ public interface ServerSession {
 
     public boolean isServerTruncatesFracSecs();
 
-    long getThreadId();
-
-    public void setThreadId(long threadId);
-
     boolean isAutoCommit();
 
     void setAutoCommit(boolean autoCommit);
@@ -240,10 +182,18 @@ public interface ServerSession {
     void setSessionTimeZone(TimeZone sessionTimeZone);
 
     /**
-     * The default time zone used to marshall date/time values to/from the server. This is used when getDate(), etc methods are called without a calendar
+     * The default time zone used to marshal date/time values to/from the server. This is used when methods like getDate() are called without a calendar
      * argument.
      *
      * @return The default JVM time zone
      */
     TimeZone getDefaultTimeZone();
+
+    default com.tencentcloud.tdsql.mysql.cj.protocol.ServerSessionStateController getServerSessionStateController() {
+        throw ExceptionFactory.createException(CJOperationNotSupportedException.class, "Not supported");
+    }
+
+    CharsetSettings getCharsetSettings();
+
+    void setCharsetSettings(CharsetSettings charsetSettings);
 }

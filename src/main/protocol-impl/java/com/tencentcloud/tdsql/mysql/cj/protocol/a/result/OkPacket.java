@@ -29,19 +29,24 @@
 
 package com.tencentcloud.tdsql.mysql.cj.protocol.a.result;
 
+import static com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeServerSession.SERVER_SESSION_STATE_CHANGED;
+
 import com.tencentcloud.tdsql.mysql.cj.protocol.ProtocolEntity;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.IntegerDataType;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringSelfDataType;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativePacketPayload;
-import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeServerSessionStateController.NativeServerSessionStateChanges;
 
 public class OkPacket implements ProtocolEntity {
-
     private long updateCount = -1;
     private long updateID = -1;
     private int statusFlags = 0;
     private int warningCount = 0;
     private String info = null;
+    private NativeServerSessionStateChanges sessionStateChanges;
 
-    public OkPacket() {
+    private OkPacket() {
+        this.sessionStateChanges = new NativeServerSessionStateChanges();
     }
 
     public static OkPacket parse(NativePacketPayload buf, String errorMessageEncoding) {
@@ -50,11 +55,16 @@ public class OkPacket implements ProtocolEntity {
         buf.setPosition(1); // skips the 'last packet' flag (packet signature)
 
         // read OK packet
-        ok.setUpdateCount(buf.readInteger(NativeConstants.IntegerDataType.INT_LENENC)); // affected_rows
-        ok.setUpdateID(buf.readInteger(NativeConstants.IntegerDataType.INT_LENENC)); // last_insert_id
-        ok.setStatusFlags((int) buf.readInteger(NativeConstants.IntegerDataType.INT2));
-        ok.setWarningCount((int) buf.readInteger(NativeConstants.IntegerDataType.INT2));
-        ok.setInfo(buf.readString(NativeConstants.StringSelfDataType.STRING_TERM, errorMessageEncoding)); // info
+        ok.setUpdateCount(buf.readInteger(IntegerDataType.INT_LENENC)); // affected_rows
+        ok.setUpdateID(buf.readInteger(IntegerDataType.INT_LENENC)); // last_insert_id
+        ok.setStatusFlags((int) buf.readInteger(IntegerDataType.INT2));
+        ok.setWarningCount((int) buf.readInteger(IntegerDataType.INT2));
+        ok.setInfo(buf.readString(StringSelfDataType.STRING_TERM, errorMessageEncoding)); // info
+
+        // read session state changes info
+        if ((ok.getStatusFlags() & SERVER_SESSION_STATE_CHANGED) > 0) {
+            ok.sessionStateChanges.init(buf, errorMessageEncoding);
+        }
         return ok;
     }
 
@@ -97,4 +107,9 @@ public class OkPacket implements ProtocolEntity {
     public void setWarningCount(int warningCount) {
         this.warningCount = warningCount;
     }
+
+    public NativeServerSessionStateChanges getSessionStateChanges() {
+        return this.sessionStateChanges;
+    }
+
 }
