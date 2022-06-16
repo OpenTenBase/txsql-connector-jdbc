@@ -7,7 +7,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
-import tdsql.base.BaseTest;
+import tdsql.direct.base.BaseTest;
 
 /**
  * <p></p>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--monitorInterval 默认多长时间自动获取配置-->
+<Configuration status="warn" monitorInterval="5">
+    <properties>
+        <property name="LOG_HOME">./log4j2</property>
+        <property name="FILE_NAME">${date:yyyy-MM-dd}</property>
+    </properties>
+    <Appenders>
+        <!--在控制台中显示-->
+        <Console name="Console" target="SYSTEM_OUT">
+            <!--显示的格式-->
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] [%-5level] %c{36}:%L --- %m%n"/>
+        </Console>
+        <!--在文件中储存 循环储存一天一个  fileName 文件名字.filePattern 文件名重复后生成的名字-->
+        <RollingRandomAccessFile name="MyFile" fileName="${LOG_HOME}/${FILE_NAME}.log"
+                filePattern="${LOG_HOME}/${date:yyyy-MM}/${FILE_NAME}-%d{yyyy-MM-dd HH-mm}-%i.log">
+            <!--显示的格式-->
+            <PatternLayout
+                    pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+            <Policies>
+                <!--多长时间生成一个新的LOG(按分钟)-->
+                <TimeBasedTriggeringPolicy interval="120"/>
+                <!--文件大小超过多少生成新文件-->
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+            <!--默认储存多少个文件-->
+            <DefaultRolloverStrategy max="20"/>
+        </RollingRandomAccessFile>
+    </Appenders>
+    <Loggers>
+        <!--异步日志 additivity防止重复日志-->
+        <AsyncLogger name="com.tencentcloud" level="trace" additivity="false">
+            <AppenderRef ref="MyFile"/>
+            <AppenderRef ref="Console"/>
+        </AsyncLogger>
+        <!--全局日志 level日志级别-->
+        <Root level="trace">
+            <AppenderRef ref="MyFile"/>
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+</Configuration>

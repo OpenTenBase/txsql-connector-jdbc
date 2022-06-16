@@ -1,6 +1,6 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.util;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlConst.TDSQL_READ_WRITE_MODE_RO;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst.TDSQL_READ_WRITE_MODE_RO;
 
 /**
  * <p></p>

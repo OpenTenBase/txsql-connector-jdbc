@@ -1,4 +1,4 @@
-package tdsql.base;
+package tdsql.direct.base;
 
 import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_DRIVERCLASSNAME;
 import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_INITIALSIZE;

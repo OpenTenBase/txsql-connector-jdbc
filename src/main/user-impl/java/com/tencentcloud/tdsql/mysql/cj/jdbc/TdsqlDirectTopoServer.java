@@ -11,7 +11,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.listener.FailoverCacheListener;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.listener.UpdateSchedulingQueueCacheListener;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlConst;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlUtil;
@@ -35,10 +35,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public final class TdsqlDirectTopoServer {
 
     private ScheduledThreadPoolExecutor topoServerScheduler = null;
-    private String tdsqlReadWriteMode = TdsqlConst.TDSQL_READ_WRITE_MODE_RW;
-    private Integer tdsqlMaxSlaveDelay = TdsqlConst.TDSQL_MAX_SLAVE_DELAY_DEFAULT_VALUE;
+    private String tdsqlReadWriteMode = TdsqlDirectConst.TDSQL_READ_WRITE_MODE_RW;
+    private Integer tdsqlMaxSlaveDelay = TdsqlDirectConst.TDSQL_MAX_SLAVE_DELAY_DEFAULT_VALUE;
     private Connection tdsqlConnection;
-    private Integer tdsqlProxyTopoRefreshInterval = TdsqlConst.TDSQL_PROXY_TOPO_REFRESH_INTERVAL_DEFAULT_VALUE;
+    private Integer tdsqlProxyTopoRefreshInterval = TdsqlDirectConst.TDSQL_PROXY_TOPO_REFRESH_INTERVAL_DEFAULT_VALUE;
     private ConnectionUrl connectionUrl = null;
     private final TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = TdsqlAtomicLongMap.create();
     private final ReentrantReadWriteLock refreshLock = new ReentrantReadWriteLock();
@@ -60,13 +60,13 @@ public final class TdsqlDirectTopoServer {
 
             String newTdsqlReadWriteMode = connProps.getStringProperty(PropertyKey.tdsqlReadWriteMode).getValue();
             if (!tdsqlReadWriteMode.equalsIgnoreCase(newTdsqlReadWriteMode)) {
-                if (TdsqlConst.TDSQL_READ_WRITE_MODE_RW.equalsIgnoreCase(newTdsqlReadWriteMode)
-                        || TdsqlConst.TDSQL_READ_WRITE_MODE_RO.equalsIgnoreCase(newTdsqlReadWriteMode)) {
+                if (TdsqlDirectConst.TDSQL_READ_WRITE_MODE_RW.equalsIgnoreCase(newTdsqlReadWriteMode)
+                        || TdsqlDirectConst.TDSQL_READ_WRITE_MODE_RO.equalsIgnoreCase(newTdsqlReadWriteMode)) {
                     tdsqlReadWriteMode = newTdsqlReadWriteMode;
                 }
             }
 
-            if (TdsqlConst.TDSQL_READ_WRITE_MODE_RO.equalsIgnoreCase(tdsqlReadWriteMode)) {
+            if (TdsqlDirectConst.TDSQL_READ_WRITE_MODE_RO.equalsIgnoreCase(tdsqlReadWriteMode)) {
                 Integer newTdsqlMaxSlaveDelay = connProps.getIntegerProperty(PropertyKey.tdsqlMaxSlaveDelay).getValue();
                 if (!tdsqlMaxSlaveDelay.equals(newTdsqlMaxSlaveDelay)) {
                     if (newTdsqlMaxSlaveDelay > 0 && newTdsqlMaxSlaveDelay < Integer.MAX_VALUE) {

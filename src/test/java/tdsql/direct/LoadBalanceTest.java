@@ -12,7 +12,7 @@ import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import tdsql.base.BaseTest;
+import tdsql.direct.base.BaseTest;
 
 /**
  * <p></p>

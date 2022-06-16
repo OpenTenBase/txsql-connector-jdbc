@@ -1,9 +1,12 @@
-package tdsql.direct;
+package tdsql.loadbalance;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import com.atomikos.jdbc.AtomikosDataSourceBean;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlDataSource;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
@@ -15,7 +18,7 @@ import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import tdsql.direct.base.BaseTest;
+import tdsql.loadbalance.base.BaseTest;
 
 @TestMethodOrder(OrderAnnotation.class)
 public class DataSourceTest extends BaseTest {
@@ -63,6 +66,30 @@ public class DataSourceTest extends BaseTest {
             assertEquals(max, druidDataSource.getCreateCount());
             assertEquals(0, druidDataSource.getActiveCount());
             assertEquals(max, druidDataSource.getPoolingCount());
+        }
+    }
+
+    @Test
+    @Order(4)
+    public void testCreateAtomikosDataSource() throws SQLException {
+        AtomikosDataSourceBean atomikosDataSource = null;
+        try {
+            atomikosDataSource = (AtomikosDataSourceBean) createAtomikosDataSource();
+            assertNotNull(atomikosDataSource);
+
+            int max = atomikosDataSource.getMaxPoolSize();
+            warmUp(atomikosDataSource, max * 2, max * 100, max * 3);
+
+            assertTrue(atomikosDataSource.getConcurrentConnectionValidation());
+            Connection conn = atomikosDataSource.getConnection();
+            assertNotNull(conn);
+            assertFalse(conn.isClosed());
+            assertTrue(conn.isValid(1));
+            conn.close();
+        } finally {
+            if (atomikosDataSource != null) {
+                atomikosDataSource.close();
+            }
         }
     }
 }

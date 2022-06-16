@@ -18,10 +18,10 @@ public class TdsqlUtil {
     private final static String slaveStr = "slave_iplist";
 
     public static List<DataSetCluster> showRoutes(Connection connection) throws SQLException {
-        connection.setNetworkTimeout(immediateExecutor, TdsqlConst.TDSQL_SHOW_ROUTES_CONN_TIMEOUT);
+        connection.setNetworkTimeout(immediateExecutor, TdsqlDirectConst.TDSQL_SHOW_ROUTES_CONN_TIMEOUT);
         List<DataSetCluster> dataSetClusters = new ArrayList<>();
-        try (PreparedStatement pst = connection.prepareStatement(TdsqlConst.TDSQL_SHOW_ROUTES_SQL)) {
-            pst.setQueryTimeout(TdsqlConst.TDSQL_SHOW_ROUTES_TIMEOUT_SECONDS);
+        try (PreparedStatement pst = connection.prepareStatement(TdsqlDirectConst.TDSQL_SHOW_ROUTES_SQL)) {
+            pst.setQueryTimeout(TdsqlDirectConst.TDSQL_SHOW_ROUTES_TIMEOUT_SECONDS);
             try (ResultSet rs = pst.executeQuery()) {
                 while (rs.next()) {
                     String clusterName = rs.getString(clusterStr);

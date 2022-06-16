@@ -271,15 +271,15 @@ public enum PropertyKey {
     yearIsDateType("yearIsDateType", true), //
     zeroDateTimeBehavior("zeroDateTimeBehavior", true), //
 
-    loadBalanceWeightFactor("loadBalanceWeightFactor", true),
+    // Load Balance
+    tdsqlLoadBalanceStrategy("tdsqlLoadBalanceStrategy", true),
+    tdsqlLoadBalanceWeightFactor("tdsqlLoadBalanceWeightFactor", true),
+    tdsqlLoadBalanceBlacklistTimeout("tdsqlLoadBalanceBlacklistTimeout", true),
+    tdsqlLoadBalanceHeartbeatMonitor("tdsqlLoadBalanceHeartbeatMonitor", true),
+    tdsqlLoadBalanceHeartbeatIntervalTime("tdsqlLoadBalanceHeartbeatIntervalTime", true),
+    tdsqlLoadBalanceMaximumErrorRetries("tdsqlLoadBalanceMaximumErrorRetries", true),
 
-    haLoadBalanceWeightFactor("haLoadBalanceWeightFactor", true),
-    haLoadBalanceBlacklistTimeout("haLoadBalanceBlacklistTimeout", true),
-    haLoadBalanceHeartbeatMonitor("haLoadBalanceHeartbeatMonitor", true),
-    haLoadBalanceHeartbeatIntervalTime("haLoadBalanceHeartbeatIntervalTime", true),
-    haLoadBalanceMaximumErrorRetries("haLoadBalanceMaximumErrorRetries", true),
-
-    // direct
+    // Direct
     tdsqlReadWriteMode("tdsqlReadWriteMode", true),
     tdsqlMaxSlaveDelay("tdsqlMaxSlaveDelay", true),
     tdsqlProxyTopoRefreshInterval("tdsqlProxyTopoRefreshInterval", true)

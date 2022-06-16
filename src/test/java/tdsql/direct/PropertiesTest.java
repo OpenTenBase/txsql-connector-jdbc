@@ -15,7 +15,7 @@ import java.sql.Connection;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
-import tdsql.base.BaseTest;
+import tdsql.direct.base.BaseTest;
 
 /**
  * <p>数据库直连测试用例</p>

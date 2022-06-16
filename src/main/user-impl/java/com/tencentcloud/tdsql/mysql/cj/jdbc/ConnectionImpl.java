@@ -43,6 +43,7 @@ import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.RuntimeProperty;
+import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
@@ -55,6 +56,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.MultiHostMySQLConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlDirectConnectionProxy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlLoadBalanceConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaData;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaDataImpl;
@@ -718,6 +720,9 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
             realClose(true, true, false, null);
             if (TdsqlDirectConnectionProxy.directMode) {
                 TdsqlDirectConnectionProxy.closeProxyInstance(this, origHostInfo);
+            }
+            if (TdsqlLoadBalanceConnection.tdsqlLoadBalanceMode && origHostInfo instanceof TdsqlHostInfo) {
+                TdsqlLoadBalanceConnectionCounter.getInstance().decrementCounter((TdsqlHostInfo) origHostInfo);
             }
         }
     }

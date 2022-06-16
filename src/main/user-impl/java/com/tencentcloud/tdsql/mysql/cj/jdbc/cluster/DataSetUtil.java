@@ -4,7 +4,7 @@ import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.TDSQLRouteParseException;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlConst;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,14 +84,14 @@ public class DataSetUtil {
         if(isEmpty(str)) {
             return false;
         }
-        return str.trim().equals(TdsqlConst.TDSQL_ROUTE_ACTIVE_TRUE);
+        return str.trim().equals(TdsqlDirectConst.TDSQL_ROUTE_ACTIVE_TRUE);
     }
 
     private static boolean parseWatch(String str){
         if(isEmpty(str)) {
             return false;
         }
-        return str.trim().equals(TdsqlConst.TDSQL_ROUTE_WATCH_TRUE);
+        return str.trim().equals(TdsqlDirectConst.TDSQL_ROUTE_WATCH_TRUE);
     }
 
     private static Integer parseWeight(String str) throws SQLException {

@@ -12,7 +12,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
-import tdsql.base.BaseTest;
+import tdsql.direct.base.BaseTest;
 
 public class ConnectionPoolTest extends BaseTest {
 

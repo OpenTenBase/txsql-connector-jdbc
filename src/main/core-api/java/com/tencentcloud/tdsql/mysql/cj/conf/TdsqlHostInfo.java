@@ -10,12 +10,14 @@ import java.util.Objects;
  */
 public final class TdsqlHostInfo extends HostInfo {
 
+    private String ownerUuid;
     private final String host;
     private final int port;
     private final String user;
     private final String password;
     private final String database;
     private final Map<String, String> hostProperties;
+    private int weightFactor;
 
     public TdsqlHostInfo(HostInfo hostInfo) {
         super(hostInfo.getOriginalUrl(), hostInfo.getHost(), hostInfo.getPort(), hostInfo.getUser(),
@@ -26,6 +28,22 @@ public final class TdsqlHostInfo extends HostInfo {
         this.password = hostInfo.getPassword();
         this.hostProperties = hostInfo.getHostProperties();
         this.database = hostInfo.getDatabase();
+    }
+
+    public String getOwnerUuid() {
+        return ownerUuid;
+    }
+
+    public void setOwnerUuid(String ownerUuid) {
+        this.ownerUuid = ownerUuid;
+    }
+
+    public int getWeightFactor() {
+        return weightFactor;
+    }
+
+    public void setWeightFactor(int weightFactor) {
+        this.weightFactor = weightFactor;
     }
 
     @Override
