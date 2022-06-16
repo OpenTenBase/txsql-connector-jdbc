@@ -29,15 +29,22 @@
 
 package com.tencentcloud.tdsql.mysql.cj.conf;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst.TDSQL_MAX_SLAVE_DELAY_DEFAULT_VALUE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst.TDSQL_PROXY_TOPO_REFRESH_INTERVAL_DEFAULT_VALUE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst.TDSQL_READ_WRITE_MODE_RW;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_DEFAULT_VALUE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_DEFAULT_VALUE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_BLACKLIST_TIMEOUT_DEFAULT_VALUE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_DEFAULT_VALUE;
 
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.PerConnectionLRUFactory;
 import com.tencentcloud.tdsql.mysql.cj.log.Log;
 import com.tencentcloud.tdsql.mysql.cj.log.StandardLogger;
 import com.tencentcloud.tdsql.mysql.cj.util.PerVmServerConfigCacheFactory;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class PropertyDefinitions {
     /*
@@ -873,13 +880,47 @@ public class PropertyDefinitions {
                 new StringPropertyDefinition(PropertyKey.xdevapiCompressionExtensions, DEFAULT_VALUE_NULL_STRING, RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.xdevapiCompressionExtensions"), "8.0.22", CATEGORY_XDEVAPI, Integer.MIN_VALUE),
 
+                // Load Balance
+                new StringPropertyDefinition(PropertyKey.tdsqlLoadBalanceStrategy,
+                        TDSQL_LOAD_BALANCE_STRATEGY_DEFAULT_VALUE,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlLoadBalanceStrategy"), "1.3.2", CATEGORY_HA,
+                        Integer.MIN_VALUE),
+                new StringPropertyDefinition(PropertyKey.tdsqlLoadBalanceWeightFactor, DEFAULT_VALUE_NULL_STRING,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlLoadBalanceWeightFactor"), "1.3.2", CATEGORY_HA,
+                        Integer.MIN_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlLoadBalanceBlacklistTimeout,
+                        TDSQL_LOAD_BALANCE_BLACKLIST_TIMEOUT_DEFAULT_VALUE, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlLoadBalanceBlacklistTimeout"), "1.3.2",
+                        CATEGORY_HA, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
+                new BooleanPropertyDefinition(PropertyKey.tdsqlLoadBalanceHeartbeatMonitor, DEFAULT_VALUE_TRUE,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlLoadBalanceHeartbeatMonitor"), "1.3.2",
+                        CATEGORY_HA, Integer.MIN_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlLoadBalanceHeartbeatIntervalTime,
+                        LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_DEFAULT_VALUE, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlLoadBalanceHeartbeatIntervalTime"), "1.3.2",
+                        CATEGORY_HA, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlLoadBalanceMaximumErrorRetries,
+                        LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_DEFAULT_VALUE, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlLoadBalanceMaximumErrorRetries"), "1.3.2",
+                        CATEGORY_HA, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
+
+
                 // Direct
-                new StringPropertyDefinition(PropertyKey.tdsqlReadWriteMode, "rw", RUNTIME_NOT_MODIFIABLE, Messages.getString("ConnectionProperties.tdsqlReadWriteMode"),
-                        "1.2.2", CATEGORY_NETWORK, Integer.MIN_VALUE),
-                new IntegerPropertyDefinition(PropertyKey.tdsqlMaxSlaveDelay, 0, RUNTIME_NOT_MODIFIABLE,
-                        Messages.getString("ConnectionProperties.tdsqlMaxSlaveDelay"), "1.2.2", CATEGORY_XDEVAPI, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
-                new IntegerPropertyDefinition(PropertyKey.tdsqlProxyTopoRefreshInterval, 1000, RUNTIME_NOT_MODIFIABLE,
-                        Messages.getString("ConnectionProperties.tdsqlProxyTopoRefreshInterval"), "1.2.2", CATEGORY_XDEVAPI, Integer.MIN_VALUE, 1000, Integer.MAX_VALUE),
+                new StringPropertyDefinition(PropertyKey.tdsqlReadWriteMode,
+                        TDSQL_READ_WRITE_MODE_RW, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlReadWriteMode"), "1.2.2",
+                        CATEGORY_HA, Integer.MIN_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlMaxSlaveDelay,
+                        TDSQL_MAX_SLAVE_DELAY_DEFAULT_VALUE, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlMaxSlaveDelay"), "1.2.2",
+                        CATEGORY_HA, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlProxyTopoRefreshInterval,
+                        TDSQL_PROXY_TOPO_REFRESH_INTERVAL_DEFAULT_VALUE, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlProxyTopoRefreshInterval"), "1.2.2",
+                        CATEGORY_HA, Integer.MIN_VALUE, 1000, Integer.MAX_VALUE),
         };
 
         HashMap<PropertyKey, PropertyDefinition<?>> propertyKeyToPropertyDefinitionMap = new HashMap<>();

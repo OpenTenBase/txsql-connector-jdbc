@@ -3,7 +3,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.util;
 /**
  * @author dorianzhang@tencent.com
  */
-public final class TdsqlConst {
+public final class TdsqlDirectConst {
 
     public static final String TDSQL_READ_WRITE_MODE_RW = "rw";
     public static final String TDSQL_READ_WRITE_MODE_RO = "ro";
