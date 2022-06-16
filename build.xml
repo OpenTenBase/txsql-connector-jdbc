@@ -615,7 +615,7 @@
     <!-- Add commercial license configuration class (Build). -->
     <target name="-init-filter-license" if="${com.tencentcloud.tdsql.mysql.cj.build.filterLicense}">
         <copy file="${com.tencentcloud.tdsql.mysql.cj.extra.libs}/src/CommercialLicenseConfiguration.notjava"
-              tofile="${com.tencentcloud.tdsql.mysql.cj.build.dir.driver}/com/mysql/cj/LicenseConfiguration.java"
+              tofile="${com.tencentcloud.tdsql.mysql.cj.build.dir.driver}/com/tencentcloud/tdsql/mysql/cj/LicenseConfiguration.java"
               overwrite="true" />
     </target>
 
@@ -623,7 +623,7 @@
     <!-- Add no-crypto export control class (Build). -->
     <target name="-init-no-crypto" if="${com.tencentcloud.tdsql.mysql.cj.build.noCrypto}">
         <copy file="${com.tencentcloud.tdsql.mysql.cj.extra.libs}/src/ExportControlledNoCrypto.notjava"
-              tofile="${com.tencentcloud.tdsql.mysql.cj.build.dir.driver}/com/mysql/cj/protocol/ExportControlled.java"
+              tofile="${com.tencentcloud.tdsql.mysql.cj.build.dir.driver}/com/tencentcloud/tdsql/mysql/cj/protocol/ExportControlled.java"
               overwrite="true" />
     </target>
 
@@ -631,7 +631,7 @@
     <!-- Copy commercial license configuration class (Package). -->
     <target name="-copy-filter-license" if="${com.tencentcloud.tdsql.mysql.cj.build.filterLicense}">
         <copy file="${com.tencentcloud.tdsql.mysql.cj.extra.libs}/src/CommercialLicenseConfiguration.notjava"
-              tofile="${com.tencentcloud.tdsql.mysql.cj.dist.dir.package}/src/main/core-impl/java/com/mysql/cj/LicenseConfiguration.java"
+              tofile="${com.tencentcloud.tdsql.mysql.cj.dist.dir.package}/src/main/core-impl/java/com/tencentcloud/tdsql/mysql/cj/LicenseConfiguration.java"
               overwrite="true" />
     </target>
 
@@ -639,7 +639,7 @@
     <!-- Copy no-crypto export control class (Package). -->
     <target name="-copy-no-crypto" if="${com.tencentcloud.tdsql.mysql.cj.build.noCrypto}">
         <copy file="${com.tencentcloud.tdsql.mysql.cj.extra.libs}/src/ExportControlledNoCrypto.notjava"
-              tofile="${com.tencentcloud.tdsql.mysql.cj.dist.dir.package}/src/main/core-impl/java/com/mysql/cj/protocol/ExportControlled.java"
+              tofile="${com.tencentcloud.tdsql.mysql.cj.dist.dir.package}/src/main/core-impl/java/com/tencentcloud/tdsql/mysql/cj/protocol/ExportControlled.java"
               overwrite="true" />
     </target>
 
@@ -1056,7 +1056,7 @@
                encoding="UTF-8">
             <include name="**/*.java" />
             <exclude name="testsuite/**" />
-            <exclude name="com/mysql/cj/jdbc/integration/**" />
+            <exclude name="com/tencentcloud/tdsql/mysql/cj/jdbc/integration/**" />
             <classpath refid="com.tencentcloud.tdsql.mysql.cj.build.class.path" />
             <compilerarg line="${javac.compilerarg}" />
         </javac>
@@ -1127,7 +1127,7 @@
                compiler="modern"
                includeantruntime="false"
                encoding="UTF-8">
-            <include name="com/mysql/cj/jdbc/integration/c3p0/**" />
+            <include name="com/tencentcloud/tdsql/mysql/cj/jdbc/integration/c3p0/**" />
             <classpath refid="com.tencentcloud.tdsql.mysql.cj.build.class.path" />
             <compilerarg line="${javac.compilerarg}" />
         </javac>
@@ -1400,14 +1400,14 @@
             <structure name="Connector/J classes">
                 <classfiles>
                     <fileset dir="${com.tencentcloud.tdsql.mysql.cj.build.dir.driver}">
-                        <include name="com/mysql/cj/**" />
-                        <exclude name="com/mysql/cj/x/protobuf/**" />
+                        <include name="com/tencentcloud/tdsql/mysql/cj/**" />
+                        <exclude name="com/tencentcloud/tdsql/mysql/cj/x/protobuf/**" />
                     </fileset>
                 </classfiles>
                 <sourcefiles encoding="UTF-8">
                     <fileset dir="${com.tencentcloud.tdsql.mysql.cj.build.dir.driver}">
-                        <include name="com/mysql/cj/**" />
-                        <exclude name="com/mysql/cj/x/protobuf/**" />
+                        <include name="com/tencentcloud/tdsql/mysql/cj/**" />
+                        <exclude name="com/tencentcloud/tdsql/mysql/cj/x/protobuf/**" />
                     </fileset>
                 </sourcefiles>
             </structure>

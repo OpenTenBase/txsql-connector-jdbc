@@ -114,7 +114,7 @@ public class ExportControlled {
     private static final String[] KNOWN_TLS_PROTOCOLS = new String[] { TLSv1_3, TLSv1_2, TLSv1_1, TLSv1 };
     private static final String[] VALID_TLS_PROTOCOLS = new String[] { TLSv1_3, TLSv1_2 };
 
-    private static final String TLS_SETTINGS_RESOURCE = "/com/mysql/cj/TlsSettings.properties";
+    private static final String TLS_SETTINGS_RESOURCE = "/com/tencentcloud/tdsql/mysql/cj/TlsSettings.properties";
     private static final List<String> ALLOWED_CIPHERS = new ArrayList<>();
     private static final List<String> RESTRICTED_CIPHER_SUBSTR = new ArrayList<>();
 

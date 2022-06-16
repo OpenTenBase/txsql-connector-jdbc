@@ -17,6 +17,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import tdsql.loadbalance.base.BaseTest;
 
+/**
+ * 此单元测试类内的每个单元测试方法需要单独独立执行
+ */
 @TestMethodOrder(OrderAnnotation.class)
 public class MultiDataSourceTest extends BaseTest {
 

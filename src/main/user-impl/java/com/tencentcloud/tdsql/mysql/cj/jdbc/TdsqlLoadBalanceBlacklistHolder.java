@@ -83,7 +83,7 @@ public class TdsqlLoadBalanceBlacklistHolder {
                 TdsqlLoadBalanceConnectionCounter.getInstance().resetCounter(tdsqlHostInfo);
             } else {
                 TdsqlLoggerFactory.logInfo(
-                        "Remove host from blacklist failed, because its not in blacklist, current blacklist ["
+                        "Don't need to remove host from blacklist, because its not in blacklist, current blacklist ["
                                 + printBlacklist() + "]");
             }
         } finally {

@@ -117,7 +117,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         @Override
         public void run() {
             try {
-                TdsqlLoggerFactory.logDebug("Start heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
+                TdsqlLoggerFactory.logInfo("Start heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
                 int attemptCount = 0;
 
                 // 设置建立心跳检测连接的超时时间为1秒，同时需要保留改IP地址设置的其它参数设置
@@ -149,7 +149,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                             this.firstCheckFinishedMap.get(tdsqlHostInfo.getOwnerUuid()).countDown();
                         }
                         // 心跳检测成功记录调试级别日志，退出当前循环后，等待下次调度
-                        TdsqlLoggerFactory.logDebug(
+                        TdsqlLoggerFactory.logInfo(
                                 "Success heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
                         break;
                     } catch (SQLException e) {
