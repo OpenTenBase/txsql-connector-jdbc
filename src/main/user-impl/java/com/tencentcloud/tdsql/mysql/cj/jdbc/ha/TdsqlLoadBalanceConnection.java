@@ -196,8 +196,8 @@ public final class TdsqlLoadBalanceConnection {
             if (!await) {
                 TdsqlLoggerFactory.logWarn("Wait for first heartbeat check finished timeout!");
             } else {
-                TdsqlLoggerFactory.logWarn("All host in current datasource has heartbeat checked! Current blacklist ["
-                        + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]");
+                TdsqlLoggerFactory.logInfo("All host in current datasource has heartbeat checked! "
+                        + "Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]");
             }
         } catch (InterruptedException e) {
             TdsqlLoggerFactory.logError("Wait for first heartbeat check finished error!", e);

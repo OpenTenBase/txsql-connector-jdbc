@@ -1,11 +1,14 @@
 package tdsql.loadbalance;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.StringJoiner;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -49,6 +52,17 @@ public class UrlTest extends BaseTest {
     @Order(5)
     public void testLoadBalanceWithProperties() {
         connect(LB_URL);
+    }
+
+    @Test
+    @Order(6)
+    public void testLoadBalanceError() {
+        String url =
+                "jdbc:tdsql-mysql:loadbalance://152.136.175.228:8960/" + DB_MYSQL + LB_URL_PROPS;
+        Assertions.assertThrows(SQLNonTransientConnectionException.class, () -> {
+            Connection conn = DriverManager.getConnection(url, USER, PASS);
+            assertNull(conn);
+        });
     }
 
     private void connect(String url) {

@@ -153,13 +153,6 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                                 "Success heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
                         break;
                     } catch (SQLException e) {
-                        // 心跳检测失败处理逻辑，程序执行到这里有可能是建立连接失败、超时，或执行心跳检测SQL失败、超时。
-                        // 无论是上述哪种情况，都需要记录错误级别日志
-                        TdsqlLoggerFactory.logError(
-                                "Host heartbeat monitor failed and try again, now attempts [" + attemptCount
-                                        + "], max attempts [" + retries + "]. HostInfo ["
-                                        + tdsqlHostInfo.getHostPortPair()
-                                        + "]", e);
                         // 计算并比较心跳检测次数是否达到允许的最大次数
                         // 如果没有达到，则马上继续下次心跳检测
                         // 否则，将该IP地址加入黑名单并记录错误级别的日志，同时更新首次检测标识和计数器
@@ -173,6 +166,14 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                                 this.isFirstCheck = false;
                                 this.firstCheckFinishedMap.get(tdsqlHostInfo.getOwnerUuid()).countDown();
                             }
+                        } else {
+                            // 心跳检测失败处理逻辑，程序执行到这里有可能是建立连接失败、超时，或执行心跳检测SQL失败、超时。
+                            // 无论是上述哪种情况，都需要记录错误级别日志
+                            TdsqlLoggerFactory.logError(
+                                    "Host heartbeat monitor failed and try again, now attempts [" + attemptCount
+                                            + "], max attempts [" + retries + "]. HostInfo ["
+                                            + tdsqlHostInfo.getHostPortPair()
+                                            + "]", e);
                         }
                     }
                 }
