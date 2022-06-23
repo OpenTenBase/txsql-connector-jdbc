@@ -35,7 +35,8 @@ public class DataSetCache {
     public boolean waitCached(int interval, int count) {
         try {
             WaitUtil.waitFor(interval, count, this::isCached);
-        } catch (InterruptedException ignored) {
+        } catch (InterruptedException e) {
+            TdsqlDirectLoggerFactory.logError("Wait cached timeout, " + e.getMessage(), e);
         }
         return isCached();
     }
@@ -50,7 +51,7 @@ public class DataSetCache {
         this.propertyChangeSupport.addPropertyChangeListener(listener);
     }
 
-    public List<DataSetInfo> getMasters() {
+    public synchronized List<DataSetInfo> getMasters() {
         TdsqlDirectTopoServer.getInstance().getRefreshLock().readLock().lock();
         try {
             return masters;
@@ -64,12 +65,12 @@ public class DataSetCache {
             TdsqlDirectTopoServer.getInstance().getRefreshLock().writeLock().lock();
             try {
                 TdsqlDirectLoggerFactory.logDebug(
-                        "DataSet master have change, old: " + this.masters + ", new: " + newMasters);
+                        "DataSet master have changed, old: " + this.masters + ", new: " + newMasters);
                 propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME,
                         DataSetUtil.copyDataSetList(this.masters), DataSetUtil.copyDataSetList(newMasters));
                 this.masters.clear();
                 this.masters.addAll(newMasters);
-                TdsqlDirectLoggerFactory.logDebug("after set, master is: " + this.masters);
+                TdsqlDirectLoggerFactory.logDebug("After update, master is: " + this.masters);
                 if (!masterCached) {
                     masterCached = true;
                 }
@@ -79,8 +80,13 @@ public class DataSetCache {
         }
     }
 
-    public List<DataSetInfo> getSlaves() {
-        return slaves;
+    public synchronized List<DataSetInfo> getSlaves() {
+        TdsqlDirectTopoServer.getInstance().getRefreshLock().readLock().lock();
+        try {
+            return slaves;
+        } finally {
+            TdsqlDirectTopoServer.getInstance().getRefreshLock().readLock().unlock();
+        }
     }
 
     public synchronized void setSlaves(List<DataSetInfo> newSlaves) {
@@ -93,11 +99,12 @@ public class DataSetCache {
             }
             if (!newSlaves.equals(this.slaves)) {
                 TdsqlDirectLoggerFactory.logDebug(
-                        "DataSet slave have change, old: " + this.slaves + ", new: " + newSlaves);
+                        "DataSet slave have changed, old: " + this.slaves + ", new: " + newSlaves);
                 propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, DataSetUtil.copyDataSetList(this.slaves),
                         DataSetUtil.copyDataSetList(newSlaves));
                 this.slaves.clear();
                 this.slaves.addAll(newSlaves);
+                TdsqlDirectLoggerFactory.logDebug("After update, slaves is: " + this.masters);
                 if (!slaveCached) {
                     slaveCached = true;
                 }

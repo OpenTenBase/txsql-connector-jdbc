@@ -98,7 +98,7 @@ public class DataSetUtilTest {
     }
 
     void assertDataSetInfo(DataSetInfo expected, DataSetInfo actual) {
-        assertEquals(expected.getIP(), actual.getIP());
+        assertEquals(expected.getIp(), actual.getIp());
         assertEquals(expected.getPort(), actual.getPort());
         assertEquals(expected.getWeight(), actual.getWeight());
         assertEquals(expected.getAlive(), actual.getAlive());

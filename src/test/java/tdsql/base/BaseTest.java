@@ -43,12 +43,22 @@ import org.junit.jupiter.api.TestInfo;
 public abstract class BaseTest {
 
     protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
-    protected static final String URL_RW = "jdbc:tdsql-mysql:direct://9.30.1.140:15038,9.30.1.207:15038/mysql"
-            + "?useSSL=false&tdsqlReadWriteMode=rw";
-    protected static final String URL_RO = "jdbc:tdsql-mysql:direct://9.30.1.140:15038,9.30.1.207:15038/mysql"
-            + "?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=12.9";
-    protected static final String USER_RW = "test";
-    protected static final String PASS_RW = "test";
+    protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
+            + "9.30.1.210:15002,"
+            + "9.30.1.211:15002,"
+            + "9.30.1.225:15002,"
+            + "9.30.1.243:15002,"
+            + "9.30.1.249:15002"
+            + "/mysql?useSSL=false&tdsqlReadWriteMode=rw";
+    protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
+            + "9.30.1.210:15002,"
+            + "9.30.1.211:15002,"
+            + "9.30.1.225:15002,"
+            + "9.30.1.243:15002,"
+            + "9.30.1.249:15002"
+            + "/mysql?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=12.9";
+    protected static final String USER_RW = "jdbctest";
+    protected static final String PASS_RW = "jdbctest";
     protected static final String USER_RO = "test_ro";
     protected static final String PASS_RO = "test_ro";
 
@@ -92,7 +102,6 @@ public abstract class BaseTest {
 
     protected void printAllConnection() {
         int total = 0;
-        System.out.println("------------------------------ printAllConnection ------------------------------");
         for (Entry<TdsqlHostInfo, List<JdbcConnection>> entry : TdsqlDirectConnectionManager.getInstance()
                 .getAllConnection().entrySet()) {
             for (JdbcConnection jdbcConnection : entry.getValue()) {
@@ -101,19 +110,16 @@ public abstract class BaseTest {
             }
         }
         System.out.println("Total: " + total);
-        System.out.println("------------------------------ printAllConnection ------------------------------");
     }
 
     protected void printScheduleQueue() {
         long total = 0;
-        System.out.println("------------------------------ printScheduleQueue ------------------------------");
         for (Entry<TdsqlHostInfo, Long> entry : TdsqlDirectTopoServer.getInstance().getScheduleQueue().asMap()
                 .entrySet()) {
             total += entry.getValue();
             System.out.println("Host:Count = " + entry.getKey() + ": " + entry.getValue());
         }
         System.out.println("Total: " + total);
-        System.out.println("------------------------------ printScheduleQueue ------------------------------");
     }
 
     protected DataSource createMysqlDataSource() {

@@ -3,7 +3,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.cluster;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.TDSQLRouteParseException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.TdsqlRouteParseException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlConst;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ public class DataSetUtil {
         }
         String[] masterSplit = masterString.split(separator);
         if(masterSplit.length < 3) {
-            throw new TDSQLRouteParseException("Invalid master info length: " + masterString);
+            throw new TdsqlRouteParseException("Invalid master info length: " + masterString);
         }
         String[] masterIPPort = parseEndpoint(masterSplit[0]);
         DataSetInfo masterInfo = new DataSetInfo(masterIPPort[0], masterIPPort[1]);
@@ -43,7 +43,7 @@ public class DataSetUtil {
         }
         String[] slaveSplit = slaveString.split(separator);
         if(slaveSplit.length < 4) {
-            throw new TDSQLRouteParseException("Invalid slave info length: " + slaveString);
+            throw new TdsqlRouteParseException("Invalid slave info length: " + slaveString);
         }
         String[] slaveIPPort = parseEndpoint(slaveSplit[0]);
         DataSetInfo slaveInfo = new DataSetInfo(slaveIPPort[0], slaveIPPort[1]);
@@ -101,7 +101,7 @@ public class DataSetUtil {
         try {
             return Integer.parseInt(str.trim());
         } catch (NumberFormatException ex) {
-            throw new TDSQLRouteParseException("Invalid weight string: " + str);
+            throw new TdsqlRouteParseException("Invalid weight string: " + str);
         }
     }
 
@@ -112,22 +112,22 @@ public class DataSetUtil {
         try {
             return Long.parseLong(str.trim());
         } catch (NumberFormatException ex) {
-            throw new TDSQLRouteParseException("Invalid delay string: " + str);
+            throw new TdsqlRouteParseException("Invalid delay string: " + str);
         }
     }
 
     private static String[] parseEndpoint(String str) throws SQLException {
         if(isEmpty(str)) {
-            throw new TDSQLRouteParseException("empty endpoint");
+            throw new TdsqlRouteParseException("empty endpoint");
         }
         String[] res =str.trim().split(endpointSeparator);
         if(res.length < 2) {
-            throw new TDSQLRouteParseException("Invalid endpoint: " + str);
+            throw new TdsqlRouteParseException("Invalid endpoint: " + str);
         }
         try {
             Integer.parseInt(res[1]);
         } catch (NumberFormatException ex) {
-            throw new TDSQLRouteParseException("Invalid port value in endpoint: " + str);
+            throw new TdsqlRouteParseException("Invalid port value in endpoint: " + str);
         }
         return res;
     }
@@ -135,7 +135,7 @@ public class DataSetUtil {
     public static TdsqlHostInfo convertDataSetInfo(DataSetInfo dataSetInfo, ConnectionUrl connectionUrl) {
         HostInfo mainHost = connectionUrl.getMainHost();
         return new TdsqlHostInfo(
-                new HostInfo(mainHost.getOriginalUrl(), dataSetInfo.getIP(), Integer.parseInt(dataSetInfo.getPort()),
+                new HostInfo(mainHost.getOriginalUrl(), dataSetInfo.getIp(), Integer.parseInt(dataSetInfo.getPort()),
                         mainHost.getUser(), mainHost.getPassword(), mainHost.getHostProperties()));
     }
 
