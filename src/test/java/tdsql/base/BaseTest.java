@@ -90,11 +90,11 @@ public abstract class BaseTest {
         if (RO.equals(mode)) {
             props.setProperty(PropertyKey.USER.getKeyName(), USER_RO);
             props.setProperty(PropertyKey.PASSWORD.getKeyName(), PASS_RO);
-            props.setProperty(PropertyKey.tdsqlReadWriteMode.getKeyName(), RO.toString());
+            props.setProperty(PropertyKey.tdsqlDirectReadWriteMode.getKeyName(), RO.toString());
         } else {
             props.setProperty(PropertyKey.USER.getKeyName(), USER_RW);
             props.setProperty(PropertyKey.PASSWORD.getKeyName(), PASS_RW);
-            props.setProperty(PropertyKey.tdsqlReadWriteMode.getKeyName(), RW.toString());
+            props.setProperty(PropertyKey.tdsqlDirectReadWriteMode.getKeyName(), RW.toString());
         }
         props.putAll(properties);
         return DriverManager.getConnection(URL_RW, props);

@@ -1,7 +1,5 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlConst.TDSQL_CLOSE_CONNECTION_TIMEOUT_MILLISECONDS;
-
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlLoadBalanceStrategy;
@@ -74,8 +72,8 @@ public final class TdsqlDirectConnectionManager {
                     Iterator<JdbcConnection> connIterator = entry.getValue().iterator();
                     while (connIterator.hasNext()) {
                         try (JdbcConnection connection = connIterator.next()) {
-                            connection.setNetworkTimeout(netTimeoutExecutor,
-                                    TDSQL_CLOSE_CONNECTION_TIMEOUT_MILLISECONDS);
+                            connection.setNetworkTimeout(netTimeoutExecutor, TdsqlDirectTopoServer.getInstance()
+                                    .getTdsqlDirectCloseConnTimeoutMillis());
                         } catch (SQLException e) {
                             TdsqlDirectLoggerFactory.logError("Set close connection timeout error: " + e.getMessage(),
                                     e);

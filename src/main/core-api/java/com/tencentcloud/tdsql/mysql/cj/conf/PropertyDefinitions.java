@@ -855,12 +855,18 @@ public class PropertyDefinitions {
                         Messages.getString("ConnectionProperties.xdevapiCompressionExtensions"), "8.0.22", CATEGORY_XDEVAPI, Integer.MIN_VALUE),
 
                 // Direct
-                new StringPropertyDefinition(PropertyKey.tdsqlReadWriteMode, "rw", RUNTIME_NOT_MODIFIABLE, Messages.getString("ConnectionProperties.tdsqlReadWriteMode"),
-                        "1.2.2", CATEGORY_NETWORK, Integer.MIN_VALUE),
-                new IntegerPropertyDefinition(PropertyKey.tdsqlMaxSlaveDelay, 0, RUNTIME_NOT_MODIFIABLE,
-                        Messages.getString("ConnectionProperties.tdsqlMaxSlaveDelay"), "1.2.2", CATEGORY_XDEVAPI, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
-                new IntegerPropertyDefinition(PropertyKey.tdsqlProxyTopoRefreshInterval, 1000, RUNTIME_NOT_MODIFIABLE,
-                        Messages.getString("ConnectionProperties.tdsqlProxyTopoRefreshInterval"), "1.2.2", CATEGORY_XDEVAPI, Integer.MIN_VALUE, 1000, Integer.MAX_VALUE),
+                new StringPropertyDefinition(PropertyKey.tdsqlDirectReadWriteMode, "rw", RUNTIME_NOT_MODIFIABLE, Messages.getString("ConnectionProperties.tdsqlDirectReadWriteMode"),
+                        "1.3.0", CATEGORY_HA, Integer.MIN_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds, 0, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlDirectMaxSlaveDelaySeconds"), "1.3.0", CATEGORY_HA, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis, 1000, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlDirectTopoRefreshIntervalMillis"), "1.3.0", CATEGORY_HA, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlDirectTopoRefreshConnTimeoutMillis, 5000, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlDirectTopoRefreshConnTimeoutMillis"), "1.3.2", CATEGORY_HA, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlDirectTopoRefreshStmtTimeoutSeconds, 5, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlDirectTopoRefreshStmtTimeoutSeconds"), "1.3.2", CATEGORY_HA, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlDirectCloseConnTimeoutMillis, 5000, RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlDirectCloseConnTimeoutMillis"), "1.3.2", CATEGORY_HA, Integer.MIN_VALUE, 0, Integer.MAX_VALUE),
         };
 
         HashMap<PropertyKey, PropertyDefinition<?>> propertyKeyToPropertyDefinitionMap = new HashMap<>();

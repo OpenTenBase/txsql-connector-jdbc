@@ -280,9 +280,12 @@ public enum PropertyKey {
     haLoadBalanceMaximumErrorRetries("haLoadBalanceMaximumErrorRetries", true),
 
     // direct
-    tdsqlReadWriteMode("tdsqlReadWriteMode", true),
-    tdsqlMaxSlaveDelay("tdsqlMaxSlaveDelay", true),
-    tdsqlProxyTopoRefreshInterval("tdsqlProxyTopoRefreshInterval", true)
+    tdsqlDirectReadWriteMode("tdsqlDirectReadWriteMode", true),
+    tdsqlDirectMaxSlaveDelaySeconds("tdsqlDirectMaxSlaveDelaySeconds", true),
+    tdsqlDirectTopoRefreshIntervalMillis("tdsqlDirectTopoRefreshIntervalMillis", true),
+    tdsqlDirectTopoRefreshConnTimeoutMillis("tdsqlDirectTopoRefreshConnTimeoutMillis", true),
+    tdsqlDirectTopoRefreshStmtTimeoutSeconds("tdsqlDirectTopoRefreshStmtTimeoutSeconds", true),
+    tdsqlDirectCloseConnTimeoutMillis("tdsqlDirectCloseConnTimeoutMillis", true)
     ;
 
     private String keyName;

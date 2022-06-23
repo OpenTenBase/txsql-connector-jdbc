@@ -38,7 +38,7 @@ public final class TdsqlDirectConnectionProxy {
         ReentrantReadWriteLock refreshLock = topoServer.getRefreshLock();
         topoServer.initialize(connectionUrl);
 
-        TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlReadWriteMode());
+        TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlDirectReadWriteMode());
         List<DataSetInfo> masters = DataSetCache.getInstance().getMasters();
         List<DataSetInfo> slaves = DataSetCache.getInstance().getSlaves();
         if (RW.equals(readWriteMode) && masters.isEmpty()) {

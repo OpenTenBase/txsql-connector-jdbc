@@ -93,7 +93,7 @@ public class DataSetCache {
         TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
         topoServer.getRefreshLock().writeLock().lock();
         try {
-            Integer tdsqlMaxSlaveDelay = topoServer.getTdsqlMaxSlaveDelay();
+            Integer tdsqlMaxSlaveDelay = topoServer.getTdsqlDirectMaxSlaveDelaySeconds();
             if (tdsqlMaxSlaveDelay > 0) {
                 newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= tdsqlMaxSlaveDelay);
             }
