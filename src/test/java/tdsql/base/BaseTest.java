@@ -44,11 +44,11 @@ public abstract class BaseTest {
 
     protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
     protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
-            + "9.30.1.210:15002,"
-            + "9.30.1.211:15002,"
+//            + "9.30.1.210:15002,"
+//            + "9.30.1.211:15002,"
             + "9.30.1.225:15002,"
-            + "9.30.1.243:15002,"
-            + "9.30.1.249:15002"
+            + "9.30.1.243:15002"
+//            + "9.30.1.249:15002"
             + "/mysql?useSSL=false&tdsqlReadWriteMode=rw";
     protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
             + "9.30.1.210:15002,"

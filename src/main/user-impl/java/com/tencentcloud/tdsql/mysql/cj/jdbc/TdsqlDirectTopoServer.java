@@ -167,6 +167,7 @@ public final class TdsqlDirectTopoServer {
         config.put(PropertyKey.connectTimeout.getKeyName(), "2000");
         config.put(PropertyKey.socketTimeout.getKeyName(), "2000");
         config.put(PropertyKey.maxAllowedPacket.getKeyName(), "65535000");
+        config.put(PropertyKey.retriesAllDown.getKeyName(), "4");
         config.put(PropertyKey.loadBalanceBlocklistTimeout.getKeyName(), "5000");
         config.put(PropertyKey.loadBalanceAutoCommitStatementThreshold.getKeyName(), "1");
         config.put(PropertyKey.loadBalancePingTimeout.getKeyName(), "1000");

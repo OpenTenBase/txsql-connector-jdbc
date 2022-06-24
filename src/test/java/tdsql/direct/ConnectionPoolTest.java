@@ -25,19 +25,19 @@ public class ConnectionPoolTest extends BaseTest {
 
     @Test
     public void testInReadWrite() throws InterruptedException {
-        HikariDataSource hikariDataSource = (HikariDataSource) createHikariDataSource(100, 100, RW);
+        HikariDataSource hikariDataSource = (HikariDataSource) createHikariDataSource(10, 10, RW);
         testHikariPool(hikariDataSource);
     }
 
     private void testHikariPool(HikariDataSource hikariDataSource) throws InterruptedException {
         //        hikariDataSource.setMaxLifetime(30000);
 
-        ThreadPoolExecutor taskExecutor = new ThreadPoolExecutor(100, 100, 0L, TimeUnit.SECONDS,
+        ThreadPoolExecutor taskExecutor = new ThreadPoolExecutor(10, 10, 0L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(),
                 new TdsqlThreadFactoryBuilder().setDaemon(true).setNameFormat("Task-pool-%d").build());
         taskExecutor.prestartAllCoreThreads();
 
-        ScheduledThreadPoolExecutor monitor = new ScheduledThreadPoolExecutor(1);
+        /*ScheduledThreadPoolExecutor monitor = new ScheduledThreadPoolExecutor(1);
         monitor.scheduleAtFixedRate(() -> {
             printAllConnection();
             printScheduleQueue();
@@ -52,10 +52,10 @@ public class ConnectionPoolTest extends BaseTest {
                     taskExecutor.getMaximumPoolSize(), taskExecutor.getKeepAliveTime(TimeUnit.MILLISECONDS),
                     taskExecutor.isShutdown(), taskExecutor.isTerminated());
             System.out.println("Hikari pool total = " + hikariDataSource.getHikariPoolMXBean().getTotalConnections());
-        }, 0L, 5L, TimeUnit.SECONDS);
+        }, 0L, 30L, TimeUnit.SECONDS);*/
 
         for (; ; ) {
-            TimeUnit.MILLISECONDS.sleep(1);
+            TimeUnit.MILLISECONDS.sleep(10);
             taskExecutor.execute(() -> {
                 try (Connection conn = hikariDataSource.getConnection();
                         Statement stmt = conn.createStatement()) {
