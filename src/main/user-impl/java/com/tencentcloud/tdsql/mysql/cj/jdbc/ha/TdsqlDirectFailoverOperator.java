@@ -21,7 +21,7 @@ public class TdsqlDirectFailoverOperator {
         TdsqlDirectLoggerFactory.logDebug("Because current direct read write mode is: " + rwMode);
         switch (rwMode) {
             case RW:
-                optOfReadWriteMode(switchMode);
+                optOfReadWriteMode(switchMode, toCloseList);
                 break;
             case RO:
                 optOfReadOnlyMode(switchMode, toCloseList);
@@ -32,11 +32,11 @@ public class TdsqlDirectFailoverOperator {
         }
     }
 
-    private static void optOfReadWriteMode(TdsqlDirectMasterSlaveSwitchMode switchMode) {
+    private static void optOfReadWriteMode(TdsqlDirectMasterSlaveSwitchMode switchMode, List<String> toCloseList) {
         TdsqlDirectLoggerFactory.logDebug("Because current switch mode is: " + switchMode);
         switch (switchMode) {
             case MASTER_SLAVE_SWITCH:
-                optOfReadWriteModeInMasterSlaveSwitch();
+                optOfReadWriteModeInMasterSlaveSwitch(toCloseList);
                 break;
             case SLAVE_ONLINE:
                 optOfReadWriteModeInSlaveOnline();
@@ -68,9 +68,9 @@ public class TdsqlDirectFailoverOperator {
         }
     }
 
-    private static void optOfReadWriteModeInMasterSlaveSwitch() {
-        TdsqlDirectLoggerFactory.logDebug("So we will close all connections!");
-        TdsqlDirectConnectionManager.getInstance().closeAll();
+    private static void optOfReadWriteModeInMasterSlaveSwitch(List<String> toCloseList) {
+        TdsqlDirectLoggerFactory.logDebug("So we will close [" + toCloseList + "]'s connections!");
+        TdsqlDirectConnectionManager.getInstance().close(toCloseList);
     }
 
     private static void optOfReadWriteModeInSlaveOnline() {

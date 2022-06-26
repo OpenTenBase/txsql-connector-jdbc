@@ -59,7 +59,7 @@ public class ConnectionPoolTest extends BaseTest {
             taskExecutor.execute(() -> {
                 try (Connection conn = hikariDataSource.getConnection();
                         Statement stmt = conn.createStatement()) {
-                    stmt.executeQuery("show processlist;");
+                    stmt.executeQuery("select sleep(1);");
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }

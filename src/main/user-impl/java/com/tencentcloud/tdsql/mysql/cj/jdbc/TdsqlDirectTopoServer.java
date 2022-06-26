@@ -168,7 +168,7 @@ public final class TdsqlDirectTopoServer {
         config.put(PropertyKey.socketTimeout.getKeyName(), "2000");
         config.put(PropertyKey.maxAllowedPacket.getKeyName(), "65535000");
         config.put(PropertyKey.retriesAllDown.getKeyName(), "4");
-        config.put(PropertyKey.loadBalanceBlocklistTimeout.getKeyName(), "5000");
+        config.put(PropertyKey.loadBalanceBlocklistTimeout.getKeyName(), "30000");
         config.put(PropertyKey.loadBalanceAutoCommitStatementThreshold.getKeyName(), "1");
         config.put(PropertyKey.loadBalancePingTimeout.getKeyName(), "1000");
         config.put(PropertyKey.loadBalanceValidateConnectionOnSwapServer.getKeyName(), "true");
@@ -191,7 +191,7 @@ public final class TdsqlDirectTopoServer {
 
     private void getTopology() throws SQLException {
         if (proxyConnection == null || proxyConnection.isClosed() || !proxyConnection.isValid(1)) {
-            TdsqlDirectLoggerFactory.logDebug("Proxy connection is invalid, recreate it!");
+            TdsqlDirectLoggerFactory.logDebug("Proxy connection is invalid, reconnection it!");
             try {
                 proxyConnection.close();
             } catch (SQLException e) {
@@ -225,6 +225,8 @@ public final class TdsqlDirectTopoServer {
                         TdsqlDirectLoggerFactory.logError(errMsg);
                         throw new TdsqlSyncBackendTopoException(errMsg);
                     }
+                    TdsqlDirectLoggerFactory.logInfo(
+                            "Topo info cluster name: " + clusterName + ", master: " + master + ", slaves: " + slaves);
                     DataSetCluster dataSetCluster = new DataSetCluster(clusterName);
                     dataSetCluster.setMaster(DataSetUtil.parseMaster(master));
                     dataSetCluster.setSlaves(DataSetUtil.parseSlaveList(slaves));

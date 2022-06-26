@@ -1,6 +1,5 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
-import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.AbstractTdsqlCaughtRunnable;
@@ -9,16 +8,14 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * <p></p>
@@ -45,7 +42,8 @@ public final class TdsqlDirectConnectionManager {
         TdsqlHostInfo tdsqlHostInfo = balancer.choice(scheduleQueue);
         JdbcConnection connection = ConnectionImpl.getInstance(tdsqlHostInfo);
 
-        List<JdbcConnection> holderList = connectionHolder.getOrDefault(tdsqlHostInfo, new ArrayList<>());
+        List<JdbcConnection> holderList = connectionHolder.getOrDefault(tdsqlHostInfo,
+                new CopyOnWriteArrayList<>());
         holderList.add(connection);
         connectionHolder.put(tdsqlHostInfo, holderList);
         scheduleQueue.incrementAndGet(tdsqlHostInfo);
@@ -62,44 +60,37 @@ public final class TdsqlDirectConnectionManager {
             return;
         }
 
-        Iterator<Entry<TdsqlHostInfo, List<JdbcConnection>>> entryIterator = connectionHolder.entrySet().iterator();
+        Iterator<Entry<TdsqlHostInfo, List<JdbcConnection>>> entryIterator = connectionHolder.entrySet()
+                .iterator();
         while (entryIterator.hasNext()) {
             Entry<TdsqlHostInfo, List<JdbcConnection>> entry = entryIterator.next();
             String holdHostPortPair = entry.getKey().getHostPortPair();
             if (toCloseList.contains(holdHostPortPair)) {
                 TdsqlDirectLoggerFactory.logDebug("Start close [" + holdHostPortPair + "]'s connections!");
-                try {
-                    Iterator<JdbcConnection> connIterator = entry.getValue().iterator();
-                    while (connIterator.hasNext()) {
-                        try (JdbcConnection connection = connIterator.next()) {
+                for (JdbcConnection jdbcConnection : entry.getValue()) {
+                    ConnectionImpl connection = (ConnectionImpl) jdbcConnection;
+                    if (connection != null && !connection.isClosed()) {
+                        try {
                             connection.setNetworkTimeout(netTimeoutExecutor, TdsqlDirectTopoServer.getInstance()
                                     .getTdsqlDirectCloseConnTimeoutMillis());
-                        } catch (SQLException e) {
-                            TdsqlDirectLoggerFactory.logError("Set close connection timeout error: " + e.getMessage(),
-                                    e);
+                        } catch (Exception e) {
+                            // ignore
                         } finally {
-                            connIterator.remove();
+                            try {
+                                connection.close();
+                            } catch (Exception e) {
+                                TdsqlDirectLoggerFactory.logError(
+                                        "Closing [" + holdHostPortPair + "] connection failed!");
+                            }
                         }
                     }
-                } finally {
-                    entryIterator.remove();
                 }
+                entryIterator.remove();
                 TdsqlDirectLoggerFactory.logDebug("Finish close [" + holdHostPortPair + "]'s connections!");
+            } else {
+                TdsqlDirectLoggerFactory.logDebug("To closes not in connection holder! NOOP!");
             }
         }
-    }
-
-    public synchronized void closeAll() {
-        if (connectionHolder.isEmpty()) {
-            TdsqlDirectLoggerFactory.logDebug("To close list is empty, close all operation ignore!");
-            return;
-        }
-
-        List<String> toCloseList = connectionHolder.keySet().stream().map(HostInfo::getHostPortPair)
-                .collect(Collectors.toList());
-        TdsqlDirectLoggerFactory.logDebug("Start close all connections! Contains: [" + toCloseList + "]");
-        this.close(toCloseList);
-        TdsqlDirectLoggerFactory.logDebug("Finish close all connections!");
     }
 
     private void initializeCompensator() {
@@ -130,7 +121,7 @@ public final class TdsqlDirectConnectionManager {
     }
 
     public List<JdbcConnection> getConnectionList(TdsqlHostInfo tdsqlHostInfo) {
-        return connectionHolder.getOrDefault(tdsqlHostInfo, Collections.emptyList());
+        return connectionHolder.getOrDefault(tdsqlHostInfo, new CopyOnWriteArrayList<>());
     }
 
     private static class SingletonInstance {
