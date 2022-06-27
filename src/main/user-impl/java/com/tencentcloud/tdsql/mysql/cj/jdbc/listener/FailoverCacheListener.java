@@ -22,34 +22,32 @@ public class FailoverCacheListener extends AbstractCacheListener {
 
     /**
      * 主库变化
-     *
      */
     @Override
     public void handleMaster(List<DataSetInfo> offLines, List<DataSetInfo> onLines) {
-        if(offLines.size() > 0) {
-            TdsqlDirectLoggerFactory.logDebug("to close offline masters: " + offLines);
+        if (!offLines.isEmpty()) {
+            TdsqlDirectLoggerFactory.logDebug("Offline master: " + offLines);
+            List<String> toCloseList = offLines.stream().map(d -> String.format("%s:%s", d.getIp(), d.getPort()))
+                    .collect(Collectors.toList());
+            TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
+                    TdsqlDirectMasterSlaveSwitchMode.MASTER_SLAVE_SWITCH, toCloseList);
         }
-        List<String> toCloseList = offLines.stream().map(d -> String.format("%s:%s", d.getIP(), d.getPort()))
-                .collect(Collectors.toList());
-        TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
-                TdsqlDirectMasterSlaveSwitchMode.MASTER_SLAVE_SWITCH, toCloseList);
     }
 
     /**
      * 从库变化
-     *
      */
     @Override
     public void handleSlave(List<DataSetInfo> offLines, List<DataSetInfo> onLines) {
-        if (offLines.size() > 0) {
-            List<String> toCloseList = offLines.stream().map(d -> String.format("%s:%s", d.getIP(), d.getPort()))
+        if (!offLines.isEmpty()) {
+            TdsqlDirectLoggerFactory.logDebug("Offline slaves: " + offLines);
+            List<String> toCloseList = offLines.stream().map(d -> String.format("%s:%s", d.getIp(), d.getPort()))
                     .collect(Collectors.toList());
-            TdsqlDirectLoggerFactory.logDebug("to close offline slaves: " + offLines);
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_OFFLINE, toCloseList);
         }
-
-        if (onLines.size() > 0) {
+        if (!onLines.isEmpty()) {
+            TdsqlDirectLoggerFactory.logDebug("Online slaves: " + onLines);
             List<String> toCloseList = new ArrayList<>();
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_ONLINE, toCloseList);
