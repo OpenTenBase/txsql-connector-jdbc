@@ -40,7 +40,7 @@ public class Driver extends com.tencentcloud.tdsql.mysql.cj.jdbc.Driver {
     }
 
     static {
-        System.err.println("Loading class `com.tencent.tdsql.mysql.jdbc.Driver'. This is deprecated. The new driver class is `com.tencentcloud.tdsql.mysql.cj.jdbc.Driver'. "
+        System.err.println("Loading class `com.tencentcloud.tdsql.mysql.jdbc.Driver'. This is deprecated. The new driver class is `com.tencentcloud.tdsql.mysql.cj.jdbc.Driver'. "
                 + "The driver is automatically registered via the SPI and manual loading of the driver class is generally unnecessary.");
     }
 }

@@ -29,6 +29,9 @@
 
 package com.tencentcloud.tdsql.mysql.cj.protocol.a;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TimeZone;
 import com.tencentcloud.tdsql.mysql.cj.CharsetSettings;
 import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
@@ -40,9 +43,6 @@ import com.tencentcloud.tdsql.mysql.cj.protocol.ServerCapabilities;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSession;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSessionStateController;
 import com.tencentcloud.tdsql.mysql.cj.util.TimeUtil;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TimeZone;
 
 public class NativeServerSession implements ServerSession {
 
@@ -85,7 +85,7 @@ public class NativeServerSession implements ServerSession {
     private int oldStatusFlags = 0;
     private int statusFlags = 0;
     private long clientParam = 0;
-    private com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeServerSessionStateController serverSessionStateController;
+    private NativeServerSessionStateController serverSessionStateController;
 
     /** The map of server variables that we retrieve at connection init. */
     private Map<String, String> serverVariables = new HashMap<>();
@@ -105,7 +105,7 @@ public class NativeServerSession implements ServerSession {
     public NativeServerSession(PropertySet propertySet) {
         this.propertySet = propertySet;
         this.cacheDefaultTimeZone = this.propertySet.getBooleanProperty(PropertyKey.cacheDefaultTimeZone);
-        this.serverSessionStateController = new com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeServerSessionStateController();
+        this.serverSessionStateController = new NativeServerSessionStateController();
     }
 
     @Override

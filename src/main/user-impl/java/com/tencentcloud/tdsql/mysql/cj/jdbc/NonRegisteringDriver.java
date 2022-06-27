@@ -31,6 +31,12 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
 import static com.tencentcloud.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
 
+import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.List;
+import java.util.Properties;
+import java.util.logging.Logger;
 import com.tencentcloud.tdsql.mysql.cj.Constants;
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
@@ -49,12 +55,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlDirectConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlLoadBalanceConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.List;
-import java.util.Properties;
-import java.util.logging.Logger;
 
 /**
  * The Java SQL framework allows for multiple database drivers. Each driver should supply a class that implements the Driver interface
@@ -75,9 +75,6 @@ import java.util.logging.Logger;
  * </p>
  */
 public class NonRegisteringDriver implements java.sql.Driver {
-    private static final String ALLOWED_QUOTES = "\"'";
-    private static final String URL_PREFIX = "jdbc:tdsql-mysql://";
-    private List<String> haLoadBalanceWeightFactor = null;
 
     /*
      * Standardizes OS name information to align with other drivers/clients
@@ -207,7 +204,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
 
             switch (conStr.getType()) {
                 case SINGLE_CONNECTION:
-                    return ConnectionImpl.getInstance(conStr.getMainHost());
+                    return com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl.getInstance(conStr.getMainHost());
 
                 case FAILOVER_CONNECTION:
                 case FAILOVER_DNS_SRV_CONNECTION:

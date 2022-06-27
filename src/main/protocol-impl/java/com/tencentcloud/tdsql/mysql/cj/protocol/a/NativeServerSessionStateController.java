@@ -29,13 +29,13 @@
 
 package com.tencentcloud.tdsql.mysql.cj.protocol.a;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSessionStateController;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.IntegerDataType;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringLengthDataType;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringSelfDataType;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.List;
 
 public class NativeServerSessionStateController implements ServerSessionStateController {
     private NativeServerSessionStateChanges sessionStateChanges;

@@ -2674,7 +2674,7 @@ public class ResultSetImpl extends NativeResultset implements ResultSetInternalM
         return this.columnDefinition;
     }
 
-    public StatementImpl getOwningStatement() {
+    public com.tencentcloud.tdsql.mysql.cj.jdbc.StatementImpl getOwningStatement() {
         return this.owningStatement;
     }
 

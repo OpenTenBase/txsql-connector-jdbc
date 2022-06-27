@@ -29,11 +29,12 @@
 
 package com.tencentcloud.tdsql.mysql.cj;
 
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.tencentcloud.tdsql.mysql.cj.protocol.Message;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ProtocolEntityFactory;
 import com.tencentcloud.tdsql.mysql.cj.protocol.Resultset;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public interface Query {
 
@@ -76,7 +77,7 @@ public interface Query {
 
     void clearBatchedArgs();
 
-    com.tencentcloud.tdsql.mysql.cj.QueryAttributesBindings getQueryAttributesBindings();
+    QueryAttributesBindings getQueryAttributesBindings();
 
     int getResultFetchSize();
 

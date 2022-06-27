@@ -29,12 +29,12 @@
 
 package documentation;
 
-import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinition;
-import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
 
 /**
  * Creates docbook table of connection properties from ConnectionProperties class.

@@ -29,12 +29,13 @@
 
 package com.tencentcloud.tdsql.mysql.cj.protocol;
 
+import java.util.Map;
+import java.util.TimeZone;
+
 import com.tencentcloud.tdsql.mysql.cj.CharsetSettings;
 import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJOperationNotSupportedException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
-import java.util.Map;
-import java.util.TimeZone;
 
 /**
  * Keeps the effective states of server/session variables,
@@ -189,7 +190,7 @@ public interface ServerSession {
      */
     TimeZone getDefaultTimeZone();
 
-    default com.tencentcloud.tdsql.mysql.cj.protocol.ServerSessionStateController getServerSessionStateController() {
+    default ServerSessionStateController getServerSessionStateController() {
         throw ExceptionFactory.createException(CJOperationNotSupportedException.class, "Not supported");
     }
 

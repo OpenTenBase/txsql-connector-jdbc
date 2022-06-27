@@ -29,14 +29,15 @@
 
 package com.tencentcloud.tdsql.mysql.cj;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
 import com.tencentcloud.tdsql.mysql.cj.util.SearchMode;
 import com.tencentcloud.tdsql.mysql.cj.util.StringInspector;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
 
 /**
  * Represents the "parsed" state of a prepared query, with the statement broken up into its static and dynamic (where parameters are bound) parts.

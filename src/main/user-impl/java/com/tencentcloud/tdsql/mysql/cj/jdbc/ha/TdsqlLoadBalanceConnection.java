@@ -52,7 +52,7 @@ public final class TdsqlLoadBalanceConnection {
     public JdbcConnection pickNewConnection(ConnectionUrl connectionUrl) throws SQLException {
         // 设置专属负载均衡模式标识
         tdsqlLoadBalanceMode = true;
-        TdsqlLoggerFactory.logDebug("Receive one create load balance request. [" + connectionUrl + "]");
+        TdsqlLoggerFactory.logDebug("Receive one of create load balance request. [" + connectionUrl + "]");
         Properties props = connectionUrl.getConnectionArgumentsAsProperties();
 
         List<HostInfo> hostsList = connectionUrl.getHostsList();
