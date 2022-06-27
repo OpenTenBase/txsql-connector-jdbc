@@ -1,8 +1,8 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.ha;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_DEFAULT_VALUE;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_DEFAULT_VALUE;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_DEFAULT_VALUE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_ONE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
@@ -105,8 +105,8 @@ public final class TdsqlLoadBalanceConnection {
 
         // 解析并校验“心跳检测开关”参数，该参数默认值为ture，代表开启心跳检测
         String tdsqlLoadBalanceHeartbeatMonitorStr = props.getProperty(
-                PropertyKey.tdsqlLoadBalanceHeartbeatMonitor.getKeyName(),
-                String.valueOf(TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_DEFAULT_VALUE));
+                PropertyKey.tdsqlLoadBalanceHeartbeatMonitorEnable.getKeyName(),
+                String.valueOf(TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE));
         try {
             boolean tdsqlLoadBalanceHeartbeatMonitor = Boolean.parseBoolean(tdsqlLoadBalanceHeartbeatMonitorStr);
             tdsqlLoadBalanceInfo.setTdsqlLoadBalanceHeartbeatMonitor(tdsqlLoadBalanceHeartbeatMonitor);
@@ -121,12 +121,12 @@ public final class TdsqlLoadBalanceConnection {
         // 解析并校验“心跳检测时间间隔”参数，该参数默认值为3000，单位为毫秒
         // 考虑到对性能的影响，当该参数被设置为小于1000时，会被重置为默认值3000
         String tdsqlLoadBalanceHeartbeatIntervalTimeStr = props.getProperty(
-                PropertyKey.tdsqlLoadBalanceHeartbeatIntervalTime.getKeyName(),
-                String.valueOf(LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_DEFAULT_VALUE));
+                PropertyKey.tdsqlLoadBalanceHeartbeatIntervalTimeMillis.getKeyName(),
+                String.valueOf(LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS));
         try {
             int tdsqlLoadBalanceHeartbeatIntervalTime = Integer.parseInt(tdsqlLoadBalanceHeartbeatIntervalTimeStr);
             if (tdsqlLoadBalanceHeartbeatIntervalTime < 1000) {
-                tdsqlLoadBalanceHeartbeatIntervalTime = LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_DEFAULT_VALUE;
+                tdsqlLoadBalanceHeartbeatIntervalTime = LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS;
             }
             tdsqlLoadBalanceInfo.setTdsqlLoadBalanceHeartbeatIntervalTime(tdsqlLoadBalanceHeartbeatIntervalTime);
         } catch (NumberFormatException e) {
@@ -141,12 +141,12 @@ public final class TdsqlLoadBalanceConnection {
         // 解析并校验“心跳检测失败的最大尝试次数”参数，该参数默认值为1次
         // 当该参数被设置为小于等于零时，会被重置为默认值1次
         String tdsqlLoadBalanceMaximumErrorRetriesStr = props.getProperty(
-                PropertyKey.tdsqlLoadBalanceMaximumErrorRetries.getKeyName(),
-                String.valueOf(LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_DEFAULT_VALUE));
+                PropertyKey.tdsqlLoadBalanceHeartbeatMaxErrorRetries.getKeyName(),
+                String.valueOf(LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_ONE));
         try {
             int tdsqlLoadBalanceMaximumErrorRetries = Integer.parseInt(tdsqlLoadBalanceMaximumErrorRetriesStr);
             if (tdsqlLoadBalanceMaximumErrorRetries <= 0) {
-                tdsqlLoadBalanceMaximumErrorRetries = LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_DEFAULT_VALUE;
+                tdsqlLoadBalanceMaximumErrorRetries = LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_ONE;
             }
             tdsqlLoadBalanceInfo.setTdsqlLoadBalanceMaximumErrorRetries(tdsqlLoadBalanceMaximumErrorRetries);
         } catch (NumberFormatException e) {

@@ -281,12 +281,12 @@ public enum PropertyKey {
     // Load Balance
     tdsqlLoadBalanceStrategy("tdsqlLoadBalanceStrategy", true),
     tdsqlLoadBalanceWeightFactor("tdsqlLoadBalanceWeightFactor", true),
-    tdsqlLoadBalanceBlacklistTimeout("tdsqlLoadBalanceBlacklistTimeout", true),
-    tdsqlLoadBalanceHeartbeatMonitor("tdsqlLoadBalanceHeartbeatMonitor", true),
-    tdsqlLoadBalanceHeartbeatIntervalTime("tdsqlLoadBalanceHeartbeatIntervalTime", true),
-    tdsqlLoadBalanceMaximumErrorRetries("tdsqlLoadBalanceMaximumErrorRetries", true),
+    tdsqlLoadBalanceBlacklistTimeoutMillis("tdsqlLoadBalanceBlacklistTimeoutMillis", true),
+    tdsqlLoadBalanceHeartbeatMonitorEnable("tdsqlLoadBalanceHeartbeatMonitorEnable", true),
+    tdsqlLoadBalanceHeartbeatIntervalTimeMillis("tdsqlLoadBalanceHeartbeatIntervalTimeMillis", true),
+    tdsqlLoadBalanceHeartbeatMaxErrorRetries("tdsqlLoadBalanceHeartbeatMaxErrorRetries", true),
 
-    // direct
+    // Direct
     tdsqlDirectReadWriteMode("tdsqlDirectReadWriteMode", true),
     tdsqlDirectMaxSlaveDelaySeconds("tdsqlDirectMaxSlaveDelaySeconds", true),
     tdsqlDirectTopoRefreshIntervalMillis("tdsqlDirectTopoRefreshIntervalMillis", true),

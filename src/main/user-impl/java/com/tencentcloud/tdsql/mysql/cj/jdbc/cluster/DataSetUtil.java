@@ -84,14 +84,14 @@ public class DataSetUtil {
         if(isEmpty(str)) {
             return false;
         }
-        return str.trim().equals(TdsqlDirectConst.TDSQL_ROUTE_ACTIVE_TRUE);
+        return str.trim().equals(TdsqlDirectConst.TDSQL_DIRECT_ROUTE_ACTIVE_TRUE);
     }
 
     private static boolean parseWatch(String str){
         if(isEmpty(str)) {
             return false;
         }
-        return str.trim().equals(TdsqlDirectConst.TDSQL_ROUTE_WATCH_TRUE);
+        return str.trim().equals(TdsqlDirectConst.TDSQL_DIRECT_ROUTE_WATCH_TRUE);
     }
 
     private static Integer parseWeight(String str) throws SQLException {

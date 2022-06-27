@@ -2,6 +2,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst.TDSQL_DIRECT_CLOSE_CONN_TIMEOUT_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst.TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RO;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RW;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst.TDSQL_DIRECT_SHOW_ROUTES_SQL;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst.TDSQL_DIRECT_TOPO_COLUMN_CLUSTER_NAME;
@@ -29,7 +30,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.util.AbstractTdsqlCaughtRunnable;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.SynchronousExecutor;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlAtomicLongMap;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectLoggerFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectConst;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 import java.sql.Connection;
