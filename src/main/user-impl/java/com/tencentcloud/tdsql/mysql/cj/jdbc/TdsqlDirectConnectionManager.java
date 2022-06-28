@@ -14,7 +14,10 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -25,10 +28,11 @@ import java.util.concurrent.TimeUnit;
 public final class TdsqlDirectConnectionManager {
 
     private final ConcurrentHashMap<TdsqlHostInfo, List<JdbcConnection>> connectionHolder = new ConcurrentHashMap<>();
-    private final Executor netTimeoutExecutor = new SynchronousExecutor();
+    private ThreadPoolExecutor recycler;
 
     private TdsqlDirectConnectionManager() {
         initializeCompensator();
+        initializeRecycler();
     }
 
     public static TdsqlDirectConnectionManager getInstance() {
@@ -59,44 +63,21 @@ public final class TdsqlDirectConnectionManager {
             TdsqlDirectLoggerFactory.logDebug("To close list is empty, close operation ignore!");
             return;
         }
-
-        Iterator<Entry<TdsqlHostInfo, List<JdbcConnection>>> entryIterator = connectionHolder.entrySet()
-                .iterator();
-        while (entryIterator.hasNext()) {
-            Entry<TdsqlHostInfo, List<JdbcConnection>> entry = entryIterator.next();
-            String holdHostPortPair = entry.getKey().getHostPortPair();
-            if (toCloseList.contains(holdHostPortPair)) {
-                TdsqlDirectLoggerFactory.logDebug("Start close [" + holdHostPortPair + "]'s connections!");
-                for (JdbcConnection jdbcConnection : entry.getValue()) {
-                    ConnectionImpl connection = (ConnectionImpl) jdbcConnection;
-                    if (connection != null && !connection.isClosed()) {
-                        try {
-                            connection.setNetworkTimeout(netTimeoutExecutor, TdsqlDirectTopoServer.getInstance()
-                                    .getTdsqlDirectCloseConnTimeoutMillis());
-                        } catch (Exception e) {
-                            // ignore
-                        } finally {
-                            try {
-                                connection.close();
-                            } catch (Exception e) {
-                                TdsqlDirectLoggerFactory.logError(
-                                        "Closing [" + holdHostPortPair + "] connection failed!");
-                            }
-                        }
-                    }
-                }
-                entryIterator.remove();
-                TdsqlDirectLoggerFactory.logDebug("Finish close [" + holdHostPortPair + "]'s connections!");
-            } else {
-                TdsqlDirectLoggerFactory.logDebug("To closes not in connection holder! NOOP!");
-            }
-        }
+        this.recycler.submit(new RecyclerTask(toCloseList));
     }
 
     private void initializeCompensator() {
         ScheduledThreadPoolExecutor compensator = new ScheduledThreadPoolExecutor(1,
                 new TdsqlThreadFactoryBuilder().setDaemon(true).setNameFormat("Compensator-pool-").build());
         compensator.scheduleWithFixedDelay(new CompensatorTask(), 0L, 1L, TimeUnit.SECONDS);
+    }
+
+    private void initializeRecycler() {
+        this.recycler = new ThreadPoolExecutor(1 /*core*/, 1 /*max*/, 5 /*keepalive*/, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(100),
+                new TdsqlThreadFactoryBuilder().setDaemon(true).setNameFormat("Recycler-pool-").build(),
+                new AbortPolicy());
+        this.recycler.allowCoreThreadTimeOut(true);
     }
 
     private static class CompensatorTask extends AbstractTdsqlCaughtRunnable {
@@ -115,6 +96,53 @@ public final class TdsqlDirectConnectionManager {
                 long currentCount = scheduleQueue.get(tdsqlHostInfo);
                 if (realCount != currentCount) {
                     scheduleQueue.put(tdsqlHostInfo, realCount);
+                }
+            }
+        }
+    }
+
+    private static class RecyclerTask extends AbstractTdsqlCaughtRunnable {
+
+        private final List<String> recycleList;
+        private final Executor netTimeoutExecutor = new SynchronousExecutor();
+
+        private RecyclerTask(List<String> recycleList) {
+            this.recycleList = recycleList;
+        }
+
+        @Override
+        public void caughtAndRun() {
+            ConcurrentHashMap<TdsqlHostInfo, List<JdbcConnection>> allConnection =
+                    TdsqlDirectConnectionManager.getInstance().getAllConnection();
+            Iterator<Entry<TdsqlHostInfo, List<JdbcConnection>>> entryIterator = allConnection.entrySet()
+                    .iterator();
+            while (entryIterator.hasNext()) {
+                Entry<TdsqlHostInfo, List<JdbcConnection>> entry = entryIterator.next();
+                String holdHostPortPair = entry.getKey().getHostPortPair();
+                if (recycleList.contains(holdHostPortPair)) {
+                    TdsqlDirectLoggerFactory.logDebug("Start close [" + holdHostPortPair + "]'s connections!");
+                    for (JdbcConnection jdbcConnection : entry.getValue()) {
+                        ConnectionImpl connection = (ConnectionImpl) jdbcConnection;
+                        if (connection != null && !connection.isClosed()) {
+                            try {
+                                connection.setNetworkTimeout(netTimeoutExecutor, TdsqlDirectTopoServer.getInstance()
+                                        .getTdsqlDirectCloseConnTimeoutMillis());
+                            } catch (Exception e) {
+                                // ignore
+                            } finally {
+                                try {
+                                    connection.close();
+                                } catch (Exception e) {
+                                    TdsqlDirectLoggerFactory.logError(
+                                            "Closing [" + holdHostPortPair + "] connection failed!");
+                                }
+                            }
+                        }
+                    }
+                    entryIterator.remove();
+                    TdsqlDirectLoggerFactory.logDebug("Finish close [" + holdHostPortPair + "]'s connections!");
+                } else {
+                    TdsqlDirectLoggerFactory.logDebug("To closes not in connection holder! NOOP!");
                 }
             }
         }
