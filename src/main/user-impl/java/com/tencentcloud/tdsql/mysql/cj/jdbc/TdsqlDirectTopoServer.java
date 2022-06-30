@@ -103,7 +103,7 @@ public final class TdsqlDirectTopoServer {
             Integer newTdsqlProxyTopoRefreshInterval = connProps.getIntegerProperty(
                     PropertyKey.tdsqlDirectTopoRefreshIntervalMillis).getValue();
             if (!tdsqlDirectTopoRefreshIntervalMillis.equals(newTdsqlProxyTopoRefreshInterval)) {
-                if (newTdsqlProxyTopoRefreshInterval > 0 && newTdsqlProxyTopoRefreshInterval < Integer.MAX_VALUE) {
+                if (newTdsqlProxyTopoRefreshInterval > 1000 && newTdsqlProxyTopoRefreshInterval < Integer.MAX_VALUE) {
                     tdsqlDirectTopoRefreshIntervalMillis = newTdsqlProxyTopoRefreshInterval;
                     if (topoServerInitialized.compareAndSet(true, false) && topoServerScheduler != null) {
                         topoServerScheduler.shutdown();
