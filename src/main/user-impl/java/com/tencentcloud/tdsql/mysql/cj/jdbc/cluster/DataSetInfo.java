@@ -6,8 +6,9 @@ import java.util.Objects;
  * The type Data set info.
  */
 public class DataSetInfo {
+
     // 数据节点ip地址
-    private String IP;
+    private String ip;
     // 数据节点端口号
     private String port;
     // 权重, 0-100
@@ -19,17 +20,17 @@ public class DataSetInfo {
     // 数据同步延迟, >= 0的整数
     private Long delay = 0L;
 
-    public DataSetInfo(String IP, String port) {
-        this.IP = IP;
+    public DataSetInfo(String ip, String port) {
+        this.ip = ip;
         this.port = port;
     }
 
-    public String getIP() {
-        return IP;
+    public String getIp() {
+        return ip;
     }
 
-    public void setIP(String IP) {
-        this.IP = IP;
+    public void setIp(String ip) {
+        this.ip = ip;
     }
 
     public String getPort() {
@@ -74,19 +75,23 @@ public class DataSetInfo {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         DataSetInfo that = (DataSetInfo) o;
-        return Objects.equals(IP, that.IP) && Objects.equals(port, that.port);
+        return Objects.equals(ip, that.ip) && Objects.equals(port, that.port);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(IP, port);
+        return Objects.hash(ip, port);
     }
 
-    public DataSetInfo copy(){
-        DataSetInfo res = new DataSetInfo(this.getIP(), this.getPort());
+    public DataSetInfo copy() {
+        DataSetInfo res = new DataSetInfo(this.getIp(), this.getPort());
         res.setWeight(this.getWeight());
         res.setWatch(this.getWatch());
         res.setDelay(this.getDelay());
@@ -96,10 +101,6 @@ public class DataSetInfo {
 
     @Override
     public String toString() {
-        return "DataSetInfo{" +
-                "IP='" + IP + '\'' +
-                ", port='" + port + '\'' +
-                ", delay=" + delay +
-                '}';
+        return ip + ":" + port + ":" + delay;
     }
 }

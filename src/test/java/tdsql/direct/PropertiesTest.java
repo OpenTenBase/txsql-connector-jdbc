@@ -71,16 +71,16 @@ public class PropertiesTest extends BaseTest {
     public void testTopoRefreshIntervalChanged() throws InterruptedException {
         for (int i = 2; i <= 6; i++) {
             Properties props = new Properties();
-            props.put(PropertyKey.tdsqlProxyTopoRefreshInterval.getKeyName(), String.valueOf(i * 1000L));
+            props.put(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis.getKeyName(), String.valueOf(i * 1000L));
             assertDoesNotThrow(() -> {
                 try (Connection conn = getConnection(RO, props)) {
                     assertNotNull(conn);
                 }
             });
         }
-        assertEquals(6 * 1000, TdsqlDirectTopoServer.getInstance().getTdsqlProxyTopoRefreshInterval());
+        assertEquals(6 * 1000, TdsqlDirectTopoServer.getInstance().getTdsqlDirectTopoRefreshIntervalMillis());
         TimeUnit.SECONDS.sleep(7);
-        assertEquals(6 * 1000, TdsqlDirectTopoServer.getInstance().getTdsqlProxyTopoRefreshInterval());
+        assertEquals(6 * 1000, TdsqlDirectTopoServer.getInstance().getTdsqlDirectTopoRefreshIntervalMillis());
     }
 
     @Test

@@ -24,6 +24,12 @@ public class TdsqlDirectLoggerFactory {
         }
     }
 
+    public static void logInfo(Object msg) {
+        if (log != null && log.isInfoEnabled()) {
+            log.logInfo(msg);
+        }
+    }
+
     public static void logError(Object msg) {
         if (log != null && log.isErrorEnabled()) {
             log.logError(msg);

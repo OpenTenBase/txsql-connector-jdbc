@@ -3,6 +3,7 @@ package tdsql.direct;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode.RO;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode.RW;
 
+import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
 import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -29,20 +30,21 @@ public class ConnectionPoolTest extends BaseTest {
     }
 
     private void testHikariPool(HikariDataSource hikariDataSource) throws InterruptedException {
-        hikariDataSource.setMaxLifetime(30000);
+        //        hikariDataSource.setMaxLifetime(30000);
 
-        ThreadPoolExecutor taskExecutor = new ThreadPoolExecutor(100, 100, 0L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>());
+        ThreadPoolExecutor taskExecutor = new ThreadPoolExecutor(10, 10, 0L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(),
+                new TdsqlThreadFactoryBuilder().setDaemon(true).setNameFormat("Task-pool-%d").build());
         taskExecutor.prestartAllCoreThreads();
 
-        ScheduledThreadPoolExecutor monitor = new ScheduledThreadPoolExecutor(1);
+        /*ScheduledThreadPoolExecutor monitor = new ScheduledThreadPoolExecutor(1);
         monitor.scheduleAtFixedRate(() -> {
             printAllConnection();
             printScheduleQueue();
             System.out.printf("Monitor: " +
-                            "PoolSize: %d, CorePoolSize: %d, Active: %d, " +
-                            "Completed: %d, Task: %d, Queue: %d, LargestPoolSize: %d, " +
-                            "MaximumPoolSize: %d,  KeepAliveTime: %d, isShutdown: %s, isTerminated: %s\n",
+                            "PoolSize: %d, CorePoolSize: %d, ActiveCount: %d, " +
+                            "CompletedTaskCount: %d, TaskCount: %d, TaskQueueSize: %d, LargestPoolSize: %d, " +
+                            "MaximumPoolSize: %d, KeepAliveTime: %d, IsShutdown: %s, IsTerminated: %s\n",
                     taskExecutor.getPoolSize(), taskExecutor.getCorePoolSize(),
                     taskExecutor.getActiveCount(),
                     taskExecutor.getCompletedTaskCount(), taskExecutor.getTaskCount(),
@@ -50,14 +52,14 @@ public class ConnectionPoolTest extends BaseTest {
                     taskExecutor.getMaximumPoolSize(), taskExecutor.getKeepAliveTime(TimeUnit.MILLISECONDS),
                     taskExecutor.isShutdown(), taskExecutor.isTerminated());
             System.out.println("Hikari pool total = " + hikariDataSource.getHikariPoolMXBean().getTotalConnections());
-        }, 0L, 5L, TimeUnit.SECONDS);
+        }, 0L, 30L, TimeUnit.SECONDS);*/
 
         for (; ; ) {
-            TimeUnit.MILLISECONDS.sleep(100);
+            TimeUnit.MILLISECONDS.sleep(10);
             taskExecutor.execute(() -> {
                 try (Connection conn = hikariDataSource.getConnection();
                         Statement stmt = conn.createStatement()) {
-                    stmt.executeQuery("select 1");
+                    stmt.executeQuery("select sleep(1);");
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
