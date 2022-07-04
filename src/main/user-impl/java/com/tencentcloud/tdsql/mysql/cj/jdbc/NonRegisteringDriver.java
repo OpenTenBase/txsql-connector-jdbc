@@ -29,6 +29,7 @@
 
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
 import static com.tencentcloud.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
 
 import java.sql.DriverPropertyInfo;
@@ -212,10 +213,14 @@ public class NonRegisteringDriver implements java.sql.Driver {
 
                 case LOADBALANCE_CONNECTION:
                 case LOADBALANCE_DNS_SRV_CONNECTION:
-                    // 当URL为负载均衡类型且含有特定参数时，进入具备连接收敛特性的数据库连接负载均衡处理逻辑
+                    // 当URL为负载均衡类型且负载均衡策略算法参数的值是我们已经实现的值时，进入具备连接收敛特性的数据库连接负载均衡处理逻辑
                     Properties props = conStr.getConnectionArgumentsAsProperties();
                     if (props.containsKey(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName())) {
-                        return TdsqlLoadBalanceConnection.getInstance().pickNewConnection(conStr);
+                        String strategy = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(), null);
+                        if (!StringUtils.isEmptyOrWhitespaceOnly(strategy)
+                                && TDSQL_LOAD_BALANCE_STRATEGY_SED.equalsIgnoreCase(strategy)) {
+                            return TdsqlLoadBalanceConnection.getInstance().pickNewConnection(conStr);
+                        }
                     }
                     // 否则，进入原有处理逻辑
                     return LoadBalancedConnectionProxy.createProxyInstance(conStr);
