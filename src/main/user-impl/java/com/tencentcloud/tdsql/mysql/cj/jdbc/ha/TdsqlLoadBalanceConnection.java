@@ -88,6 +88,14 @@ public final class TdsqlLoadBalanceConnection {
                 }
                 try {
                     int wf = Integer.parseInt(factorArray.get(i));
+                    if (wf < 0) {
+                        String errMessage =
+                                "Invalid tdsqlLoadBalanceWeightFactor value [" + factorArray.get(i) + "] in ["
+                                        + tdsqlLoadBalanceWeightFactorStr + "]";
+                        TdsqlLoggerFactory.logError(errMessage);
+                        throw SQLError.createSQLException(errMessage,
+                                MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
+                    }
                     tdsqlLoadBalanceWeightFactorList.set(i, wf);
                 } catch (NumberFormatException e) {
                     String errMessage = "Invalid tdsqlLoadBalanceWeightFactor value [" + factorArray.get(i) + "] in ["
