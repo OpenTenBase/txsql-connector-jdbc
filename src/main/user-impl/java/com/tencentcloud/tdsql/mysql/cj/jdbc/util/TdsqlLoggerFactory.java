@@ -24,6 +24,12 @@ public final class TdsqlLoggerFactory {
 
     public static void setLogger(TdsqlHostInfo tdsqlHostInfo) {
         Properties properties = tdsqlHostInfo.exposeAsProperties();
+        properties.remove(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName());
+        properties.remove(PropertyKey.tdsqlLoadBalanceWeightFactor.getKeyName());
+        properties.remove(PropertyKey.tdsqlLoadBalanceBlacklistTimeoutMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatMonitorEnable.getKeyName());
+        properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatIntervalTimeMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatMaxErrorRetries.getKeyName());
         PropertySet propertySet = new JdbcPropertySetImpl();
         propertySet.initializeProperties(properties);
         log = LogFactory.getLogger(propertySet.getStringProperty(PropertyKey.logger).getStringValue(),

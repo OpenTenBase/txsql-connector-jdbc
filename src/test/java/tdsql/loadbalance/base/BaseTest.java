@@ -52,9 +52,9 @@ public class BaseTest {
             + "&logger=Slf4JLogger"
             + "&tdsqlLoadBalanceStrategy=sed"
             + "&tdsqlLoadBalanceWeightFactor=1,1"
-            + "&tdsqlLoadBalanceHeartbeatMonitor=true"
-            + "&tdsqlLoadBalanceHeartbeatIntervalTime=3000"
-            + "&tdsqlLoadBalanceMaximumErrorRetries=1";
+            + "&tdsqlLoadBalanceHeartbeatMonitorEnable=true"
+            + "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000"
+            + "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1";
     protected static final String LB_URL =
             "jdbc:tdsql-mysql:loadbalance://" + PROXY_16 + "," + PROXY_44 + "," + PROXY_46 + "," + PROXY_48 + "/"
                     + DB_MYSQL + LB_URL_PROPS;

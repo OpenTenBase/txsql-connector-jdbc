@@ -178,7 +178,6 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
                 TdsqlLoggerFactory.logError(
                         "Host heartbeat monitor check error [" + tdsqlHostInfo.getHostPortPair() + "]", e);
             }

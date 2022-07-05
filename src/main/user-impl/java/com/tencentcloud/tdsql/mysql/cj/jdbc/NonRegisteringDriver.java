@@ -32,6 +32,8 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
 import static com.tencentcloud.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
 
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -217,10 +219,12 @@ public class NonRegisteringDriver implements java.sql.Driver {
                     Properties props = conStr.getConnectionArgumentsAsProperties();
                     if (props.containsKey(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName())) {
                         String strategy = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(), null);
-                        if (!StringUtils.isEmptyOrWhitespaceOnly(strategy)
-                                && TDSQL_LOAD_BALANCE_STRATEGY_SED.equalsIgnoreCase(strategy)) {
-                            return TdsqlLoadBalanceConnection.getInstance().pickNewConnection(conStr);
+                        if (!TDSQL_LOAD_BALANCE_STRATEGY_SED.equalsIgnoreCase(strategy)) {
+                            String errMessage = Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceStrategy", new Object[]{strategy}) + Messages.getString("ConnectionProperties.tdsqlLoadBalanceStrategy");
+                            TdsqlLoggerFactory.logError(errMessage);
+                            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
                         }
+                        return TdsqlLoadBalanceConnection.getInstance().pickNewConnection(conStr);
                     }
                     // 否则，进入原有处理逻辑
                     return LoadBalancedConnectionProxy.createProxyInstance(conStr);

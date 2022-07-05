@@ -3,7 +3,11 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.ha;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_ONE;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE_FALSE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE_TRUE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
 
+import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
@@ -64,107 +68,9 @@ public final class TdsqlLoadBalanceConnection {
             tdsqlHostInfoList.add(new TdsqlHostInfo(hostInfo));
         }
 
-        // 初始化TDSQL负载均衡信息记录类对象，并在依次解析URL参数后对其赋值
-        // 每个负载均衡信息记录类都有自己的DataSourceUuid
-        // 该DataSourceUuid是由 TdsqlLoadBalanceInfo 的 setTdsqlHostInfoList 方法生成并赋值的
-        TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo = new TdsqlLoadBalanceInfo();
-        tdsqlLoadBalanceInfo.setTdsqlHostInfoList(tdsqlHostInfoList);
-
-        // 由于负载因子需要与IP地址一一对应，因此加入了一些必要的处理逻辑
-        // 1.当负载因子少于IP地址的个数时，缺少的负载因子会被赋值为默认值1
-        // 2.当负载因子多于IP地址的个数时，多于的负载因子将被抛弃
-        List<Integer> tdsqlLoadBalanceWeightFactorList = new ArrayList<>(numHosts);
-        for (int i = 0; i < numHosts; i++) {
-            tdsqlLoadBalanceWeightFactorList.add(1);
-        }
-        String tdsqlLoadBalanceWeightFactorStr = props.getProperty(
-                PropertyKey.tdsqlLoadBalanceWeightFactor.getKeyName(),
-                null);
-        if (!StringUtils.isNullOrEmpty(tdsqlLoadBalanceWeightFactorStr)) {
-            List<String> factorArray = StringUtils.split(tdsqlLoadBalanceWeightFactorStr, ",", true);
-            for (int i = 0; i < factorArray.size(); i++) {
-                if (i >= numHosts) {
-                    break;
-                }
-                try {
-                    int wf = Integer.parseInt(factorArray.get(i));
-                    if (wf < 0) {
-                        String errMessage =
-                                "Invalid tdsqlLoadBalanceWeightFactor value [" + factorArray.get(i) + "] in ["
-                                        + tdsqlLoadBalanceWeightFactorStr + "]";
-                        TdsqlLoggerFactory.logError(errMessage);
-                        throw SQLError.createSQLException(errMessage,
-                                MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
-                    }
-                    tdsqlLoadBalanceWeightFactorList.set(i, wf);
-                } catch (NumberFormatException e) {
-                    String errMessage = "Invalid tdsqlLoadBalanceWeightFactor value [" + factorArray.get(i) + "] in ["
-                            + tdsqlLoadBalanceWeightFactorStr + "]";
-                    TdsqlLoggerFactory.logError(errMessage, e);
-                    throw SQLError.createSQLException(errMessage,
-                            MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
-                }
-            }
-        }
-        tdsqlLoadBalanceInfo.setTdsqlLoadBalanceWeightFactorList(tdsqlLoadBalanceWeightFactorList);
-        for (int i = 0; i < numHosts; i++) {
-            tdsqlHostInfoList.get(i).setWeightFactor(tdsqlLoadBalanceWeightFactorList.get(i));
-        }
-
-        // 解析并校验“心跳检测开关”参数，该参数默认值为ture，代表开启心跳检测
-        String tdsqlLoadBalanceHeartbeatMonitorStr = props.getProperty(
-                PropertyKey.tdsqlLoadBalanceHeartbeatMonitorEnable.getKeyName(),
-                String.valueOf(TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE));
-        try {
-            boolean tdsqlLoadBalanceHeartbeatMonitor = Boolean.parseBoolean(tdsqlLoadBalanceHeartbeatMonitorStr);
-            tdsqlLoadBalanceInfo.setTdsqlLoadBalanceHeartbeatMonitor(tdsqlLoadBalanceHeartbeatMonitor);
-        } catch (Exception e) {
-            String errMessage =
-                    "Invalid tdsqlLoadBalanceHeartbeatMonitor value [" + tdsqlLoadBalanceHeartbeatMonitorStr + "]";
-            TdsqlLoggerFactory.logError(errMessage, e);
-            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
-                    null);
-        }
-
-        // 解析并校验“心跳检测时间间隔”参数，该参数默认值为3000，单位为毫秒
-        // 考虑到对性能的影响，当该参数被设置为小于1000时，会被重置为默认值3000
-        String tdsqlLoadBalanceHeartbeatIntervalTimeStr = props.getProperty(
-                PropertyKey.tdsqlLoadBalanceHeartbeatIntervalTimeMillis.getKeyName(),
-                String.valueOf(LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS));
-        try {
-            int tdsqlLoadBalanceHeartbeatIntervalTime = Integer.parseInt(tdsqlLoadBalanceHeartbeatIntervalTimeStr);
-            if (tdsqlLoadBalanceHeartbeatIntervalTime < 1000) {
-                tdsqlLoadBalanceHeartbeatIntervalTime = LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS;
-            }
-            tdsqlLoadBalanceInfo.setTdsqlLoadBalanceHeartbeatIntervalTime(tdsqlLoadBalanceHeartbeatIntervalTime);
-        } catch (NumberFormatException e) {
-            String errMessage =
-                    "Invalid tdsqlLoadBalanceHeartbeatIntervalTime value [" + tdsqlLoadBalanceHeartbeatIntervalTimeStr
-                            + "]";
-            TdsqlLoggerFactory.logError(errMessage, e);
-            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
-                    null);
-        }
-
-        // 解析并校验“心跳检测失败的最大尝试次数”参数，该参数默认值为1次
-        // 当该参数被设置为小于等于零时，会被重置为默认值1次
-        String tdsqlLoadBalanceMaximumErrorRetriesStr = props.getProperty(
-                PropertyKey.tdsqlLoadBalanceHeartbeatMaxErrorRetries.getKeyName(),
-                String.valueOf(LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_ONE));
-        try {
-            int tdsqlLoadBalanceMaximumErrorRetries = Integer.parseInt(tdsqlLoadBalanceMaximumErrorRetriesStr);
-            if (tdsqlLoadBalanceMaximumErrorRetries <= 0) {
-                tdsqlLoadBalanceMaximumErrorRetries = LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_ONE;
-            }
-            tdsqlLoadBalanceInfo.setTdsqlLoadBalanceMaximumErrorRetries(tdsqlLoadBalanceMaximumErrorRetries);
-        } catch (NumberFormatException e) {
-            String errMessage =
-                    "Invalid tdsqlLoadBalanceMaximumErrorRetries value [" + tdsqlLoadBalanceMaximumErrorRetriesStr
-                            + "]";
-            TdsqlLoggerFactory.logError(errMessage, e);
-            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
-                    null);
-        }
+        // 解析并校验连接参数
+        TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo = this.validateConnectionAttributes(props, tdsqlHostInfoList,
+                numHosts);
 
         // 进入获取连接核心处理逻辑
         return pickConnection(tdsqlLoadBalanceInfo);
@@ -177,7 +83,8 @@ public final class TdsqlLoadBalanceConnection {
      * @return 返回 {@link JdbcConnection} 接口的一个实例，这里就是 {@link ConnectionImpl} 对象的实例
      * @throws SQLException 当有异常时抛出
      */
-    private synchronized JdbcConnection pickConnection(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) throws SQLException {
+    private synchronized JdbcConnection pickConnection(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) throws
+            SQLException {
         // 初始化全局连接计数器
         TdsqlLoadBalanceConnectionCounter.getInstance().initialize(tdsqlLoadBalanceInfo);
 
@@ -204,8 +111,9 @@ public final class TdsqlLoadBalanceConnection {
                 if (!await) {
                     TdsqlLoggerFactory.logWarn("Wait for first heartbeat check finished timeout!");
                 } else {
-                    TdsqlLoggerFactory.logInfo("All host in current datasource has heartbeat checked! "
-                            + "Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]");
+                    TdsqlLoggerFactory.logInfo(
+                            "All host in current datasource has heartbeat checked! " + "Current blacklist ["
+                                    + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]");
                 }
             } catch (InterruptedException e) {
                 TdsqlLoggerFactory.logError("Wait for first heartbeat check finished error!", e);
@@ -216,7 +124,8 @@ public final class TdsqlLoadBalanceConnection {
         TdsqlLoadBalanceStrategy strategy = new TdsqlSedBalanceStrategy();
         // 根据全局连接计数器，执行负载均衡算法策略，选择出一个需要建立数据库连接的IP地址
         TdsqlHostInfo choice = strategy.choice(
-                TdsqlLoadBalanceConnectionCounter.getInstance().getCounter(tdsqlLoadBalanceInfo.getDatasourceUuid()));
+                TdsqlLoadBalanceConnectionCounter.getInstance()
+                        .getCounter(tdsqlLoadBalanceInfo.getDatasourceUuid()));
         // 如果负载均衡算法策略无法选择出IP地址，大概率是因为全局连接计数器是空的
         // 也就是说，所有的IP地址都被加入了黑名单，无法再进行调度
         // 这种情况出现的概率较小，我们会记录严重错误级别的日志，并提前抛出异常提醒用户
@@ -224,7 +133,8 @@ public final class TdsqlLoadBalanceConnection {
             String errMessage = "Could not create connection to database server. Because all hosts in blacklist ["
                     + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]";
             TdsqlLoggerFactory.logFatal(errMessage);
-            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE,
+            throw SQLError.createSQLException(errMessage,
+                    MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE,
                     null);
         }
         try {
@@ -237,8 +147,9 @@ public final class TdsqlLoadBalanceConnection {
         } catch (SQLException e) {
             // 如果建立数据库连接失败，记录日志和堆栈、抛出异常，同时将该失败的IP地址加入黑名单
             // 保证这个IP地址在心跳检测成功之前，不再被调度到
-            TdsqlLoggerFactory.logError("Could not create connection to database server [" + choice.getHostPortPair()
-                    + "], try add to blacklist.", e);
+            TdsqlLoggerFactory.logError(
+                    "Could not create connection to database server [" + choice.getHostPortPair()
+                            + "], try add to blacklist.", e);
             TdsqlLoadBalanceBlacklistHolder.getInstance().addBlacklist(choice);
             throw e;
         }
@@ -246,6 +157,164 @@ public final class TdsqlLoadBalanceConnection {
 
     public static TdsqlLoadBalanceConnection getInstance() {
         return TdsqlLoadBalanceConnection.SingletonInstance.INSTANCE;
+    }
+
+    /**
+     * <p>解析并校验连接参数</p>
+     *
+     * @param props 待解析并校验的参数
+     * @param tdsqlHostInfoList 主机列表
+     * @param numHosts 主机个数
+     * @return {@link TdsqlLoadBalanceInfo}
+     * @throws SQLException 当连接参数解析或校验失败时
+     */
+    private TdsqlLoadBalanceInfo validateConnectionAttributes(Properties props, List<TdsqlHostInfo> tdsqlHostInfoList,
+            int numHosts) throws SQLException {
+        // 初始化TDSQL负载均衡信息记录类对象，并在依次解析URL参数后对其赋值
+        // 每个负载均衡信息记录类都有自己的DataSourceUuid
+        // 该DataSourceUuid是由 TdsqlLoadBalanceInfo 的 setTdsqlHostInfoList 方法生成并赋值的
+        TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo = new TdsqlLoadBalanceInfo();
+        tdsqlLoadBalanceInfo.setTdsqlHostInfoList(tdsqlHostInfoList);
+
+        // 解析并校验“策略算法”参数，目前仅允许设置为"SED"
+        String tdsqlLoadBalanceStrategyStr = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName());
+        if (!TDSQL_LOAD_BALANCE_STRATEGY_SED.equalsIgnoreCase(tdsqlLoadBalanceStrategyStr)) {
+            String errMessage = Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceStrategy",
+                    new Object[]{tdsqlLoadBalanceStrategyStr}) + Messages.getString(
+                    "ConnectionProperties.tdsqlLoadBalanceStrategy");
+            TdsqlLoggerFactory.logError(errMessage);
+            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
+                    null);
+        }
+
+        // 由于负载因子需要与IP地址一一对应，因此加入了一些必要的处理逻辑
+        // 1.当负载因子少于IP地址的个数时，缺少的负载因子会被赋值为默认值1
+        // 2.当负载因子多于IP地址的个数时，多于的负载因子将被抛弃
+        List<Integer> tdsqlLoadBalanceWeightFactorList = new ArrayList<>(numHosts);
+        for (int i = 0; i < numHosts; i++) {
+            tdsqlLoadBalanceWeightFactorList.add(1);
+        }
+        String tdsqlLoadBalanceWeightFactorStr = props.getProperty(
+                PropertyKey.tdsqlLoadBalanceWeightFactor.getKeyName(),
+                null);
+        if (!StringUtils.isNullOrEmpty(tdsqlLoadBalanceWeightFactorStr)) {
+            List<String> factorArray = StringUtils.split(tdsqlLoadBalanceWeightFactorStr, ",", true);
+            for (int i = 0; i < factorArray.size(); i++) {
+                if (i >= numHosts) {
+                    break;
+                }
+                try {
+                    int wf = Integer.parseInt(factorArray.get(i));
+                    if (wf < 0) {
+                        String errMessage =
+                                Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceWeightFactor",
+                                        new Object[]{factorArray.get(i)}) + Messages.getString(
+                                        "ConnectionProperties.tdsqlLoadBalanceWeightFactor");
+                        TdsqlLoggerFactory.logError(errMessage);
+                        throw SQLError.createSQLException(errMessage,
+                                MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
+                    }
+                    tdsqlLoadBalanceWeightFactorList.set(i, wf);
+                } catch (NumberFormatException e) {
+                    String errMessage =
+                            Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceWeightFactor",
+                                    new Object[]{factorArray.get(i)}) + Messages.getString(
+                                    "ConnectionProperties.tdsqlLoadBalanceWeightFactor");
+                    TdsqlLoggerFactory.logError(errMessage, e);
+                    throw SQLError.createSQLException(errMessage,
+                            MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
+                }
+            }
+        }
+        tdsqlLoadBalanceInfo.setTdsqlLoadBalanceWeightFactorList(tdsqlLoadBalanceWeightFactorList);
+        for (int i = 0; i < numHosts; i++) {
+            tdsqlHostInfoList.get(i).setWeightFactor(tdsqlLoadBalanceWeightFactorList.get(i));
+        }
+
+        // 解析并校验“心跳检测开关”参数，该参数默认值为ture，代表开启心跳检测
+        String tdsqlLoadBalanceHeartbeatMonitorStr = props.getProperty(
+                PropertyKey.tdsqlLoadBalanceHeartbeatMonitorEnable.getKeyName(),
+                String.valueOf(TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE));
+        try {
+            if (!TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE_TRUE.equalsIgnoreCase(tdsqlLoadBalanceHeartbeatMonitorStr)
+                    && !TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE_FALSE.equalsIgnoreCase(
+                    tdsqlLoadBalanceHeartbeatMonitorStr)) {
+                String errMessage =
+                        Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceHeartbeatMonitorEnable",
+                                new Object[]{tdsqlLoadBalanceHeartbeatMonitorStr}) + Messages.getString(
+                                "ConnectionProperties.tdsqlLoadBalanceHeartbeatMonitorEnable");
+                TdsqlLoggerFactory.logError(errMessage);
+                throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
+                        null);
+            }
+            boolean tdsqlLoadBalanceHeartbeatMonitor = Boolean.parseBoolean(tdsqlLoadBalanceHeartbeatMonitorStr);
+            tdsqlLoadBalanceInfo.setTdsqlLoadBalanceHeartbeatMonitor(tdsqlLoadBalanceHeartbeatMonitor);
+        } catch (Exception e) {
+            String errMessage =
+                    Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceHeartbeatMonitorEnable",
+                            new Object[]{tdsqlLoadBalanceHeartbeatMonitorStr}) + Messages.getString(
+                            "ConnectionProperties.tdsqlLoadBalanceHeartbeatMonitorEnable");
+            TdsqlLoggerFactory.logError(errMessage, e);
+            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
+                    null);
+        }
+
+        // 解析并校验“心跳检测时间间隔”参数，该参数默认值为3000，单位为毫秒
+        // 考虑到对性能的影响，当该参数被设置为小于1000时，会被重置为默认值3000
+        String tdsqlLoadBalanceHeartbeatIntervalTimeStr = props.getProperty(
+                PropertyKey.tdsqlLoadBalanceHeartbeatIntervalTimeMillis.getKeyName(),
+                String.valueOf(LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS));
+        try {
+            int tdsqlLoadBalanceHeartbeatIntervalTime = Integer.parseInt(tdsqlLoadBalanceHeartbeatIntervalTimeStr);
+            if (tdsqlLoadBalanceHeartbeatIntervalTime < 1000) {
+                String errMessage = Messages.getString(
+                        "ConnectionProperties.badValueForTdsqlLoadBalanceHeartbeatIntervalTimeMillis",
+                        new Object[]{tdsqlLoadBalanceHeartbeatIntervalTimeStr}) + Messages.getString(
+                        "ConnectionProperties.tdsqlLoadBalanceHeartbeatIntervalTimeMillis");
+                TdsqlLoggerFactory.logError(errMessage);
+                throw SQLError.createSQLException(errMessage,
+                        MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
+                        null);
+            }
+            tdsqlLoadBalanceInfo.setTdsqlLoadBalanceHeartbeatIntervalTime(tdsqlLoadBalanceHeartbeatIntervalTime);
+        } catch (NumberFormatException e) {
+            String errMessage = Messages.getString(
+                    "ConnectionProperties.badValueForTdsqlLoadBalanceHeartbeatIntervalTimeMillis",
+                    new Object[]{tdsqlLoadBalanceHeartbeatIntervalTimeStr}) + Messages.getString(
+                    "ConnectionProperties.tdsqlLoadBalanceHeartbeatIntervalTimeMillis");
+            TdsqlLoggerFactory.logError(errMessage, e);
+            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
+                    null);
+        }
+
+        // 解析并校验“心跳检测失败的最大尝试次数”参数，该参数默认值为1次
+        // 当该参数被设置为小于等于零时，会被重置为默认值1次
+        String tdsqlLoadBalanceMaximumErrorRetriesStr = props.getProperty(
+                PropertyKey.tdsqlLoadBalanceHeartbeatMaxErrorRetries.getKeyName(),
+                String.valueOf(LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_ONE));
+        try {
+            int tdsqlLoadBalanceMaximumErrorRetries = Integer.parseInt(tdsqlLoadBalanceMaximumErrorRetriesStr);
+            if (tdsqlLoadBalanceMaximumErrorRetries <= 0) {
+                String errMessage =
+                        Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceHeartbeatMaxErrorRetries",
+                                new Object[]{tdsqlLoadBalanceMaximumErrorRetriesStr}) + Messages.getString(
+                                "ConnectionProperties.tdsqlLoadBalanceHeartbeatMaxErrorRetries");
+                TdsqlLoggerFactory.logError(errMessage);
+                throw SQLError.createSQLException(errMessage,
+                        MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
+                        null);
+            }
+            tdsqlLoadBalanceInfo.setTdsqlLoadBalanceMaximumErrorRetries(tdsqlLoadBalanceMaximumErrorRetries);
+        } catch (NumberFormatException e) {
+            String errMessage =
+                    Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceHeartbeatMaxErrorRetries",
+                            new Object[]{tdsqlLoadBalanceMaximumErrorRetriesStr}) + Messages.getString(
+                            "ConnectionProperties.tdsqlLoadBalanceHeartbeatMaxErrorRetries");
+            TdsqlLoggerFactory.logError(errMessage, e);
+            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
+                    null);
+        }
+        return tdsqlLoadBalanceInfo;
     }
 
     private static class SingletonInstance {
