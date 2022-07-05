@@ -178,6 +178,9 @@ public final class TdsqlLoadBalanceConnection {
      * @throws SQLException 当有异常时抛出
      */
     private synchronized JdbcConnection pickConnection(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) throws SQLException {
+        // 初始化全局连接计数器
+        TdsqlLoadBalanceConnectionCounter.getInstance().initialize(tdsqlLoadBalanceInfo);
+
         // 当开启心跳检测开关时，初始化心跳检测监视器
         if (tdsqlLoadBalanceInfo.isTdsqlLoadBalanceHeartbeatMonitor()) {
             TdsqlLoggerFactory.logDebug("Heartbeat monitor initializing.");
@@ -208,8 +211,6 @@ public final class TdsqlLoadBalanceConnection {
                 TdsqlLoggerFactory.logError("Wait for first heartbeat check finished error!", e);
             }
         }
-        // 初始化全局连接计数器
-        TdsqlLoadBalanceConnectionCounter.getInstance().initialize(tdsqlLoadBalanceInfo);
 
         // 初始化负载均衡算法策略对象，目前支持SED算法策略，如果后续算法策略扩展，这里会做相应的修改
         TdsqlLoadBalanceStrategy strategy = new TdsqlSedBalanceStrategy();
