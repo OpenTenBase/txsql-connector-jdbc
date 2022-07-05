@@ -182,34 +182,34 @@ public final class TdsqlLoadBalanceConnection {
         if (tdsqlLoadBalanceInfo.isTdsqlLoadBalanceHeartbeatMonitor()) {
             TdsqlLoggerFactory.logDebug("Heartbeat monitor initializing.");
             TdsqlLoadBalanceHeartbeatMonitor.getInstance().initialize(tdsqlLoadBalanceInfo);
+
+            // 等待心跳检测监视器初始化完成，并完成第一次所有IP地址的心跳检测
+            // 每一个DataSource都会持有自己专属的计数器，且当该DataSource第一次建立连接时，计数器非零，后面的等待超时逻辑才会生效
+            // 对于每一个DataSource，该逻辑只会生效一次
+            // 这时，如果IP地址无法建立数据库连接，则该IP地址会被加入黑名单
+            // 同时，该IP地址会在全局连接计数器中被移除，被移除的IP地址在之后的负载均衡算法策略中不会被调度
+            CountDownLatch firstCheckFinished = TdsqlLoadBalanceHeartbeatMonitor.getInstance()
+                    .getFirstCheckFinished(tdsqlLoadBalanceInfo.getDatasourceUuid());
+            try {
+                // 考虑到有可能在第一次心跳检测时，存在建立数据库连接无法及时响应返回的情况（表象是建立连接卡住）
+                // 在这里设置了等待检测结果的超时时间，设置为了需要检测的IP地址个数乘以2秒
+                // 之所以乘以2秒，是因为心跳检测建立连接的超时时间为1秒，之后执行检测SQL语句的超时时间也为1秒
+                // 因为多个IP地址的检测时并行进行的，因此等待超时设置为IP地址个数乘以2秒的时间也就变得足够了
+                boolean await = firstCheckFinished.await(tdsqlLoadBalanceInfo.getTdsqlHostInfoList().size() * 2L,
+                        TimeUnit.SECONDS);
+                // 如果等待第一次心跳检测结果超时了，我们会记录警告级别的日志，并继续向下执行程序逻辑
+                if (!await) {
+                    TdsqlLoggerFactory.logWarn("Wait for first heartbeat check finished timeout!");
+                } else {
+                    TdsqlLoggerFactory.logInfo("All host in current datasource has heartbeat checked! "
+                            + "Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]");
+                }
+            } catch (InterruptedException e) {
+                TdsqlLoggerFactory.logError("Wait for first heartbeat check finished error!", e);
+            }
         }
         // 初始化全局连接计数器
         TdsqlLoadBalanceConnectionCounter.getInstance().initialize(tdsqlLoadBalanceInfo);
-
-        // 等待心跳检测监视器初始化完成，并完成第一次所有IP地址的心跳检测
-        // 每一个DataSource都会持有自己专属的计数器，且当该DataSource第一次建立连接时，计数器非零，后面的等待超时逻辑才会生效
-        // 对于每一个DataSource，该逻辑只会生效一次
-        // 这时，如果IP地址无法建立数据库连接，则该IP地址会被加入黑名单
-        // 同时，该IP地址会在全局连接计数器中被移除，被移除的IP地址在之后的负载均衡算法策略中不会被调度
-        CountDownLatch firstCheckFinished = TdsqlLoadBalanceHeartbeatMonitor.getInstance()
-                .getFirstCheckFinished(tdsqlLoadBalanceInfo.getDatasourceUuid());
-        try {
-            // 考虑到有可能在第一次心跳检测时，存在建立数据库连接无法及时响应返回的情况（表象是建立连接卡住）
-            // 在这里设置了等待检测结果的超时时间，设置为了需要检测的IP地址个数乘以2秒
-            // 之所以乘以2秒，是因为心跳检测建立连接的超时时间为1秒，之后执行检测SQL语句的超时时间也为1秒
-            // 因为多个IP地址的检测时并行进行的，因此等待超时设置为IP地址个数乘以2秒的时间也就变得足够了
-            boolean await = firstCheckFinished.await(tdsqlLoadBalanceInfo.getTdsqlHostInfoList().size() * 2L,
-                    TimeUnit.SECONDS);
-            // 如果等待第一次心跳检测结果超时了，我们会记录警告级别的日志，并继续向下执行程序逻辑
-            if (!await) {
-                TdsqlLoggerFactory.logWarn("Wait for first heartbeat check finished timeout!");
-            } else {
-                TdsqlLoggerFactory.logInfo("All host in current datasource has heartbeat checked! "
-                        + "Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]");
-            }
-        } catch (InterruptedException e) {
-            TdsqlLoggerFactory.logError("Wait for first heartbeat check finished error!", e);
-        }
 
         // 初始化负载均衡算法策略对象，目前支持SED算法策略，如果后续算法策略扩展，这里会做相应的修改
         TdsqlLoadBalanceStrategy strategy = new TdsqlSedBalanceStrategy();
