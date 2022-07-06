@@ -165,6 +165,8 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                                     + tdsqlHostInfo.getHostPortPair() + "]");
                             TdsqlLoadBalanceBlacklistHolder.getInstance().addBlacklist(tdsqlHostInfo);
 
+                            // 如果是第一次执行该逻辑，更新执行标识
+                            // 并根据该IP地址所属的DataSourceUuid，获取到第一次心跳检测计数器，对其进行更新
                             if (this.isFirstCheck) {
                                 this.isFirstCheck = false;
                                 this.firstCheckFinishedMap.get(tdsqlHostInfo.getOwnerUuid()).countDown();
