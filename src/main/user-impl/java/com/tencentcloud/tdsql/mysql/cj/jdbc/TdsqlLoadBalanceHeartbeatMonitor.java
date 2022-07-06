@@ -156,7 +156,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                         // 计算并比较心跳检测次数是否达到允许的最大次数
                         // 如果没有达到，则马上继续下次心跳检测
                         // 否则，将该IP地址加入黑名单并记录错误级别的日志，同时更新首次检测标识和计数器
-                        if (++attemptCount >= retries) {
+                        if (++attemptCount > retries) {
                             // 加入黑名单
                             TdsqlLoggerFactory.logError("Host heartbeat monitor maximum number of attempts [" + retries
                                     + "], try add to blacklist. HostInfo [" + tdsqlHostInfo.getHostPortPair() + "]");
