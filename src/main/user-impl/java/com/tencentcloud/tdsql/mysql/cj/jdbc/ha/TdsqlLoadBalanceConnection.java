@@ -51,9 +51,9 @@ public final class TdsqlLoadBalanceConnection {
      *
      * @param connectionUrl {@link ConnectionUrl}
      * @return 返回 {@link JdbcConnection} 接口的一个实例，这里就是 {@link ConnectionImpl} 对象的实例
-     * @throws Exception 当有异常时抛出
+     * @throws SQLException 当有异常时抛出
      */
-    public JdbcConnection pickNewConnection(ConnectionUrl connectionUrl) throws Exception {
+    public JdbcConnection pickNewConnection(ConnectionUrl connectionUrl) throws SQLException {
         // 设置专属负载均衡模式标识
         tdsqlLoadBalanceMode = true;
         TdsqlLoggerFactory.logDebug("Receive one of create load balance request. [" + connectionUrl + "]");
@@ -81,7 +81,7 @@ public final class TdsqlLoadBalanceConnection {
      *
      * @param tdsqlLoadBalanceInfo {@link TdsqlLoadBalanceInfo}
      * @return 返回 {@link JdbcConnection} 接口的一个实例，这里就是 {@link ConnectionImpl} 对象的实例
-     * @throws Exception 当有异常时抛出
+     * @throws SQLException 当有异常时抛出
      */
     private synchronized JdbcConnection pickConnection(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) throws Exception {
         // 初始化全局连接计数器
@@ -120,8 +120,10 @@ public final class TdsqlLoadBalanceConnection {
                                         + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]");
                     }
                 } catch (InterruptedException e) {
-                    TdsqlLoggerFactory.logError("Wait for first heartbeat check finished error!", e);
-                    throw e;
+                    String errMessage = "Wait for first heartbeat check finished timeout!";
+                    TdsqlLoggerFactory.logError(errMessage, e);
+                    throw SQLError.createSQLException(errMessage,
+                            MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
                 }
             }
         }
