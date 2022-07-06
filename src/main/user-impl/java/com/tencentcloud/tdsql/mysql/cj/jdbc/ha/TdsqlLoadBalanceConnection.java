@@ -104,7 +104,7 @@ public final class TdsqlLoadBalanceConnection {
                 // 考虑到有可能在第一次心跳检测时，存在建立数据库连接无法及时响应返回的情况（表象是建立连接卡住）
                 // 在这里设置了等待检测结果的超时时间，设置为了需要检测的IP地址个数乘以重试次数加一次再乘以2秒
                 // 之所以乘以2秒，是因为心跳检测建立连接的超时时间为1秒，之后执行检测SQL语句的超时时间也为1秒
-                // 因为多个IP地址的检测时并行进行的，因此等待超时设置为IP地址个数乘以2秒的时间也就变得足够了
+                // 因为多个IP地址的检测时并行进行的，因此等待超时设置为该值也就变得足够了
                 boolean await = firstCheckFinished.await(tdsqlLoadBalanceInfo.getTdsqlHostInfoList().size() * (
                         tdsqlLoadBalanceInfo.getTdsqlLoadBalanceMaximumErrorRetries() + 1) * 2L, TimeUnit.SECONDS);
                 // 如果等待第一次心跳检测结果超时了，我们会记录警告级别的日志，并继续向下执行程序逻辑
