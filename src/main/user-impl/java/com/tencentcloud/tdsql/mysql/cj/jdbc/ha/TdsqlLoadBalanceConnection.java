@@ -51,9 +51,9 @@ public final class TdsqlLoadBalanceConnection {
      *
      * @param connectionUrl {@link ConnectionUrl}
      * @return 返回 {@link JdbcConnection} 接口的一个实例，这里就是 {@link ConnectionImpl} 对象的实例
-     * @throws SQLException 当有异常时抛出
+     * @throws Exception 当有异常时抛出
      */
-    public JdbcConnection pickNewConnection(ConnectionUrl connectionUrl) throws SQLException {
+    public JdbcConnection pickNewConnection(ConnectionUrl connectionUrl) throws Exception {
         // 设置专属负载均衡模式标识
         tdsqlLoadBalanceMode = true;
         TdsqlLoggerFactory.logDebug("Receive one of create load balance request. [" + connectionUrl + "]");
@@ -81,10 +81,9 @@ public final class TdsqlLoadBalanceConnection {
      *
      * @param tdsqlLoadBalanceInfo {@link TdsqlLoadBalanceInfo}
      * @return 返回 {@link JdbcConnection} 接口的一个实例，这里就是 {@link ConnectionImpl} 对象的实例
-     * @throws SQLException 当有异常时抛出
+     * @throws Exception 当有异常时抛出
      */
-    private synchronized JdbcConnection pickConnection(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) throws
-            SQLException {
+    private synchronized JdbcConnection pickConnection(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) throws Exception {
         // 初始化全局连接计数器
         TdsqlLoadBalanceConnectionCounter.getInstance().initialize(tdsqlLoadBalanceInfo);
 
@@ -100,23 +99,30 @@ public final class TdsqlLoadBalanceConnection {
             // 同时，该IP地址会在全局连接计数器中被移除，被移除的IP地址在之后的负载均衡算法策略中不会被调度
             CountDownLatch firstCheckFinished = TdsqlLoadBalanceHeartbeatMonitor.getInstance()
                     .getFirstCheckFinished(tdsqlLoadBalanceInfo.getDatasourceUuid());
-            try {
-                // 考虑到有可能在第一次心跳检测时，存在建立数据库连接无法及时响应返回的情况（表象是建立连接卡住）
-                // 在这里设置了等待检测结果的超时时间，设置为了需要检测的IP地址个数乘以重试次数加一次再乘以2秒
-                // 之所以乘以2秒，是因为心跳检测建立连接的超时时间为1秒，之后执行检测SQL语句的超时时间也为1秒
-                // 因为多个IP地址的检测时并行进行的，因此等待超时设置为该值也就变得足够了
-                boolean await = firstCheckFinished.await(tdsqlLoadBalanceInfo.getTdsqlHostInfoList().size() * (
-                        tdsqlLoadBalanceInfo.getTdsqlLoadBalanceMaximumErrorRetries() + 1) * 2L, TimeUnit.SECONDS);
-                // 如果等待第一次心跳检测结果超时了，我们会记录警告级别的日志，并继续向下执行程序逻辑
-                if (!await) {
-                    TdsqlLoggerFactory.logWarn("Wait for first heartbeat check finished timeout!");
-                } else {
-                    TdsqlLoggerFactory.logInfo(
-                            "All host in current datasource has heartbeat checked! " + "Current blacklist ["
-                                    + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]");
+            if (firstCheckFinished.getCount() != 0L) {
+                try {
+                    // 考虑到有可能在第一次心跳检测时，存在建立数据库连接无法及时响应返回的情况（表象是建立连接卡住）
+                    // 在这里设置了等待检测结果的超时时间，设置为了需要检测的IP地址个数乘以重试次数加一次再乘以2秒
+                    // 之所以乘以2秒，是因为心跳检测建立连接的超时时间为1秒，之后执行检测SQL语句的超时时间也为1秒
+                    // 因为多个IP地址的检测时并行进行的，因此等待超时设置为该值也就变得足够了
+                    boolean await = firstCheckFinished.await(tdsqlLoadBalanceInfo.getTdsqlHostInfoList().size() * (
+                            tdsqlLoadBalanceInfo.getTdsqlLoadBalanceMaximumErrorRetries() + 1) * 2L, TimeUnit.SECONDS);
+                    // 如果等待第一次心跳检测结果超时了，说明应用程序在第一次启动时，网络环境或者后端数据库存在异常
+                    // 此时，我们会记录错误级别的日志，同时抛出异常阻止应用程序建立连接
+                    if (!await) {
+                        String errMessage = "Wait for first heartbeat check finished timeout!";
+                        TdsqlLoggerFactory.logError(errMessage);
+                        throw SQLError.createSQLException(errMessage,
+                                MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
+                    } else {
+                        TdsqlLoggerFactory.logInfo(
+                                "All host in current datasource has heartbeat checked! " + "Current blacklist ["
+                                        + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]");
+                    }
+                } catch (InterruptedException e) {
+                    TdsqlLoggerFactory.logError("Wait for first heartbeat check finished error!", e);
+                    throw e;
                 }
-            } catch (InterruptedException e) {
-                TdsqlLoggerFactory.logError("Wait for first heartbeat check finished error!", e);
             }
         }
 
