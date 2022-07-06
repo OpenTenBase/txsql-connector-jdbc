@@ -131,8 +131,10 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                 HostInfo heartbeatHostInfo = new HostInfo(tdsqlHostInfo.getOriginalUrl(), tdsqlHostInfo.getHost(),
                         tdsqlHostInfo.getPort(), tdsqlHostInfo.getUser(), tdsqlHostInfo.getPassword(), map);
 
-                for (int i = 0; i < retries; i++) {
-
+                for (int i = 0; i <= retries; i++) {
+                    TdsqlLoggerFactory.logInfo(
+                            "Start heartbeat monitor check, now attempts [" + attemptCount + "]. HostInfo ["
+                                    + tdsqlHostInfo.getHostPortPair() + "]");
                     try (JdbcConnection connection = ConnectionImpl.getInstance(heartbeatHostInfo);
                             Statement stmt = connection.createStatement()) {
                         // 设置执行心跳检测SQL的超时时间为1秒
@@ -156,10 +158,11 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                         // 计算并比较心跳检测次数是否达到允许的最大次数
                         // 如果没有达到，则马上继续下次心跳检测
                         // 否则，将该IP地址加入黑名单并记录错误级别的日志，同时更新首次检测标识和计数器
-                        if (++attemptCount > retries) {
+                        if (attemptCount + 1 > retries) {
                             // 加入黑名单
-                            TdsqlLoggerFactory.logError("Host heartbeat monitor maximum number of attempts [" + retries
-                                    + "], try add to blacklist. HostInfo [" + tdsqlHostInfo.getHostPortPair() + "]");
+                            TdsqlLoggerFactory.logError("Host heartbeat monitor failed now attempts [" + attemptCount
+                                    + "] equals max attempts [" + retries + "], try add to blacklist. HostInfo ["
+                                    + tdsqlHostInfo.getHostPortPair() + "]");
                             TdsqlLoadBalanceBlacklistHolder.getInstance().addBlacklist(tdsqlHostInfo);
 
                             if (this.isFirstCheck) {
@@ -172,9 +175,9 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                             TdsqlLoggerFactory.logError(
                                     "Host heartbeat monitor failed and try again, now attempts [" + attemptCount
                                             + "], max attempts [" + retries + "]. HostInfo ["
-                                            + tdsqlHostInfo.getHostPortPair()
-                                            + "]", e);
+                                            + tdsqlHostInfo.getHostPortPair() + "]", e);
                         }
+                        ++attemptCount;
                     }
                 }
             } catch (Exception e) {
