@@ -116,8 +116,9 @@ public final class TdsqlLoadBalanceConnection {
                                 MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
                     } else {
                         TdsqlLoggerFactory.logInfo(
-                                "All host in current datasource has heartbeat checked! " + "Current blacklist ["
-                                        + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]");
+                                "All host in current datasource has finished first heartbeat checked! "
+                                        + "Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
+                                        .printBlacklist() + "]");
                     }
                 } catch (InterruptedException e) {
                     String errMessage = "Wait for first heartbeat check finished timeout!";
