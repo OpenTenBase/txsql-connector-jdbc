@@ -83,7 +83,7 @@ public final class TdsqlLoadBalanceConnection {
      * @return 返回 {@link JdbcConnection} 接口的一个实例，这里就是 {@link ConnectionImpl} 对象的实例
      * @throws SQLException 当有异常时抛出
      */
-    private synchronized JdbcConnection pickConnection(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) throws Exception {
+    private synchronized JdbcConnection pickConnection(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) throws SQLException {
         // 初始化全局连接计数器
         TdsqlLoadBalanceConnectionCounter.getInstance().initialize(tdsqlLoadBalanceInfo);
 
