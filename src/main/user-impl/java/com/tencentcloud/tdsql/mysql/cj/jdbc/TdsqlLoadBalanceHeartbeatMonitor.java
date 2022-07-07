@@ -162,7 +162,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                             // 加入黑名单
                             TdsqlLoggerFactory.logError("Host heartbeat monitor failed now attempts [" + attemptCount
                                     + "] equals max attempts [" + retries + "], try add to blacklist. HostInfo ["
-                                    + tdsqlHostInfo.getHostPortPair() + "]");
+                                    + tdsqlHostInfo.getHostPortPair() + "]", e);
                             TdsqlLoadBalanceBlacklistHolder.getInstance().addBlacklist(tdsqlHostInfo);
 
                             // 如果是第一次执行该逻辑，更新执行标识
