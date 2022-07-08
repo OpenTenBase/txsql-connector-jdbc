@@ -29,6 +29,7 @@
 
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionCounter;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationHandler;
@@ -71,7 +72,7 @@ import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.RuntimeProperty;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
-import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
@@ -83,8 +84,8 @@ import com.tencentcloud.tdsql.mysql.cj.interceptors.QueryInterceptor;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.MultiHostMySQLConnection;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlDirectConnectionProxy;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlLoadBalanceConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaData;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaDataImpl;
@@ -714,11 +715,11 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
             }
 
             realClose(true, true, false, null);
-            if (TdsqlDirectConnectionProxy.directMode) {
-                TdsqlDirectConnectionProxy.closeProxyInstance(this, origHostInfo);
+            if (TdsqlDirectConnectionFactory.directMode) {
+                TdsqlDirectConnectionFactory.getInstance().closeConnection(this, origHostInfo);
             }
-            if (TdsqlLoadBalanceConnection.tdsqlLoadBalanceMode && origHostInfo instanceof TdsqlHostInfo) {
-                TdsqlLoadBalanceConnectionCounter.getInstance().decrementCounter((TdsqlHostInfo) origHostInfo);
+            if (TdsqlLoadBalanceConnectionFactory.tdsqlLoadBalanceMode && origHostInfo instanceof TdsqlHostInfo) {
+                TdsqlLoadBalanceConnectionFactory.getInstance().closeConnection((TdsqlHostInfo) origHostInfo);
             }
         }
     }

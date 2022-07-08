@@ -29,7 +29,7 @@
 
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
 import static com.tencentcloud.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
 
 import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
@@ -46,7 +46,7 @@ import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl.Type;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencentcloud.tdsql.mysql.cj.conf.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.UnableToConnectException;
@@ -54,9 +54,9 @@ import com.tencentcloud.tdsql.mysql.cj.exceptions.UnsupportedConnectionStringExc
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.FailoverConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionProxy;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlDirectConnectionProxy;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlLoadBalanceConnection;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlLoggerFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 
 /**
@@ -200,11 +200,6 @@ public class NonRegisteringDriver implements java.sql.Driver {
 
             ConnectionUrl conStr = ConnectionUrl.getConnectionUrlInstance(url, info);
 
-            // 初始化日志框架，通过URL参数logger指定
-            if (TdsqlLoggerFactory.loggerInitialized.compareAndSet(false, true)) {
-                TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost()));
-            }
-
             switch (conStr.getType()) {
                 case SINGLE_CONNECTION:
                     return com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl.getInstance(conStr.getMainHost());
@@ -217,14 +212,27 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 case LOADBALANCE_DNS_SRV_CONNECTION:
                     // 当URL为负载均衡类型且负载均衡策略算法参数的值是我们已经实现的值时，进入具备连接收敛特性的数据库连接负载均衡处理逻辑
                     Properties props = conStr.getConnectionArgumentsAsProperties();
+
+                    // 判断是否使用连接收敛的负载均衡算法
                     if (props.containsKey(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName())) {
+
+                        // 初始化日志框架，通过URL参数logger指定
+                        if (TdsqlLoggerFactory.loggerInitialized.compareAndSet(false, true)) {
+                            TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost()));
+                        }
+
+                        // 判断是否使用了正确的负载均衡策略算法
                         String strategy = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(), null);
                         if (!TDSQL_LOAD_BALANCE_STRATEGY_SED.equalsIgnoreCase(strategy)) {
-                            String errMessage = Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceStrategy", new Object[]{strategy}) + Messages.getString("ConnectionProperties.tdsqlLoadBalanceStrategy");
+                            String errMessage =
+                                    Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceStrategy",
+                                            new Object[]{strategy}) + Messages.getString(
+                                            "ConnectionProperties.tdsqlLoadBalanceStrategy");
                             TdsqlLoggerFactory.logError(errMessage);
-                            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
+                            throw SQLError.createSQLException(errMessage,
+                                    MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
                         }
-                        return TdsqlLoadBalanceConnection.getInstance().pickNewConnection(conStr);
+                        return TdsqlLoadBalanceConnectionFactory.getInstance().createConnection(conStr);
                     }
                     // 否则，进入原有处理逻辑
                     return LoadBalancedConnectionProxy.createProxyInstance(conStr);
@@ -235,7 +243,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
 
                 case DIRECT_CONNECTION:
                     // 当URL类型为直连时，进入具备读写分离特性的数据库连接直连处理逻辑
-                    return TdsqlDirectConnectionProxy.createProxyInstance(conStr);
+                    return TdsqlDirectConnectionFactory.getInstance().createConnection(conStr);
 
                 default:
                     return null;
