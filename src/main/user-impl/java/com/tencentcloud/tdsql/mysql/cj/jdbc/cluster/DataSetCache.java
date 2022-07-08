@@ -109,7 +109,7 @@ public class DataSetCache {
                 if (!slaveCached) {
                     slaveCached = true;
                 }
-                TdsqlDirectLoggerFactory.logDebug("After update, slaves is: " + this.masters);
+                TdsqlDirectLoggerFactory.logDebug("After update, slaves is: " + this.slaves);
             }
         } finally {
             topoServer.getRefreshLock().writeLock().unlock();
