@@ -1,7 +1,10 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster;
 
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectTopoServer;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RO;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RW;
+
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectLoggerFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectTopoServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlWaitUtil;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -64,10 +67,21 @@ public class TdsqlDataSetCache {
         TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
         topoServer.getRefreshLock().writeLock().lock();
         try {
+            // 只有在RO模式下，主库的拓扑信息允许为空
+            if (newMasters.isEmpty() && TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(
+                    topoServer.getTdsqlDirectReadWriteMode())) {
+                if (!masterCached) {
+                    masterCached = true;
+                }
+                TdsqlDirectLoggerFactory.logDebug(
+                        "After update, master is null, but we in RO mode, so to be continue!");
+                return;
+            }
             if (!newMasters.equals(this.masters)) {
                 TdsqlDirectLoggerFactory.logDebug(
                         "DataSet master have changed, old: " + this.masters + ", new: " + newMasters);
-                propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME, TdsqlDataSetUtil.copyDataSetList(this.masters),
+                propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME,
+                        TdsqlDataSetUtil.copyDataSetList(this.masters),
                         TdsqlDataSetUtil.copyDataSetList(newMasters));
                 this.masters.clear();
                 this.masters.addAll(newMasters);
@@ -94,6 +108,15 @@ public class TdsqlDataSetCache {
         TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
         topoServer.getRefreshLock().writeLock().lock();
         try {
+            if (newSlaves.isEmpty() && TDSQL_DIRECT_READ_WRITE_MODE_RW.equalsIgnoreCase(
+                    topoServer.getTdsqlDirectReadWriteMode())) {
+                if (!slaveCached) {
+                    slaveCached = true;
+                }
+                TdsqlDirectLoggerFactory.logDebug(
+                        "After update, slaves is null, but we in RW mode, so to be continue!");
+                return;
+            }
             Integer tdsqlMaxSlaveDelay = topoServer.getTdsqlDirectMaxSlaveDelaySeconds();
             if (tdsqlMaxSlaveDelay > 0) {
                 newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= tdsqlMaxSlaveDelay);
@@ -101,7 +124,8 @@ public class TdsqlDataSetCache {
             if (!newSlaves.equals(this.slaves)) {
                 TdsqlDirectLoggerFactory.logDebug(
                         "DataSet slave have changed, old: " + this.slaves + ", new: " + newSlaves);
-                propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME, TdsqlDataSetUtil.copyDataSetList(this.slaves),
+                propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME,
+                        TdsqlDataSetUtil.copyDataSetList(this.slaves),
                         TdsqlDataSetUtil.copyDataSetList(newSlaves));
                 this.slaves.clear();
                 this.slaves.addAll(newSlaves);

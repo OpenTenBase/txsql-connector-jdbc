@@ -15,22 +15,22 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.url.LoadBalanceConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcPropertySetImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetCache;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetCluster;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetUtil;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.exception.TdsqlSyncBackendTopoException;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.listener.TdsqlFailoverTdsqlCacheListener;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.listener.TdsqlScheduleTdsqlCacheListener;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.AbstractTdsqlCaughtRunnable;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlSynchronousExecutor;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlSynchronousExecutor;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlThreadFactoryBuilder;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 import java.sql.Connection;
@@ -144,7 +144,8 @@ public final class TdsqlDirectTopoServer {
                 initializeScheduler();
                 TdsqlDataSetCache.getInstance().addListener(
                         new TdsqlScheduleTdsqlCacheListener(tdsqlDirectReadWriteMode, scheduleQueue, connectionUrl));
-                TdsqlDataSetCache.getInstance().addListener(new TdsqlFailoverTdsqlCacheListener(tdsqlDirectReadWriteMode));
+                TdsqlDataSetCache.getInstance()
+                        .addListener(new TdsqlFailoverTdsqlCacheListener(tdsqlDirectReadWriteMode));
             }
         } finally {
             refreshLock.writeLock().unlock();
@@ -210,19 +211,23 @@ public final class TdsqlDirectTopoServer {
                 while (rs.next()) {
                     String clusterName = rs.getString(TDSQL_DIRECT_TOPO_COLUMN_CLUSTER_NAME);
                     if (StringUtils.isNullOrEmpty(clusterName)) {
-                        String errMsg = "Get topology error: cluster name is null!";
+                        String errMsg = "Invalid topology info: cluster name is null!";
                         TdsqlDirectLoggerFactory.logError(errMsg);
                         throw new TdsqlSyncBackendTopoException(errMsg);
                     }
                     String master = rs.getString(TDSQL_DIRECT_TOPO_COLUMN_MASTER_IP);
-                    if (StringUtils.isNullOrEmpty(clusterName)) {
-                        String errMsg = "Get topology error: master ip is null!";
+                    // 在读写模式下，获取到的主库信息为空，抛出异常
+                    if (StringUtils.isNullOrEmpty(master) && TDSQL_DIRECT_READ_WRITE_MODE_RW.equalsIgnoreCase(
+                            tdsqlDirectReadWriteMode)) {
+                        String errMsg = "Invalid topology info: In RW mode, master ip is null!";
                         TdsqlDirectLoggerFactory.logError(errMsg);
                         throw new TdsqlSyncBackendTopoException(errMsg);
                     }
                     String slaves = rs.getString(TDSQL_DIRECT_TOPO_COLUMN_SLAVE_IP_LIST);
-                    if (StringUtils.isNullOrEmpty(clusterName)) {
-                        String errMsg = "Get topology error: slave ip list is null!";
+                    // 在只读模式下，获取到的从库信息为空，抛出异常
+                    if (StringUtils.isNullOrEmpty(slaves) && TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(
+                            tdsqlDirectReadWriteMode)) {
+                        String errMsg = "Invalid topology info: In RO mode, slave ip list is null!";
                         TdsqlDirectLoggerFactory.logError(errMsg);
                         throw new TdsqlSyncBackendTopoException(errMsg);
                     }
