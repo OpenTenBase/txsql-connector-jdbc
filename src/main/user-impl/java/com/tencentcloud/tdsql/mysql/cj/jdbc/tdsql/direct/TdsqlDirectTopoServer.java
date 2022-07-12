@@ -211,7 +211,7 @@ public final class TdsqlDirectTopoServer {
                 while (rs.next()) {
                     String clusterName = rs.getString(TDSQL_DIRECT_TOPO_COLUMN_CLUSTER_NAME);
                     if (StringUtils.isNullOrEmpty(clusterName)) {
-                        String errMsg = "Invalid topology info: cluster name is null!";
+                        String errMsg = "Invalid topology info: cluster name is empty!";
                         TdsqlDirectLoggerFactory.logError(errMsg);
                         throw new TdsqlSyncBackendTopoException(errMsg);
                     }
@@ -219,20 +219,15 @@ public final class TdsqlDirectTopoServer {
                     // 在读写模式下，获取到的主库信息为空，抛出异常
                     if (StringUtils.isNullOrEmpty(master) && TDSQL_DIRECT_READ_WRITE_MODE_RW.equalsIgnoreCase(
                             tdsqlDirectReadWriteMode)) {
-                        String errMsg = "Invalid topology info: In RW mode, master ip is null!";
-                        TdsqlDirectLoggerFactory.logError(errMsg);
-                        throw new TdsqlSyncBackendTopoException(errMsg);
+                        TdsqlDirectLoggerFactory.logWarn("Topology info maybe has some error: In RW mode, master ip is empty!");
                     }
                     String slaves = rs.getString(TDSQL_DIRECT_TOPO_COLUMN_SLAVE_IP_LIST);
                     // 在只读模式下，获取到的从库信息为空，抛出异常
                     if (StringUtils.isNullOrEmpty(slaves) && TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(
                             tdsqlDirectReadWriteMode)) {
-                        String errMsg = "Invalid topology info: In RO mode, slave ip list is null!";
-                        TdsqlDirectLoggerFactory.logError(errMsg);
-                        throw new TdsqlSyncBackendTopoException(errMsg);
+                        TdsqlDirectLoggerFactory.logWarn("Topology info maybe has some error: In RO mode, slave ip list is empty!");
                     }
-                    TdsqlDirectLoggerFactory.logInfo(
-                            "Topo info cluster name: " + clusterName + ", master: " + master + ", slaves: " + slaves);
+                    TdsqlDirectLoggerFactory.logInfo("Topo info cluster name: " + clusterName + ", master: " + master + ", slaves: " + slaves);
                     TdsqlDataSetCluster tdsqlDataSetCluster = new TdsqlDataSetCluster(clusterName);
                     tdsqlDataSetCluster.setMaster(TdsqlDataSetUtil.parseMaster(master));
                     tdsqlDataSetCluster.setSlaves(TdsqlDataSetUtil.parseSlaveList(slaves));

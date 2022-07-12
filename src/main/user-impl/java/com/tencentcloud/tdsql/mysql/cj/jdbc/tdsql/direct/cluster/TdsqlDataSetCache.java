@@ -67,16 +67,25 @@ public class TdsqlDataSetCache {
         TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
         topoServer.getRefreshLock().writeLock().lock();
         try {
-            // 只有在RO模式下，主库的拓扑信息允许为空
-            if (newMasters.isEmpty() && TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(
-                    topoServer.getTdsqlDirectReadWriteMode())) {
+            // 当获取到的主库拓扑信息为空的时候，需要分多种情况判断
+            String tdsqlDirectReadWriteMode = topoServer.getTdsqlDirectReadWriteMode();
+            if (newMasters == null || newMasters.isEmpty()) {
+                // 只读模式，不再需要执行更新缓存的代码逻辑
+                if (TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(tdsqlDirectReadWriteMode)) {
+                    TdsqlDirectLoggerFactory.logWarn(
+                            "After update, master is empty, but we in RO mode, so to be continue!");
+                } else if (TDSQL_DIRECT_READ_WRITE_MODE_RW.equalsIgnoreCase(tdsqlDirectReadWriteMode)
+                        && this.masters.isEmpty()) {
+                    // 读写模式，且缓存的主库拓扑信息也为空，不再需要执行更新缓存的代码逻辑
+                    TdsqlDirectLoggerFactory.logWarn(
+                            "After update, master is empty, although we in RW mode, cached master also empty, so to be continue!");
+                }
                 if (!masterCached) {
                     masterCached = true;
                 }
-                TdsqlDirectLoggerFactory.logDebug(
-                        "After update, master is null, but we in RO mode, so to be continue!");
                 return;
             }
+
             if (!newMasters.equals(this.masters)) {
                 TdsqlDirectLoggerFactory.logDebug(
                         "DataSet master have changed, old: " + this.masters + ", new: " + newMasters);
@@ -108,15 +117,25 @@ public class TdsqlDataSetCache {
         TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
         topoServer.getRefreshLock().writeLock().lock();
         try {
-            if (newSlaves.isEmpty() && TDSQL_DIRECT_READ_WRITE_MODE_RW.equalsIgnoreCase(
-                    topoServer.getTdsqlDirectReadWriteMode())) {
+            // 当获取到的从库拓扑信息为空的时候，需要分多种情况判断
+            String tdsqlDirectReadWriteMode = topoServer.getTdsqlDirectReadWriteMode();
+            if (newSlaves == null || newSlaves.isEmpty()) {
+                // 读写模式，不再需要执行更新缓存的代码逻辑
+                if (TDSQL_DIRECT_READ_WRITE_MODE_RW.equalsIgnoreCase(tdsqlDirectReadWriteMode)) {
+                    TdsqlDirectLoggerFactory.logWarn(
+                            "After update, slaves is empty, but we in RW mode, so to be continue!");
+                } else if (TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(tdsqlDirectReadWriteMode)
+                        && this.slaves.isEmpty()) {
+                    // 只读模式，且缓存的从库拓扑信息也为空，不再需要执行更新缓存的代码逻辑
+                    TdsqlDirectLoggerFactory.logWarn(
+                            "After update, slaves is empty, although we in RW mode, cached slaves also empty, so to be continue!");
+                }
                 if (!slaveCached) {
                     slaveCached = true;
                 }
-                TdsqlDirectLoggerFactory.logDebug(
-                        "After update, slaves is null, but we in RW mode, so to be continue!");
                 return;
             }
+
             Integer tdsqlMaxSlaveDelay = topoServer.getTdsqlDirectMaxSlaveDelaySeconds();
             if (tdsqlMaxSlaveDelay > 0) {
                 newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= tdsqlMaxSlaveDelay);

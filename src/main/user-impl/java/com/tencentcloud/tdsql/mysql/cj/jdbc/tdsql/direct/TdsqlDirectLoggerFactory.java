@@ -30,6 +30,12 @@ public class TdsqlDirectLoggerFactory {
         }
     }
 
+    public static void logWarn(Object msg) {
+        if (log != null && log.isWarnEnabled()) {
+            log.logWarn(msg);
+        }
+    }
+
     public static void logError(Object msg) {
         if (log != null && log.isErrorEnabled()) {
             log.logError(msg);
