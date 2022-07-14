@@ -136,7 +136,7 @@ public class TdsqlDataSetCache {
                         && this.slaves.isEmpty()) {
                     // 只读模式，且缓存的从库拓扑信息也为空，不再需要执行更新缓存的代码逻辑
                     TdsqlDirectLoggerFactory.logWarn(
-                            "After update, slaves is empty, although we in RW mode, cached slaves also empty, so to be continue!");
+                            "After update, slaves is empty, although we in RO mode, cached slaves also empty, so to be continue!");
                     if (!slaveCached) {
                         slaveCached = true;
                     }
