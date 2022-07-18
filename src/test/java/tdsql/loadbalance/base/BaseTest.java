@@ -111,6 +111,10 @@ public class BaseTest {
         return createDataSource(prop);
     }
 
+    protected DataSource createDruidDataSource(Properties prop) throws Exception {
+        return createDataSource(prop);
+    }
+
     protected DataSource createDruidDataSource() throws Exception {
         return this.createDruidDataSource(LB_URL);
     }

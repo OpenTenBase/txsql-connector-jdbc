@@ -88,7 +88,6 @@ public final class TdsqlLoadBalanceConnectionFactory {
 
         // 当开启心跳检测开关时，初始化心跳检测监视器
         if (tdsqlLoadBalanceInfo.isTdsqlLoadBalanceHeartbeatMonitor()) {
-            TdsqlLoggerFactory.logDebug("Heartbeat monitor initializing.");
             TdsqlLoadBalanceHeartbeatMonitor.getInstance().initialize(tdsqlLoadBalanceInfo);
 
             // 等待心跳检测监视器初始化完成，并完成第一次所有IP地址的心跳检测
@@ -325,6 +324,7 @@ public final class TdsqlLoadBalanceConnectionFactory {
     }
 
     public void closeConnection(TdsqlHostInfo tdsqlHostInfo) {
+        TdsqlLoggerFactory.logInfo("Close method called. [" + tdsqlHostInfo.getHostPortPair() + "]");
         TdsqlLoadBalanceConnectionCounter.getInstance().decrementCounter(tdsqlHostInfo);
     }
 

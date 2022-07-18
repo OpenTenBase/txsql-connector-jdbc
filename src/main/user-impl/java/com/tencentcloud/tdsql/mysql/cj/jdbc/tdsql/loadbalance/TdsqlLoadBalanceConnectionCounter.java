@@ -5,6 +5,8 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.StringJoiner;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -41,7 +43,7 @@ public class TdsqlLoadBalanceConnectionCounter {
             this.counterDatasourceMap.put(datasourceUuid, counter);
             TdsqlLoggerFactory.logInfo(
                     "New datasource add in counter [" + datasourceUuid + "], current counter ["
-                            + this.counterDatasourceMap + "]");
+                            + this.printCounter() + "]");
         }
     }
 
@@ -77,12 +79,12 @@ public class TdsqlLoadBalanceConnectionCounter {
                 counter.put(tdsqlHostInfo, 1L);
                 TdsqlLoggerFactory.logInfo(
                         "Increment counter to 1 success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
-                                + this.counterDatasourceMap + "]");
+                                + this.printCounter() + "]");
             } else {
                 long currCount = counter.incrementAndGet(tdsqlHostInfo);
                 TdsqlLoggerFactory.logInfo(
                         "Increment counter to " + currCount + " success [" + tdsqlHostInfo.getHostPortPair()
-                                + "], current counter [" + this.counterDatasourceMap + "]");
+                                + "], current counter [" + this.printCounter() + "]");
             }
         } finally {
             this.counterLock.writeLock().unlock();
@@ -107,7 +109,7 @@ public class TdsqlLoadBalanceConnectionCounter {
                 counter.put(tdsqlHostInfo, 0L);
                 TdsqlLoggerFactory.logInfo(
                         "Decrement counter to 0 success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
-                                + this.counterDatasourceMap + "]");
+                                + this.printCounter() + "]");
             } else {
                 long currCount = counter.decrementAndGet(tdsqlHostInfo);
                 if (currCount < 0) {
@@ -115,7 +117,7 @@ public class TdsqlLoadBalanceConnectionCounter {
                 }
                 TdsqlLoggerFactory.logInfo(
                         "Decrement counter to " + currCount + " success [" + tdsqlHostInfo.getHostPortPair()
-                                + "], current counter [" + this.counterDatasourceMap + "]");
+                                + "], current counter [" + this.printCounter() + "]");
             }
         } finally {
             this.counterLock.writeLock().unlock();
@@ -138,7 +140,7 @@ public class TdsqlLoadBalanceConnectionCounter {
             counter.put(tdsqlHostInfo, 0L);
             TdsqlLoggerFactory.logInfo(
                     "Reset counter to 0 success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
-                            + this.counterDatasourceMap + "]");
+                            + this.printCounter() + "]");
         } finally {
             this.counterLock.writeLock().unlock();
         }
@@ -157,10 +159,31 @@ public class TdsqlLoadBalanceConnectionCounter {
                 counter.remove(tdsqlHostInfo);
                 TdsqlLoggerFactory.logInfo(
                         "Remove counter success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
-                                + this.counterDatasourceMap + "]");
+                                + this.printCounter() + "]");
             }
         } finally {
             this.counterLock.writeLock().unlock();
+        }
+    }
+
+    public String printCounter() {
+        this.counterLock.readLock().lock();
+        try {
+            StringBuilder print = new StringBuilder();
+            for (Entry<String, TdsqlAtomicLongMap<TdsqlHostInfo>> entry : this.counterDatasourceMap.entrySet()) {
+                String datasourceUuid = entry.getKey();
+                TdsqlAtomicLongMap<TdsqlHostInfo> value = entry.getValue();
+                StringJoiner hostCount = new StringJoiner(", ");
+                for (Entry<TdsqlHostInfo, Long> mapEntry : value.asMap().entrySet()) {
+                    String hostPortPair = mapEntry.getKey().getHostPortPair();
+                    Long count = mapEntry.getValue();
+                    hostCount.add(hostPortPair + "=" + count);
+                }
+                print.append(datasourceUuid).append("{").append(hostCount).append("}");
+            }
+            return print.toString();
+        } finally {
+            this.counterLock.readLock().unlock();
         }
     }
 

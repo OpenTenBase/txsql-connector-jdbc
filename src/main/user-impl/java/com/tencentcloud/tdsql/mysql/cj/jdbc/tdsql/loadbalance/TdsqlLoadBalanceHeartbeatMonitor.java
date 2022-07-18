@@ -51,6 +51,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         // 核心线程数设置为10是考虑到，如果存在多个数据源，并且每个数据源都使用负载均衡建立连接的情况
         // 如果只有一个数据源，这种情况比较普遍，大概率配置的IP地址个数达不到核心线程数
         if (!this.heartbeatMonitorInitialized) {
+            TdsqlLoggerFactory.logInfo("Heartbeat monitor initializing.");
             this.heartbeatMonitor = new ScheduledThreadPoolExecutor(10,
                     new TdsqlThreadFactoryBuilder().setDaemon(true).setNameFormat("Heartbeat-pool-%d").build());
             this.monitoredTdsqlHostInfoSet = new HashSet<>();
