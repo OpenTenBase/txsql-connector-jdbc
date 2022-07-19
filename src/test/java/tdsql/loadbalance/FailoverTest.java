@@ -15,7 +15,6 @@ import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_VALIDATIONQUERY
 
 import com.alibaba.druid.pool.DruidDataSource;
 import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -58,7 +57,7 @@ public class FailoverTest extends BaseTest {
         prop.setProperty(PROP_TESTWHILEIDLE, "true");
         prop.setProperty(PROP_VALIDATIONQUERY, "select 1");
         prop.setProperty(PROP_PHY_TIMEOUT_MILLIS, "30000");
-//        DruidDataSource ds = (DruidDataSource) createDruidDataSource(prop);
+        DruidDataSource ds = (DruidDataSource) createDruidDataSource(prop);
 
         HikariConfig config = new HikariConfig();
         config.setDriverClassName(DRIVER_CLASS_NAME);
@@ -68,15 +67,18 @@ public class FailoverTest extends BaseTest {
         config.setMinimumIdle(20);
         config.setMaximumPoolSize(20);
         config.setMaxLifetime(30000);
-        HikariDataSource ds = new HikariDataSource(config);
+        //        HikariDataSource ds = new HikariDataSource(config);
 
         ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
         scheduledThreadPoolExecutor.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
-                System.out.println("======================== Active: " + ds.getHikariPoolMXBean().getActiveConnections());
-                System.out.println("======================== Total:  " + ds.getHikariPoolMXBean().getTotalConnections());
-                System.out.println("======================== Idle:   " + ds.getHikariPoolMXBean().getIdleConnections());
+                //                System.out.println("======================== Active: " + ds.getHikariPoolMXBean().getActiveConnections());
+                //                System.out.println("======================== Total:  " + ds.getHikariPoolMXBean().getTotalConnections());
+                //                System.out.println("======================== Idle:   " + ds.getHikariPoolMXBean().getIdleConnections());
+                System.out.println("ds.getCreateCount() = " + ds.getCreateCount());
+                System.out.println("ds.getActiveCount() = " + ds.getActiveCount());
+                System.out.println("ds.getDiscardCount() = " + ds.getDiscardCount());
             }
         }, 0, 1, TimeUnit.SECONDS);
 
