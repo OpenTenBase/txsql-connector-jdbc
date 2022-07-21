@@ -35,12 +35,7 @@ import tdsql.loadbalance.base.BaseTest;
  */
 public class FailoverTest extends BaseTest {
 
-    private String jdbcUrl = "jdbc:tdsql-mysql:loadbalance://9.30.1.231:15006,9.30.1.207:15006/db1?"
-            + "logger=Slf4JLogger"
-            + "&tdsqlLoadBalanceStrategy=sed"
-            + "&tdsqlLoadBalanceWeightFactor=1,1"
-            + "&tdsqlLoadBalanceHeartbeatMonitorEnable=true"
-            + "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000";
+    private String jdbcUrl = "jdbc:tdsql-mysql:loadbalance://9.30.1.231:15006,9.30.1.207:15006/db1?";
 
     @Test
     public void case01() throws Exception {
@@ -101,11 +96,14 @@ public class FailoverTest extends BaseTest {
         @Override
         public void run() {
             try (Connection conn = ds.getConnection();
-                    Statement stmt = conn.createStatement();
-                    ResultSet rs = stmt.executeQuery("select count(*) from t_user;")) {
+                    Statement stmt = conn.createStatement()) {
+                conn.setAutoCommit(false);
+                ResultSet rs = stmt.executeQuery("select count(*) from t_user;");
                 while (rs.next()) {
                     TimeUnit.MILLISECONDS.sleep(1);
                 }
+                conn.commit();
+                rs.close();
             } catch (SQLException | InterruptedException e) {
                 e.printStackTrace();
             }
