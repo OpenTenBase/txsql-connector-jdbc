@@ -1,7 +1,7 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance;
 
 /**
- * <p></p>
+ * <p>负载均衡模式常量类</p>
  *
  * @author dorianzhang@tencent.com
  */
