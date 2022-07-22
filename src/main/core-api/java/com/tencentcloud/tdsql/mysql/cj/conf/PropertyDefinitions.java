@@ -35,10 +35,10 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPO_REFRESH_CONN_TIMEOUT_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPO_REFRESH_INTERVAL_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPO_REFRESH_STMT_TIMEOUT_SECONDS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_ONE;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_BLACKLIST_TIMEOUT_MILLIS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_MAX_ERROR_RETRIES;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_ERROR_RETRY_INTERVAL_TIME_MILLIS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_STRATEGY;
 
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.PerConnectionLRUFactory;
@@ -885,7 +885,7 @@ public class PropertyDefinitions {
 
                 // Load Balance
                 new StringPropertyDefinition(PropertyKey.tdsqlLoadBalanceStrategy,
-                        TDSQL_LOAD_BALANCE_STRATEGY_SED,
+                        DEFAULT_TDSQL_LOAD_BALANCE_STRATEGY,
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlLoadBalanceStrategy"),
                         "1.2.0",
@@ -898,15 +898,6 @@ public class PropertyDefinitions {
                         "1.2.0",
                         CATEGORY_HA,
                         Integer.MIN_VALUE),
-                new IntegerPropertyDefinition(PropertyKey.tdsqlLoadBalanceBlacklistTimeoutMillis,
-                        TDSQL_LOAD_BALANCE_BLACKLIST_TIMEOUT_MILLIS,
-                        RUNTIME_NOT_MODIFIABLE,
-                        Messages.getString("ConnectionProperties.tdsqlLoadBalanceBlacklistTimeoutMillis"),
-                        "1.2.0",
-                        CATEGORY_HA,
-                        Integer.MIN_VALUE,
-                        0,
-                        Integer.MAX_VALUE),
                 new BooleanPropertyDefinition(PropertyKey.tdsqlLoadBalanceHeartbeatMonitorEnable,
                         DEFAULT_VALUE_TRUE,
                         RUNTIME_NOT_MODIFIABLE,
@@ -915,7 +906,7 @@ public class PropertyDefinitions {
                         CATEGORY_HA,
                         Integer.MIN_VALUE),
                 new IntegerPropertyDefinition(PropertyKey.tdsqlLoadBalanceHeartbeatIntervalTimeMillis,
-                        LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS,
+                        DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS,
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlLoadBalanceHeartbeatIntervalTimeMillis"),
                         "1.2.0",
@@ -924,10 +915,19 @@ public class PropertyDefinitions {
                         0,
                         Integer.MAX_VALUE),
                 new IntegerPropertyDefinition(PropertyKey.tdsqlLoadBalanceHeartbeatMaxErrorRetries,
-                        LOAD_BALANCE_MAXIMUM_ERROR_RETRIES_ONE,
+                        DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_MAX_ERROR_RETRIES,
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlLoadBalanceHeartbeatMaxErrorRetries"),
                         "1.2.0",
+                        CATEGORY_HA,
+                        Integer.MIN_VALUE,
+                        0,
+                        Integer.MAX_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis,
+                        DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_ERROR_RETRY_INTERVAL_TIME_MILLIS,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis"),
+                        "1.4.0",
                         CATEGORY_HA,
                         Integer.MIN_VALUE,
                         0,

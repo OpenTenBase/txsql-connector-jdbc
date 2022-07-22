@@ -20,9 +20,10 @@ public class TdsqlLoadBalanceInfo {
     private String datasourceUuid;
     private List<TdsqlHostInfo> tdsqlHostInfoList;
     private List<Integer> tdsqlLoadBalanceWeightFactorList;
-    private boolean tdsqlLoadBalanceHeartbeatMonitor;
-    private int tdsqlLoadBalanceHeartbeatIntervalTime;
-    private int tdsqlLoadBalanceMaximumErrorRetries;
+    private boolean tdsqlLoadBalanceHeartbeatMonitorEnable;
+    private int tdsqlLoadBalanceHeartbeatIntervalTimeMillis;
+    private int tdsqlLoadBalanceHeartbeatMaxErrorRetries;
+    private int tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis;
 
     public String getDatasourceUuid() {
         return datasourceUuid;
@@ -63,28 +64,37 @@ public class TdsqlLoadBalanceInfo {
         this.tdsqlLoadBalanceWeightFactorList = tdsqlLoadBalanceWeightFactorList;
     }
 
-    public boolean isTdsqlLoadBalanceHeartbeatMonitor() {
-        return tdsqlLoadBalanceHeartbeatMonitor;
+    public boolean isTdsqlLoadBalanceHeartbeatMonitorEnable() {
+        return tdsqlLoadBalanceHeartbeatMonitorEnable;
     }
 
-    public void setTdsqlLoadBalanceHeartbeatMonitor(boolean tdsqlLoadBalanceHeartbeatMonitor) {
-        this.tdsqlLoadBalanceHeartbeatMonitor = tdsqlLoadBalanceHeartbeatMonitor;
+    public void setTdsqlLoadBalanceHeartbeatMonitorEnable(boolean tdsqlLoadBalanceHeartbeatMonitorEnable) {
+        this.tdsqlLoadBalanceHeartbeatMonitorEnable = tdsqlLoadBalanceHeartbeatMonitorEnable;
     }
 
-    public int getTdsqlLoadBalanceHeartbeatIntervalTime() {
-        return tdsqlLoadBalanceHeartbeatIntervalTime;
+    public int getTdsqlLoadBalanceHeartbeatIntervalTimeMillis() {
+        return tdsqlLoadBalanceHeartbeatIntervalTimeMillis;
     }
 
-    public void setTdsqlLoadBalanceHeartbeatIntervalTime(int tdsqlLoadBalanceHeartbeatIntervalTime) {
-        this.tdsqlLoadBalanceHeartbeatIntervalTime = tdsqlLoadBalanceHeartbeatIntervalTime;
+    public void setTdsqlLoadBalanceHeartbeatIntervalTimeMillis(int tdsqlLoadBalanceHeartbeatIntervalTimeMillis) {
+        this.tdsqlLoadBalanceHeartbeatIntervalTimeMillis = tdsqlLoadBalanceHeartbeatIntervalTimeMillis;
     }
 
-    public int getTdsqlLoadBalanceMaximumErrorRetries() {
-        return tdsqlLoadBalanceMaximumErrorRetries;
+    public int getTdsqlLoadBalanceHeartbeatMaxErrorRetries() {
+        return tdsqlLoadBalanceHeartbeatMaxErrorRetries;
     }
 
-    public void setTdsqlLoadBalanceMaximumErrorRetries(int tdsqlLoadBalanceMaximumErrorRetries) {
-        this.tdsqlLoadBalanceMaximumErrorRetries = tdsqlLoadBalanceMaximumErrorRetries;
+    public void setTdsqlLoadBalanceHeartbeatMaxErrorRetries(int tdsqlLoadBalanceHeartbeatMaxErrorRetries) {
+        this.tdsqlLoadBalanceHeartbeatMaxErrorRetries = tdsqlLoadBalanceHeartbeatMaxErrorRetries;
+    }
+
+    public int getTdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis() {
+        return tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis;
+    }
+
+    public void setTdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis(
+            int tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis) {
+        this.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis = tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis;
     }
 
     @Override
@@ -96,9 +106,10 @@ public class TdsqlLoadBalanceInfo {
             return false;
         }
         TdsqlLoadBalanceInfo that = (TdsqlLoadBalanceInfo) o;
-        return tdsqlLoadBalanceHeartbeatMonitor == that.tdsqlLoadBalanceHeartbeatMonitor
-                && tdsqlLoadBalanceHeartbeatIntervalTime == that.tdsqlLoadBalanceHeartbeatIntervalTime
-                && tdsqlLoadBalanceMaximumErrorRetries == that.tdsqlLoadBalanceMaximumErrorRetries
+        return tdsqlLoadBalanceHeartbeatMonitorEnable == that.tdsqlLoadBalanceHeartbeatMonitorEnable
+                && tdsqlLoadBalanceHeartbeatIntervalTimeMillis == that.tdsqlLoadBalanceHeartbeatIntervalTimeMillis
+                && tdsqlLoadBalanceHeartbeatMaxErrorRetries == that.tdsqlLoadBalanceHeartbeatMaxErrorRetries
+                && tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis == that.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis
                 && datasourceUuid.equals(that.datasourceUuid)
                 && tdsqlHostInfoList.equals(that.tdsqlHostInfoList)
                 && tdsqlLoadBalanceWeightFactorList.equals(that.tdsqlLoadBalanceWeightFactorList);
@@ -107,19 +118,21 @@ public class TdsqlLoadBalanceInfo {
     @Override
     public int hashCode() {
         return Objects.hash(datasourceUuid, tdsqlHostInfoList, tdsqlLoadBalanceWeightFactorList,
-                tdsqlLoadBalanceHeartbeatMonitor, tdsqlLoadBalanceHeartbeatIntervalTime,
-                tdsqlLoadBalanceMaximumErrorRetries);
+                tdsqlLoadBalanceHeartbeatMonitorEnable, tdsqlLoadBalanceHeartbeatIntervalTimeMillis,
+                tdsqlLoadBalanceHeartbeatMaxErrorRetries, tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis);
     }
 
     @Override
     public String toString() {
         return "TdsqlLoadBalanceInfo{" +
-                "hostUuid='" + datasourceUuid + '\'' +
-                ", hostsList=" + tdsqlHostInfoList +
-                ", haLoadBalanceWeightFactorList=" + tdsqlLoadBalanceWeightFactorList +
-                ", haLoadBalanceHeartbeatMonitor=" + tdsqlLoadBalanceHeartbeatMonitor +
-                ", haLoadBalanceHeartbeatIntervalTime=" + tdsqlLoadBalanceHeartbeatIntervalTime +
-                ", haLoadBalanceMaximumErrorRetries=" + tdsqlLoadBalanceMaximumErrorRetries +
+                "datasourceUuid='" + datasourceUuid + '\'' +
+                ", tdsqlHostInfoList=" + tdsqlHostInfoList +
+                ", tdsqlLoadBalanceWeightFactorList=" + tdsqlLoadBalanceWeightFactorList +
+                ", tdsqlLoadBalanceHeartbeatMonitorEnable=" + tdsqlLoadBalanceHeartbeatMonitorEnable +
+                ", tdsqlLoadBalanceHeartbeatIntervalTimeMillis=" + tdsqlLoadBalanceHeartbeatIntervalTimeMillis +
+                ", tdsqlLoadBalanceHeartbeatMaxErrorRetries=" + tdsqlLoadBalanceHeartbeatMaxErrorRetries +
+                ", tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis="
+                + tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis +
                 '}';
     }
 }

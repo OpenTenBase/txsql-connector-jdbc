@@ -2,7 +2,6 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcPropertySetImpl;
 import com.tencentcloud.tdsql.mysql.cj.log.Log;
 import com.tencentcloud.tdsql.mysql.cj.log.LogFactory;
@@ -26,10 +25,10 @@ public final class TdsqlLoggerFactory {
         Properties properties = tdsqlHostInfo.exposeAsProperties();
         properties.remove(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName());
         properties.remove(PropertyKey.tdsqlLoadBalanceWeightFactor.getKeyName());
-        properties.remove(PropertyKey.tdsqlLoadBalanceBlacklistTimeoutMillis.getKeyName());
         properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatMonitorEnable.getKeyName());
         properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatIntervalTimeMillis.getKeyName());
         properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatMaxErrorRetries.getKeyName());
+        properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis.getKeyName());
         PropertySet propertySet = new JdbcPropertySetImpl();
         propertySet.initializeProperties(properties);
         log = LogFactory.getLogger(propertySet.getStringProperty(PropertyKey.logger).getStringValue(),

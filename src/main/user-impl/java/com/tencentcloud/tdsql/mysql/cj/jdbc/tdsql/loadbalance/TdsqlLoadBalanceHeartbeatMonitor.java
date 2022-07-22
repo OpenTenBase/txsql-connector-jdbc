@@ -2,9 +2,9 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlThreadFactoryBuilder;
 import java.sql.SQLException;
@@ -75,8 +75,10 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                 continue;
             }
             this.heartbeatMonitor.scheduleWithFixedDelay(new HeartbeatMonitorTask(tdsqlHostInfo,
-                            tdsqlLoadBalanceInfo.getTdsqlLoadBalanceMaximumErrorRetries(), this.firstCheckFinishedMap), 0L,
-                    tdsqlLoadBalanceInfo.getTdsqlLoadBalanceHeartbeatIntervalTime(), TimeUnit.MILLISECONDS);
+                            tdsqlLoadBalanceInfo.getTdsqlLoadBalanceHeartbeatMaxErrorRetries(),
+                            tdsqlLoadBalanceInfo.getTdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis(),
+                            this.firstCheckFinishedMap), 0L,
+                    tdsqlLoadBalanceInfo.getTdsqlLoadBalanceHeartbeatIntervalTimeMillis(), TimeUnit.MILLISECONDS);
             this.monitoredTdsqlHostInfoSet.add(tdsqlHostInfo);
             TdsqlLoggerFactory.logInfo("Add new host to heartbeat monitor. [ds: " + datasourceUuid + ", host:"
                     + tdsqlHostInfo.getHostPortPair() + "]");
@@ -101,6 +103,10 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
          */
         private final int retries;
         /**
+         * 心跳检测失败重试间隔时间
+         */
+        private final int retryIntervalMs;
+        /**
          * 每个DataSource的第一次心跳检测计数器的引用
          */
         private final Map<String, CountDownLatch> firstCheckFinishedMap;
@@ -109,10 +115,11 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
          */
         private boolean isFirstCheck = true;
 
-        public HeartbeatMonitorTask(TdsqlHostInfo tdsqlHostInfo, int retries,
+        public HeartbeatMonitorTask(TdsqlHostInfo tdsqlHostInfo, int retries, int retryIntervalMs,
                 Map<String, CountDownLatch> firstCheckFinishedMap) {
             this.tdsqlHostInfo = tdsqlHostInfo;
             this.retries = retries;
+            this.retryIntervalMs = retryIntervalMs;
             this.firstCheckFinishedMap = firstCheckFinishedMap;
         }
 
@@ -158,11 +165,11 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                         break;
                     } catch (SQLException e) {
                         // 计算并比较心跳检测次数是否达到允许的最大次数
-                        // 如果没有达到，则马上继续下次心跳检测
+                        // 如果没有达到，则继续下次心跳检测
                         // 否则，将该IP地址加入黑名单并记录错误级别的日志，同时更新首次检测标识和计数器
                         if (attemptCount + 1 > retries) {
                             // 加入黑名单
-                            TdsqlLoggerFactory.logError("Host heartbeat monitor failed now attempts [" + attemptCount
+                            TdsqlLoggerFactory.logError("Host heartbeat monitor failed. now attempts [" + attemptCount
                                     + "] equals max attempts [" + retries + "], try add to blacklist. HostInfo ["
                                     + tdsqlHostInfo.getHostPortPair() + "]", e);
                             TdsqlLoadBalanceBlacklistHolder.getInstance().addBlacklist(tdsqlHostInfo);
@@ -180,6 +187,10 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                                     "Host heartbeat monitor failed and try again, now attempts [" + attemptCount
                                             + "], max attempts [" + retries + "]. HostInfo ["
                                             + tdsqlHostInfo.getHostPortPair() + "]", e);
+                            // 间隔一段时间后再进行下一次尝试
+                            if (this.retryIntervalMs > 0) {
+                                TimeUnit.MILLISECONDS.sleep(this.retryIntervalMs);
+                            }
                         }
                         ++attemptCount;
                     }
