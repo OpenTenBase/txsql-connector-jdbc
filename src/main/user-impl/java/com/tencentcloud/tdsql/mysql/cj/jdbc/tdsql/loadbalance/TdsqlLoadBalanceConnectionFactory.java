@@ -330,7 +330,9 @@ public final class TdsqlLoadBalanceConnectionFactory {
         try {
             int tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis = Integer.parseInt(
                     tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillisStr);
-            if (tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis < 0) {
+            if (tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis < 0 || (
+                    tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis > 0
+                            && tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis < 100)) {
                 String errMessage = Messages.getString(
                         "ConnectionProperties.badValueForTdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis",
                         new Object[]{tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillisStr}) + Messages.getString(
