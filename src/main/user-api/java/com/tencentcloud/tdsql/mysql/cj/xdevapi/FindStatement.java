@@ -131,7 +131,7 @@ public interface FindStatement extends Statement<FindStatement, DocResult> {
      * Locks matching rows against updates using the provided lock contention option.
      * 
      * @param lockContention
-     *            The {@link Statement.LockContention} value to set.
+     *            The {@link com.tencentcloud.tdsql.mysql.cj.xdevapi.Statement.LockContention} value to set.
      * @return {@link FindStatement}
      */
     FindStatement lockShared(LockContention lockContention);
@@ -147,7 +147,7 @@ public interface FindStatement extends Statement<FindStatement, DocResult> {
      * Locks matching rows exclusively so no other transactions can read or write to them, using the provided lock contention option.
      * 
      * @param lockContention
-     *            The {@link Statement.LockContention} value to set.
+     *            The {@link com.tencentcloud.tdsql.mysql.cj.xdevapi.Statement.LockContention} value to set.
      * @return {@link FindStatement}
      */
     FindStatement lockExclusive(LockContention lockContention);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2002, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -29,44 +29,7 @@
 
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
-import com.tencentcloud.tdsql.mysql.cj.CacheAdapter;
-import com.tencentcloud.tdsql.mysql.cj.CacheAdapterFactory;
-import com.tencentcloud.tdsql.mysql.cj.LicenseConfiguration;
-import com.tencentcloud.tdsql.mysql.cj.Messages;
-import com.tencentcloud.tdsql.mysql.cj.NativeSession;
-import com.tencentcloud.tdsql.mysql.cj.NoSubInterceptorWrapper;
-import com.tencentcloud.tdsql.mysql.cj.ParseInfo;
-import com.tencentcloud.tdsql.mysql.cj.PreparedQuery;
-import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
-import com.tencentcloud.tdsql.mysql.cj.Session.SessionEventListener;
-import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
-import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencentcloud.tdsql.mysql.cj.conf.RuntimeProperty;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptorChain;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.PasswordExpiredException;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.UnableToConnectException;
-import com.tencentcloud.tdsql.mysql.cj.interceptors.QueryInterceptor;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.MultiHostMySQLConnection;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.TdsqlDirectConnectionProxy;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaData;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaDataImpl;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetInternalMethods;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.result.UpdatableResultSet;
-import com.tencentcloud.tdsql.mysql.cj.log.ProfilerEvent;
-import com.tencentcloud.tdsql.mysql.cj.log.StandardLogger;
-import com.tencentcloud.tdsql.mysql.cj.protocol.SocksProxySocketFactory;
-import com.tencentcloud.tdsql.mysql.cj.util.LRUCache;
-import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
-import com.tencentcloud.tdsql.mysql.cj.util.Util;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionCounter;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationHandler;
@@ -94,9 +57,52 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
+import com.tencentcloud.tdsql.mysql.cj.CacheAdapter;
+import com.tencentcloud.tdsql.mysql.cj.CacheAdapterFactory;
+import com.tencentcloud.tdsql.mysql.cj.LicenseConfiguration;
+import com.tencentcloud.tdsql.mysql.cj.Messages;
+import com.tencentcloud.tdsql.mysql.cj.NativeSession;
+import com.tencentcloud.tdsql.mysql.cj.NoSubInterceptorWrapper;
+import com.tencentcloud.tdsql.mysql.cj.PreparedQuery;
+import com.tencentcloud.tdsql.mysql.cj.QueryInfo;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.Session.SessionEventListener;
+import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.conf.RuntimeProperty;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptorChain;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.PasswordExpiredException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.UnableToConnectException;
+import com.tencentcloud.tdsql.mysql.cj.interceptors.QueryInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.MultiHostMySQLConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaData;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaDataImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetInternalMethods;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.UpdatableResultSet;
+import com.tencentcloud.tdsql.mysql.cj.log.ProfilerEvent;
+import com.tencentcloud.tdsql.mysql.cj.log.StandardLogger;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSessionStateController;
+import com.tencentcloud.tdsql.mysql.cj.protocol.SocksProxySocketFactory;
+import com.tencentcloud.tdsql.mysql.cj.util.LRUCache;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
+import com.tencentcloud.tdsql.mysql.cj.util.Util;
+
 /**
  * A Connection represents a session with a specific database. Within the context of a Connection, SQL statements are executed and results are returned.
- *
+ * 
  * <P>
  * A Connection's database is able to provide information describing its tables, its supported SQL grammar, its stored procedures, the capabilities of this
  * connection, etc. This information is obtained with the getMetaData method.
@@ -201,12 +207,6 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
         }
     }
 
-    /**
-     * The mapping between MySQL charset names and Java charset names.
-     * Initialized by loadCharacterSetMapping()
-     */
-    public static Map<?, ?> charsetMap;
-
     /** Default logger class name */
     protected static final String DEFAULT_LOGGER_CLASS = StandardLogger.class.getName();
 
@@ -215,15 +215,6 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
      * java.sql.Connection.TRANSACTION_XXX
      */
     private static Map<String, Integer> mapTransIsolationNameToValue = null;
-
-    protected static Map<?, ?> roundRobinStatsMap;
-
-    private List<ConnectionLifecycleInterceptor> connectionLifecycleInterceptors;
-
-    private static final int DEFAULT_RESULT_SET_TYPE = ResultSet.TYPE_FORWARD_ONLY;
-
-    private static final int DEFAULT_RESULT_SET_CONCURRENCY = ResultSet.CONCUR_READ_ONLY;
-
     static {
         mapTransIsolationNameToValue = new HashMap<>(8);
         mapTransIsolationNameToValue.put("READ-UNCOMMITED", TRANSACTION_READ_UNCOMMITTED);
@@ -233,9 +224,17 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
         mapTransIsolationNameToValue.put("SERIALIZABLE", TRANSACTION_SERIALIZABLE);
     }
 
+    protected static Map<?, ?> roundRobinStatsMap;
+
+    private List<ConnectionLifecycleInterceptor> connectionLifecycleInterceptors;
+
+    private static final int DEFAULT_RESULT_SET_TYPE = ResultSet.TYPE_FORWARD_ONLY;
+
+    private static final int DEFAULT_RESULT_SET_CONCURRENCY = ResultSet.CONCUR_READ_ONLY;
+
     /**
      * Creates a connection instance.
-     *
+     * 
      * @param hostInfo
      *            {@link HostInfo} instance
      * @return new {@link ConnectionImpl} instance
@@ -278,7 +277,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     }
 
     /** A cache of SQL to parsed prepared statement parameters. */
-    private CacheAdapter<String, ParseInfo> cachedPreparedStatementParams;
+    private CacheAdapter<String, QueryInfo> queryInfoCache;
 
     /** The database we're currently using. */
     private String database = null;
@@ -292,7 +291,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     private boolean isInGlobalTx = false;
 
     /** isolation level */
-    private int isolationLevel = TRANSACTION_READ_COMMITTED;
+    private int isolationLevel = java.sql.Connection.TRANSACTION_READ_COMMITTED;
 
     /**
      * An array of currently open statements.
@@ -370,7 +369,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
 
     /**
      * Creates a connection to a MySQL Server.
-     *
+     * 
      * @param hostInfo
      *            the {@link HostInfo} instance that contains the host, user and connections attributes for this connection
      * @exception SQLException
@@ -560,7 +559,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
             this.user = userName;
             this.password = newPassword;
 
-            this.session.configureClientCharacterSet(true);
+            this.session.getServerSession().getCharsetSettings().configurePostHandshake(true);
 
             this.session.setSessionVariables();
 
@@ -662,12 +661,12 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
         ClientPreparedStatement pStmt = null;
 
         if (this.cachePrepStmts.getValue()) {
-            ParseInfo pStmtInfo = this.cachedPreparedStatementParams.get(nativeSql);
+            QueryInfo pStmtInfo = this.queryInfoCache.get(nativeSql);
 
             if (pStmtInfo == null) {
                 pStmt = ClientPreparedStatement.getInstance(getMultiHostSafeProxy(), nativeSql, this.database);
 
-                this.cachedPreparedStatementParams.put(nativeSql, pStmt.getParseInfo());
+                this.queryInfoCache.put(nativeSql, pStmt.getQueryInfo());
             } else {
                 pStmt = ClientPreparedStatement.getInstance(getMultiHostSafeProxy(), nativeSql, this.database, pStmtInfo);
             }
@@ -716,8 +715,11 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
             }
 
             realClose(true, true, false, null);
-            if (TdsqlDirectConnectionProxy.directMode) {
-                TdsqlDirectConnectionProxy.closeProxyInstance(this, origHostInfo);
+            if (TdsqlDirectConnectionFactory.directMode) {
+                TdsqlDirectConnectionFactory.getInstance().closeConnection(this, origHostInfo);
+            }
+            if (TdsqlLoadBalanceConnectionFactory.tdsqlLoadBalanceMode && origHostInfo instanceof TdsqlHostInfo) {
+                TdsqlLoadBalanceConnectionFactory.getInstance().closeConnection((TdsqlHostInfo) origHostInfo);
             }
         }
     }
@@ -733,7 +735,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
 
     /**
      * Closes all currently open statements.
-     *
+     * 
      * @throws SQLException
      *             if a database access error occurs
      */
@@ -1025,29 +1027,28 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     private void createPreparedStatementCaches() throws SQLException {
         synchronized (getConnectionMutex()) {
             int cacheSize = this.propertySet.getIntegerProperty(PropertyKey.prepStmtCacheSize).getValue();
-            String parseInfoCacheFactory = this.propertySet.getStringProperty(PropertyKey.parseInfoCacheFactory).getValue();
+            String queryInfoCacheFactory = this.propertySet.getStringProperty(PropertyKey.queryInfoCacheFactory).getValue();
 
             try {
                 Class<?> factoryClass;
 
-                factoryClass = Class.forName(parseInfoCacheFactory);
+                factoryClass = Class.forName(queryInfoCacheFactory);
 
                 @SuppressWarnings("unchecked")
-                CacheAdapterFactory<String, ParseInfo> cacheFactory = ((CacheAdapterFactory<String, ParseInfo>) factoryClass.newInstance());
+                CacheAdapterFactory<String, QueryInfo> cacheFactory = ((CacheAdapterFactory<String, QueryInfo>) factoryClass.newInstance());
 
-                this.cachedPreparedStatementParams = cacheFactory.getInstance(this, this.origHostInfo.getDatabaseUrl(), cacheSize,
-                        this.prepStmtCacheSqlLimit.getValue());
+                this.queryInfoCache = cacheFactory.getInstance(this, this.origHostInfo.getDatabaseUrl(), cacheSize, this.prepStmtCacheSqlLimit.getValue());
 
             } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
                 SQLException sqlEx = SQLError.createSQLException(
-                        Messages.getString("Connection.CantFindCacheFactory", new Object[] { parseInfoCacheFactory, PropertyKey.parseInfoCacheFactory }),
+                        Messages.getString("Connection.CantFindCacheFactory", new Object[] { queryInfoCacheFactory, PropertyKey.queryInfoCacheFactory }),
                         getExceptionInterceptor());
                 sqlEx.initCause(e);
 
                 throw sqlEx;
             } catch (Exception e) {
                 SQLException sqlEx = SQLError.createSQLException(
-                        Messages.getString("Connection.CantLoadCacheFactory", new Object[] { parseInfoCacheFactory, PropertyKey.parseInfoCacheFactory }),
+                        Messages.getString("Connection.CantLoadCacheFactory", new Object[] { queryInfoCacheFactory, PropertyKey.queryInfoCacheFactory }),
                         getExceptionInterceptor());
                 sqlEx.initCause(e);
 
@@ -1136,7 +1137,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     @Override
     public String getCharacterSetMetadata() {
         synchronized (getConnectionMutex()) {
-            return this.session.getServerSession().getCharacterSetMetadata();
+            return this.session.getServerSession().getCharsetSettings().getMetadataEncoding();
         }
     }
 
@@ -1154,7 +1155,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
      * NOT JDBC-Compliant, but clients can use this method to determine how long
      * this connection has been idle. This time (reported in milliseconds) is
      * updated once a query has completed.
-     *
+     * 
      * @return number of ms that this connection has been idle, 0 if the driver
      *         is busy retrieving results.
      */
@@ -1179,8 +1180,8 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                 this.nullStatementResultSetFactory);
 
         if (getSession() != null && getSession().getProtocol() != null) {
-            dbmeta.setMetadataEncoding(getSession().getServerSession().getCharacterSetMetadata());
-            dbmeta.setMetadataCollationIndex(getSession().getServerSession().getMetadataCollationIndex());
+            dbmeta.setMetadataEncoding(getSession().getServerSession().getCharsetSettings().getMetadataEncoding());
+            dbmeta.setMetadataCollationIndex(getSession().getServerSession().getCharsetSettings().getMetadataCollationIndex());
         }
 
         return dbmeta;
@@ -1280,7 +1281,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     /**
      * Sets varying properties that depend on server information. Called once we
      * have connected to the server.
-     *
+     * 
      * @throws SQLException
      *             if a database access error occurs
      */
@@ -1307,8 +1308,6 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
 
         this.autoIncrementIncrement = this.session.getServerSession().getServerVariable("auto_increment_increment", 1);
 
-        this.session.buildCollationMapping();
-
         try {
             LicenseConfiguration.checkLicenseType(this.session.getServerSession().getServerVariables());
         } catch (CJException e) {
@@ -1319,20 +1318,11 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
 
         checkTransactionIsolationLevel();
 
-        this.session.checkForCharsetMismatch();
-
-        this.session.configureClientCharacterSet(false);
-
         handleAutoCommitDefaults();
 
-        //
-        // We need to figure out what character set metadata and error messages will be returned in, and then map them to Java encoding names
-        //
-        // We've already set it, and it might be different than what was originally on the server, which is why we use the "special" key to retrieve it
-        this.session.getServerSession().configureCharacterSets();
-
-        ((com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaData) this.dbmd).setMetadataEncoding(getSession().getServerSession().getCharacterSetMetadata());
-        ((com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaData) this.dbmd).setMetadataCollationIndex(getSession().getServerSession().getMetadataCollationIndex());
+        ((com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaData) this.dbmd).setMetadataEncoding(this.session.getServerSession().getCharsetSettings().getMetadataEncoding());
+        ((com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaData) this.dbmd)
+                .setMetadataCollationIndex(this.session.getServerSession().getCharsetSettings().getMetadataCollationIndex());
 
         //
         // Server can do this more efficiently for us
@@ -1344,7 +1334,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     /**
      * Resets a default auto-commit value of 0 to 1, as required by JDBC specification.
      * Takes into account that the default auto-commit value of 0 may have been changed on the server via init_connect.
-     *
+     * 
      * @throws SQLException
      *             if a database access error occurs
      */
@@ -1573,7 +1563,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
             }
         }
 
-        CallableStatement cStmt = (CallableStatement) prepareCall(sql, resultSetType, resultSetConcurrency);
+        CallableStatement cStmt = (com.tencentcloud.tdsql.mysql.cj.jdbc.CallableStatement) prepareCall(sql, resultSetType, resultSetConcurrency);
 
         return cStmt;
     }
@@ -1616,7 +1606,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                         pStmt = this.serverSideStatementCache.remove(new CompoundCacheKey(this.database, sql));
 
                         if (pStmt != null) {
-                            ((ServerPreparedStatement) pStmt).setClosed(false);
+                            ((com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement) pStmt).setClosed(false);
                             pStmt.clearParameters();
                         }
 
@@ -1625,7 +1615,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                                 pStmt = ServerPreparedStatement.getInstance(getMultiHostSafeProxy(), nativeSql, this.database, resultSetType,
                                         resultSetConcurrency);
                                 if (sql.length() < this.prepStmtCacheSqlLimit.getValue()) {
-                                    ((ServerPreparedStatement) pStmt).isCacheable = true;
+                                    ((com.tencentcloud.tdsql.mysql.cj.jdbc.ServerPreparedStatement) pStmt).isCacheable = true;
                                 }
 
                                 pStmt.setResultSetType(resultSetType);
@@ -1772,7 +1762,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
             if (this.cachePrepStmts.getValue() && pstmt.isPoolable()) {
                 synchronized (this.serverSideStatementCache) {
                     Object oldServerPrepStmt = this.serverSideStatementCache.put(
-                            new CompoundCacheKey(pstmt.getCurrentDatabase(), ((PreparedQuery<?>) pstmt.getQuery()).getOriginalSql()),
+                            new CompoundCacheKey(pstmt.getCurrentDatabase(), ((PreparedQuery) pstmt.getQuery()).getOriginalSql()),
                             (ServerPreparedStatement) pstmt);
                     if (oldServerPrepStmt != null && oldServerPrepStmt != pstmt) {
                         ((ServerPreparedStatement) oldServerPrepStmt).isCached = false;
@@ -1789,8 +1779,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
         synchronized (getConnectionMutex()) {
             if (this.cachePrepStmts.getValue()) {
                 synchronized (this.serverSideStatementCache) {
-                    this.serverSideStatementCache
-                            .remove(new CompoundCacheKey(pstmt.getCurrentDatabase(), ((PreparedQuery<?>) pstmt.getQuery()).getOriginalSql()));
+                    this.serverSideStatementCache.remove(new CompoundCacheKey(pstmt.getCurrentDatabase(), ((PreparedQuery) pstmt.getQuery()).getOriginalSql()));
                 }
             }
         }
@@ -2036,10 +2025,10 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                 this.autoReconnect.setValue(true);
             }
 
+            boolean isAutoCommit = this.session.getServerSession().isAutoCommit();
             try {
                 boolean needsSetOnServer = true;
-
-                if (this.useLocalSessionState.getValue() && this.session.getServerSession().isAutoCommit() == autoCommitFlag) {
+                if (this.useLocalSessionState.getValue() && isAutoCommit == autoCommitFlag) {
                     needsSetOnServer = false;
                 } else if (!this.autoReconnect.getValue()) {
                     needsSetOnServer = getSession().isSetNeededForAutoCommitMode(autoCommitFlag);
@@ -2054,6 +2043,13 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                     this.session.execSQL(null, autoCommitFlag ? "SET autocommit=1" : "SET autocommit=0", -1, null, false, this.nullStatementResultSetFactory,
                             null, false);
                 }
+            } catch (CJCommunicationsException e) {
+                throw e;
+            } catch (CJException e) {
+                // Reset to current autocommit value in case of an exception different than a communication exception occurs.
+                this.session.getServerSession().setAutoCommit(isAutoCommit);
+                // Update the stacktrace.
+                throw SQLError.createSQLException(e.getMessage(), e.getSQLState(), e.getVendorCode(), e.isTransient(), e, getExceptionInterceptor());
             } finally {
                 if (this.autoReconnectForPools.getValue()) {
                     this.autoReconnect.setValue(false);
@@ -2233,25 +2229,25 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
 
             if (shouldSendSet) {
                 switch (level) {
-                    case TRANSACTION_NONE:
+                    case java.sql.Connection.TRANSACTION_NONE:
                         throw SQLError.createSQLException(Messages.getString("Connection.24"), getExceptionInterceptor());
 
-                    case TRANSACTION_READ_COMMITTED:
+                    case java.sql.Connection.TRANSACTION_READ_COMMITTED:
                         sql = "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED";
 
                         break;
 
-                    case TRANSACTION_READ_UNCOMMITTED:
+                    case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
                         sql = "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED";
 
                         break;
 
-                    case TRANSACTION_REPEATABLE_READ:
+                    case java.sql.Connection.TRANSACTION_REPEATABLE_READ:
                         sql = "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ";
 
                         break;
 
-                    case TRANSACTION_SERIALIZABLE:
+                    case java.sql.Connection.TRANSACTION_SERIALIZABLE:
                         sql = "SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE";
 
                         break;
@@ -2588,7 +2584,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                     } catch (CJException ex1) {
                         try {
                             // try with package name prepended
-                            this.infoProvider = (ClientInfoProvider) Util.getInstance("com.tencentcloud.tdsql.mysql.cj.jdbc." + clientInfoProvider, new Class<?>[0], new Object[0],
+                            this.infoProvider = (ClientInfoProvider) Util.getInstance("com.mysql.cj.jdbc." + clientInfoProvider, new Class<?>[0], new Object[0],
                                     getExceptionInterceptor());
                         } catch (CJException ex2) {
                             throw SQLExceptionsMapping.translateException(ex1, getExceptionInterceptor());
@@ -2701,6 +2697,11 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     @Override
     public void handleCleanup(Throwable whyCleanedUp) {
         cleanup(whyCleanedUp);
+    }
+
+    @Override
+    public ServerSessionStateController getServerSessionStateController() {
+        return this.session.getServerSession().getServerSessionStateController();
     }
 
 }

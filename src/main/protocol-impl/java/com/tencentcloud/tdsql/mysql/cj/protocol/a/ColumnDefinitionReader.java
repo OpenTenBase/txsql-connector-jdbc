@@ -74,7 +74,7 @@ public class ColumnDefinitionReader implements ProtocolEntityReader<ColumnDefini
             if (checkEOF && fieldPacket.isEOFPacket()) {
                 break;
             }
-            fields[i] = unpackField(fieldPacket, this.protocol.getServerSession().getCharacterSetMetadata());
+            fields[i] = unpackField(fieldPacket, this.protocol.getServerSession().getCharsetSettings().getMetadataEncoding());
         }
 
         return cdf.createFromFields(fields);
@@ -129,7 +129,7 @@ public class ColumnDefinitionReader implements ProtocolEntityReader<ColumnDefini
         short colFlag = (short) packet.readInteger(this.protocol.getServerSession().hasLongColumnInfo() ? IntegerDataType.INT2 : IntegerDataType.INT1);
         int colDecimals = (int) packet.readInteger(IntegerDataType.INT1);
 
-        String encoding = this.protocol.getServerSession().getEncodingForIndex(collationIndex);
+        String encoding = this.protocol.getServerSession().getCharsetSettings().getJavaEncodingForCollationIndex(collationIndex);
 
         MysqlType mysqlType = NativeProtocol.findMysqlType(this.protocol.getPropertySet(), colType, colFlag, colLength, tableName, originalTableName,
                 collationIndex, encoding);

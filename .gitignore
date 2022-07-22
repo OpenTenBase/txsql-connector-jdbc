@@ -22,3 +22,5 @@ hs_err_pid*.log
 .idea/
 *.iml
 out/
+/log4j2/
+/log4j1217/

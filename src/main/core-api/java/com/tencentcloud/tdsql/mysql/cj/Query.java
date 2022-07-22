@@ -77,6 +77,8 @@ public interface Query {
 
     void clearBatchedArgs();
 
+    QueryAttributesBindings getQueryAttributesBindings();
+
     int getResultFetchSize();
 
     void setResultFetchSize(int fetchSize);

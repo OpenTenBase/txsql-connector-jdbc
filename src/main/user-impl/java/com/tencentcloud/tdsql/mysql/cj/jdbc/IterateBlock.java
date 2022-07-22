@@ -32,12 +32,14 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc;
 import java.sql.SQLException;
 import java.util.Iterator;
 
+import com.tencentcloud.tdsql.mysql.cj.jdbc.DatabaseMetaData.IteratorWithCleanup;
+
 public abstract class IterateBlock<T> {
-    DatabaseMetaData.IteratorWithCleanup<T> iteratorWithCleanup;
+    IteratorWithCleanup<T> iteratorWithCleanup;
     Iterator<T> javaIterator;
     boolean stopIterating = false;
 
-    IterateBlock(DatabaseMetaData.IteratorWithCleanup<T> i) {
+    IterateBlock(IteratorWithCleanup<T> i) {
         this.iteratorWithCleanup = i;
         this.javaIterator = null;
     }

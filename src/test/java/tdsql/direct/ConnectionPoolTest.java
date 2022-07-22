@@ -1,19 +1,18 @@
 package tdsql.direct;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode.RO;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlDirectReadWriteMode.RW;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RO;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RW;
 
-import com.tencentcloud.tdsql.mysql.cj.jdbc.util.TdsqlThreadFactoryBuilder;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlThreadFactoryBuilder;
 import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
-import tdsql.base.BaseTest;
+import tdsql.direct.base.BaseTest;
 
 public class ConnectionPoolTest extends BaseTest {
 

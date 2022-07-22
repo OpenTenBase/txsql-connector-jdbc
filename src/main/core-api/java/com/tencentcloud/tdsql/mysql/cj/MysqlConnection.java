@@ -33,6 +33,7 @@ import java.util.Properties;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSessionStateController;
 
 public interface MysqlConnection {
 
@@ -76,4 +77,6 @@ public interface MysqlConnection {
      *            exception caused the connection clean up
      */
     void cleanup(Throwable whyCleanedUp);
+
+    ServerSessionStateController getServerSessionStateController();
 }

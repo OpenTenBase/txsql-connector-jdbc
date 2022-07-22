@@ -49,6 +49,7 @@ import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl.Type;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.UnsupportedConnectionStringException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
+import com.tencentcloud.tdsql.mysql.cj.util.SearchMode;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 
 /**
@@ -178,7 +179,7 @@ public class ConnectionUrlParser implements DatabaseUrlContainer {
         }
 
         List<String> authoritySegments = StringUtils.split(this.authority, HOSTS_SEPARATOR, HOSTS_LIST_OPENING_MARKERS, HOSTS_LIST_CLOSING_MARKERS, true,
-                StringUtils.SEARCH_MODE__MRK_WS);
+                SearchMode.__MRK_WS);
         for (String hi : authoritySegments) {
             parseAuthoritySegment(hi);
         }
@@ -291,9 +292,6 @@ public class ConnectionUrlParser implements DatabaseUrlContainer {
      */
     private HostInfo buildHostInfoForEmptyHost(String user, String password, String hostInfo) {
         if (isNullOrEmpty(hostInfo)) {
-            if (isNullOrEmpty(user) && isNullOrEmpty(password)) {
-                return new HostInfo();
-            }
             return new HostInfo(this, null, HostInfo.NO_PORT, user, password);
         }
         return null;
@@ -354,7 +352,7 @@ public class ConnectionUrlParser implements DatabaseUrlContainer {
         if (matcher.matches()) {
             String hosts = matcher.group("hosts");
             List<String> hostsList = StringUtils.split(hosts, HOSTS_SEPARATOR, HOSTS_LIST_OPENING_MARKERS, HOSTS_LIST_CLOSING_MARKERS, true,
-                    StringUtils.SEARCH_MODE__MRK_WS);
+                    SearchMode.__MRK_WS);
             // One single element could, in fact, be an IPv6 stripped from its delimiters.
             boolean maybeIPv6 = hostsList.size() == 1 && hostsList.get(0).matches("(?i)^[\\dabcdef:]+$");
             List<HostInfo> hostInfoList = new ArrayList<>();

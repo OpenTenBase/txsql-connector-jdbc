@@ -33,6 +33,7 @@ import java.io.Closeable;
 import java.io.IOException;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
+import com.tencentcloud.tdsql.mysql.cj.log.Log;
 
 /**
  * Interface to allow pluggable socket creation in the driver
@@ -93,6 +94,26 @@ public interface SocketFactory extends SocketMetadata {
      *             if an I/O error occurs
      */
     <T extends Closeable> T performTlsHandshake(SocketConnection socketConnection, ServerSession serverSession) throws IOException;
+
+    /**
+     * If required, called by the driver during MySQL protocol handshake to transform
+     * original socket to SSL socket and perform TLS handshake.
+     * 
+     * @param socketConnection
+     *            current SocketConnection
+     * @param serverSession
+     *            current ServerSession
+     * @param <T>
+     *            result type
+     * @param log
+     *            logger
+     * @return SSL socket
+     * @throws IOException
+     *             if an I/O error occurs
+     */
+    default <T extends Closeable> T performTlsHandshake(SocketConnection socketConnection, ServerSession serverSession, Log log) throws IOException {
+        return performTlsHandshake(socketConnection, serverSession);
+    }
 
     /**
      * Called by the driver after completing the MySQL protocol handshake and

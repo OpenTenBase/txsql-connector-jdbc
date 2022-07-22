@@ -514,7 +514,7 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
         }
 
         String password = hostProps.remove(PropertyKey.PASSWORD.getKeyName());
-        if (!isNullOrEmpty(hi.getPassword())) {
+        if (hi.getPassword() != null) { // Password can be specified as empty string.
             password = hi.getPassword();
         } else if (isNullOrEmpty(password)) {
             password = getDefaultPassword();

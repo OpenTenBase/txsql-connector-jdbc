@@ -29,14 +29,15 @@
 
 package com.tencentcloud.tdsql.mysql.jdbc;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
+import com.tencentcloud.tdsql.mysql.cj.log.Log;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSession;
 import com.tencentcloud.tdsql.mysql.cj.protocol.SocketConnection;
 import com.tencentcloud.tdsql.mysql.cj.protocol.SocketFactory;
 import com.tencentcloud.tdsql.mysql.cj.protocol.StandardSocketFactory;
-
-import java.io.Closeable;
-import java.io.IOException;
 
 /**
  * Wraps the legacy com.tencent.tdsql.mysql.jdbc.SocketFactory implementations so they can be used as {@link SocketFactory}
@@ -60,8 +61,8 @@ public class SocketFactoryWrapper extends StandardSocketFactory implements Socke
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T extends Closeable> T performTlsHandshake(SocketConnection socketConnection, ServerSession serverSession) throws IOException {
-        return (T) super.performTlsHandshake(socketConnection, serverSession);
+    public <T extends Closeable> T performTlsHandshake(SocketConnection socketConnection, ServerSession serverSession, Log log) throws IOException {
+        return (T) super.performTlsHandshake(socketConnection, serverSession, log);
     }
 
     @SuppressWarnings("deprecation")

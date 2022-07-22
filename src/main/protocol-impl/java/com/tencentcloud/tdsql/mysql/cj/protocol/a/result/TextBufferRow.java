@@ -32,10 +32,11 @@ package com.tencentcloud.tdsql.mysql.cj.protocol.a.result;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ColumnDefinition;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ValueDecoder;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.IntegerDataType;
+import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringSelfDataType;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativePacketPayload;
 import com.tencentcloud.tdsql.mysql.cj.result.Row;
 import com.tencentcloud.tdsql.mysql.cj.result.ValueFactory;
-import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants;
 
 /**
  * A ResultSetRow implementation that holds one row packet (which is re-used by the driver, and thus saves memory allocations), and tries when possible to avoid
@@ -89,7 +90,7 @@ public class TextBufferRow extends AbstractBufferRow {
         }
 
         for (int i = startingIndex; i < index; i++) {
-            this.rowFromServer.skipBytes(NativeConstants.StringSelfDataType.STRING_LENENC);
+            this.rowFromServer.skipBytes(StringSelfDataType.STRING_LENENC);
         }
 
         this.lastRequestedIndex = index;
@@ -105,13 +106,13 @@ public class TextBufferRow extends AbstractBufferRow {
         }
 
         findAndSeekToOffset(index);
-        return this.rowFromServer.readBytes(NativeConstants.StringSelfDataType.STRING_LENENC);
+        return this.rowFromServer.readBytes(StringSelfDataType.STRING_LENENC);
     }
 
     @Override
     public boolean getNull(int columnIndex) {
         findAndSeekToOffset(columnIndex);
-        this.wasNull = this.rowFromServer.readInteger(NativeConstants.IntegerDataType.INT_LENENC) == NativePacketPayload.NULL_LENGTH;
+        this.wasNull = this.rowFromServer.readInteger(IntegerDataType.INT_LENENC) == NativePacketPayload.NULL_LENGTH;
         return this.wasNull;
     }
 
@@ -127,7 +128,7 @@ public class TextBufferRow extends AbstractBufferRow {
     @Override
     public <T> T getValue(int columnIndex, ValueFactory<T> vf) {
         findAndSeekToOffset(columnIndex);
-        int length = (int) this.rowFromServer.readInteger(NativeConstants.IntegerDataType.INT_LENENC);
+        int length = (int) this.rowFromServer.readInteger(IntegerDataType.INT_LENENC);
         return getValueFromBytes(columnIndex, this.rowFromServer.getByteBuffer(), this.rowFromServer.getPosition(), length, vf);
     }
 }

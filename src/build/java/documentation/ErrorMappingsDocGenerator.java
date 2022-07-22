@@ -29,11 +29,11 @@
 
 package documentation;
 
-import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 
 /**
  * Creates XML file describing mapping of MySQL error #'s to SQL92 and X/Open states.

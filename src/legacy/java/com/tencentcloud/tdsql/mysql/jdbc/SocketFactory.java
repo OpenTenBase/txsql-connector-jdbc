@@ -73,7 +73,7 @@ public interface SocketFactory {
      * the driver from the URL. All properties other than sensitive ones (user
      * and password) are passed to this method. The driver will instantiate the
      * socket factory with the class name given in the property
-     * &quot;socketFactory&quot;, where the standard is <code>com.tencent.tdsql.mysql.jdbc.StandardSocketFactory</code> Implementing classes
+     * &quot;socketFactory&quot;, where the standard is <code>com.tencentcloud.tdsql.mysql.jdbc.StandardSocketFactory</code> Implementing classes
      * are responsible for handling synchronization of this method (if needed).
      * 
      * @param host

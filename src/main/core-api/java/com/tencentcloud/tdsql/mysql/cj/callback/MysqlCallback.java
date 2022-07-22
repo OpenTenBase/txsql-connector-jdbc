@@ -31,7 +31,7 @@ package com.tencentcloud.tdsql.mysql.cj.callback;
 
 /**
  * Implementations of this interface can be passed to a {@link MysqlCallbackHandler} so that the owner of the callback handler and its caller can share data in
- * a way that would otherwise require tight coupling.
+ * a way that would otherwise require tighter coupling.
  */
 public interface MysqlCallback {
 }

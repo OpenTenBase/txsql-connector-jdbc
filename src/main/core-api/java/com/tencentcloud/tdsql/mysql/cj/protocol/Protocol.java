@@ -31,6 +31,7 @@ package com.tencentcloud.tdsql.mysql.cj.protocol;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.function.Supplier;
 
 import com.tencentcloud.tdsql.mysql.cj.MessageBuilder;
 import com.tencentcloud.tdsql.mysql.cj.QueryResult;
@@ -126,8 +127,6 @@ public interface Protocol<M extends Message> {
      * 
      */
     void changeUser(String user, String password, String database);
-
-    String getPasswordCharacterEncoding();
 
     boolean versionMeetsMinimum(int major, int minor, int subminor);
 
@@ -311,4 +310,5 @@ public interface Protocol<M extends Message> {
         void invokeListeners(EventType type, Throwable reason);
     }
 
+    Supplier<ValueEncoder> getValueEncoderSupplier(Object obj);
 }

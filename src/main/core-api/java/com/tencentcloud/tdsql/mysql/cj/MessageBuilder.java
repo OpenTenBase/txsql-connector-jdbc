@@ -40,4 +40,6 @@ public interface MessageBuilder<M extends Message> {
     M buildSqlStatement(String statement, List<Object> args);
 
     M buildClose();
+
+    M buildComQuery(M sharedPacket, Session sess, PreparedQuery preparedQuery, QueryBindings bindings, String characterEncoding);
 }

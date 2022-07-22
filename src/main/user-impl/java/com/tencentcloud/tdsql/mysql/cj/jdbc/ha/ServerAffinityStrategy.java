@@ -50,7 +50,7 @@ public class ServerAffinityStrategy extends RandomBalanceStrategy {
 
     @Override
     public ConnectionImpl pickConnection(InvocationHandler proxy, List<String> configuredHosts, Map<String, JdbcConnection> liveConnections,
-                                         long[] responseTimes, int numRetries) throws SQLException {
+            long[] responseTimes, int numRetries) throws SQLException {
         if (this.affinityOrderedServers == null) {
             return super.pickConnection(proxy, configuredHosts, liveConnections, responseTimes, numRetries);
         }

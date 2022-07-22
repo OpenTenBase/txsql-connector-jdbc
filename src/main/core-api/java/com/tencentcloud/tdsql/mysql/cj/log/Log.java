@@ -34,7 +34,7 @@ package com.tencentcloud.tdsql.mysql.cj.log;
  */
 public interface Log {
     /** Logger instance name */
-    static final String LOGGER_INSTANCE_NAME = "MySQL";
+    static final String LOGGER_INSTANCE_NAME = "[TDSQL-MySQL Connector/J JAVA8]";
 
     /**
      * Is the 'debug' log level enabled?

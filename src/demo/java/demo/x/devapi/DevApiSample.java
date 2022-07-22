@@ -29,7 +29,15 @@
 
 package demo.x.devapi;
 
-import com.tencentcloud.tdsql.mysql.cj.xdevapi.*;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Collection;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DbDoc;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DbDocImpl;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DocResult;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonNumber;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.JsonString;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Schema;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionFactory;
 
 /*
  * Sample program showing how to use Connector/J's Dev API support.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 2.0, as published by the
@@ -35,12 +35,18 @@ import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 import com.tencentcloud.tdsql.mysql.cj.MysqlxSession;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencentcloud.tdsql.mysql.cj.protocol.x.XProtocolError;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
+import com.tencentcloud.tdsql.mysql.cj.util.Util;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.DocResult;
 import com.tencentcloud.tdsql.mysql.cj.xdevapi.PreparableStatement;
+import com.tencentcloud.tdsql.mysql.cj.xdevapi.Row;
 import com.tencentcloud.tdsql.mysql.cj.xdevapi.Schema;
 import com.tencentcloud.tdsql.mysql.cj.xdevapi.Session;
 import com.tencentcloud.tdsql.mysql.cj.xdevapi.SessionImpl;
@@ -72,6 +78,32 @@ public class DevApiBaseTestCase extends InternalXBaseTestCase {
             this.dbCharset = rs.fetchOne().getString(1);
             rs = this.session.sql("SHOW VARIABLES LIKE 'collation_database'").execute();
             this.dbCollation = rs.fetchOne().getString(1);
+
+            // ensure max_connections value is enough to run tests
+            int maxConnections = 0;
+            int mysqlxMaxConnections = 0;
+
+            rs = this.session.sql("SHOW VARIABLES LIKE '%max_connections'").execute();
+            Row r = rs.fetchOne();
+            if (r.getString(0).contains("mysqlx")) {
+                mysqlxMaxConnections = r.getInt(1);
+                maxConnections = rs.fetchOne().getInt(1);
+            } else {
+                maxConnections = r.getInt(1);
+                mysqlxMaxConnections = rs.fetchOne().getInt(1);
+            }
+
+            rs = this.session.sql("show status like 'threads_connected'").execute();
+            int usedConnections = rs.fetchOne().getInt(1);
+
+            if (maxConnections - usedConnections < 200) {
+                maxConnections += 200;
+                this.session.sql("SET GLOBAL max_connections=" + maxConnections).execute();
+                if (mysqlxMaxConnections < maxConnections) {
+                    this.session.sql("SET GLOBAL mysqlx_max_connections=" + maxConnections).execute();
+                }
+            }
+
             return true;
         }
         return false;
@@ -187,6 +219,21 @@ public class DevApiBaseTestCase extends InternalXBaseTestCase {
         return -1;
     }
 
+    protected boolean supportsTestCertificates(Session sess) {
+        SqlResult res = sess.sql("SELECT @@mysqlx_ssl_ca, @@ssl_ca").execute();
+        if (res.hasNext()) {
+            Row r = res.next();
+            return (StringUtils.isNullOrEmpty(r.getString(1)) && r.getString(2).contains("ssl-test-certs") || r.getString(1).contains("ssl-test-certs"));
+        }
+        return false;
+    }
+
+    protected boolean supportsTLSv1_2(ServerVersion version) throws Exception {
+        return version.meetsMinimum(new ServerVersion(5, 7, 28))
+                || version.meetsMinimum(new ServerVersion(5, 6, 46)) && !version.meetsMinimum(new ServerVersion(5, 7, 0))
+                || version.meetsMinimum(new ServerVersion(5, 6, 0)) && Util.isEnterpriseEdition(version.toString());
+    }
+
     int getPreparedStatementId(PreparableStatement<?> stmt) {
         try {
             Field prepStmtId = PreparableStatement.class.getDeclaredField("preparedStatementId");
@@ -237,5 +284,27 @@ public class DevApiBaseTestCase extends InternalXBaseTestCase {
         assertSecureSession(sess);
         SqlResult res = sess.sql("SELECT CURRENT_USER()").execute();
         assertEquals(user, res.fetchOne().getString(0).split("@")[0]);
+    }
+
+    public String buildString(int length, char charToFill) {
+        if (length > 0) {
+            char[] array = new char[length];
+            Arrays.fill(array, charToFill);
+            return new String(array);
+        }
+        return "";
+    }
+
+    public int count_data(DocResult docs1) {
+        int recCnt = 0;
+        while (true) {
+            try {
+                docs1.next();
+                recCnt++;
+            } catch (java.util.NoSuchElementException sqlEx) {
+                break;
+            }
+        }
+        return recCnt;
     }
 }

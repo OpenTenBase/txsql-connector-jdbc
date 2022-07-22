@@ -29,15 +29,23 @@
 
 package instrumentation;
 
-import com.tencentcloud.tdsql.mysql.cj.conf.*;
+import java.util.Collection;
+
+import com.tencentcloud.tdsql.mysql.cj.conf.BooleanPropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.EnumPropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.IntegerPropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.LongPropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.MemorySizePropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinition;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions;
+import com.tencentcloud.tdsql.mysql.cj.conf.StringPropertyDefinition;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlDataSource;
+
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtMethod;
 import javassist.CtNewMethod;
 import javassist.bytecode.DuplicateMemberException;
-
-import java.util.Collection;
 
 public class AddMethods {
     private static boolean verbose = false;
