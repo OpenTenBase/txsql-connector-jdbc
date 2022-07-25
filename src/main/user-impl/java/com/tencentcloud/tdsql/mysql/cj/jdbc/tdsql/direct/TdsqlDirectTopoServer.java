@@ -285,7 +285,7 @@ public final class TdsqlDirectTopoServer {
 
         @Override
         public void caughtAndRun() {
-            String proxyHost = ((LoadBalancedConnectionProxy) getInstance().proxyConnection).getCurrentActiveHost();
+            String proxyHost = ((JdbcConnection) getInstance().proxyConnection).getHostPortPair();
             TdsqlDirectLoggerFactory.logDebug("Start topology refresh task. Request proxy: [" + proxyHost + "]");
             try {
                 TdsqlDirectTopoServer.getInstance().getTopology();
