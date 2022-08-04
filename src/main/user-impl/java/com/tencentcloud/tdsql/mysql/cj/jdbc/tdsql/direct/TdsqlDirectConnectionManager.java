@@ -81,6 +81,8 @@ public final class TdsqlDirectConnectionManager {
                 //如果slave中没有，并且master中也没有该节点，那么就说明该从节点调度失败将其从原始调度队列中删除！
                 if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo)){
                     scheduleQueue.remove(tdsqlHostInfo);
+                    //既然节点宕机了，那么保存节点连接实例的map中的信息也要删除！
+                    connectionHolder.remove(tdsqlHostInfo);
                 }
             }
             //此时connection为空，说明从库连接建立失败，并且如果允许主库承接只读流量，那么建立主库连接

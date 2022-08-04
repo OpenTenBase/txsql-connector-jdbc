@@ -111,10 +111,11 @@ class TdsqlDirectConnectionManagerTest {
         }else{
             //先进行从库的故障转移
             connection = failover(scheduleQueue, scheduleQueueSlave, balancer, tdsqlHostInfoList);
-            //是否有必要将scheduleQueue中调度不了的从库移除
+            //是否有必要将scheduleQueue中调度不了的从库移除,又因为该库宕机，那么之前的连接实例也有必要删除！
             for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfoList){
                 if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo)){
                     scheduleQueue.remove(tdsqlHostInfo);
+                    connectionHolder.remove(tdsqlHostInfo);
                 }
             }
             //此时connection为空，说明从库连接建立失败，并且如果允许主库承接只读流量，那么建立主库连接

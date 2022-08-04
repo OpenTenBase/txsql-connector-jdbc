@@ -34,27 +34,23 @@ public class TdsqlScheduleTdsqlCacheListener extends AbstractTdsqlCacheListener 
     @SuppressWarnings("unchecked")
     @Override
     public void handleMaster(List<TdsqlDataSetInfo> offLines, List<TdsqlDataSetInfo> onLines) {
-//        if (TdsqlDirectReadWriteMode.RW.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode)))
-        {
-            for (TdsqlDataSetInfo newMaster : onLines) {
-                TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(newMaster, connectionUrl);
-                if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
-                    scheduleQueue.put(tdsqlHostInfo, new NodeMsg(0L, true));
-                }
+        for (TdsqlDataSetInfo newMaster : onLines) {
+            TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(newMaster, connectionUrl);
+            if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
+                scheduleQueue.put(tdsqlHostInfo, new NodeMsg(0L, true));
             }
-            for (TdsqlDataSetInfo offLine : offLines) {
-                TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(offLine, connectionUrl);
-                if (scheduleQueue.containsKey(tdsqlHostInfo)) {
-                    scheduleQueue.remove(tdsqlHostInfo);
-                }
+        }
+        for (TdsqlDataSetInfo offLine : offLines) {
+            TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(offLine, connectionUrl);
+            if (scheduleQueue.containsKey(tdsqlHostInfo)) {
+                scheduleQueue.remove(tdsqlHostInfo);
             }
         }
     }
 
     /**
      * 从库变化
-     * 1. 如果当前模式是RW, 不做操作
-     * 2. 如果当前模式是RO, 将所有从库加到schedulingQueue
+     * 1. RW or RO模式都会将新从库加到schedulingQueue
      *
      * @param offLines 离线从库
      * @param onLines 新上线从库
@@ -62,22 +58,16 @@ public class TdsqlScheduleTdsqlCacheListener extends AbstractTdsqlCacheListener 
     @SuppressWarnings("unchecked")
     @Override
     public void handleSlave(List<TdsqlDataSetInfo> offLines, List<TdsqlDataSetInfo> onLines) {
-        if (TdsqlDirectReadWriteMode.RW.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode))) {
-            // ignored
-        }
-//        if (TdsqlDirectReadWriteMode.RO.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode)))
-        {
-            for (TdsqlDataSetInfo slave : onLines) {
-                TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(slave, connectionUrl);
-                if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
-                    scheduleQueue.put(tdsqlHostInfo, new NodeMsg(0L, false));
-                }
+        for (TdsqlDataSetInfo slave : onLines) {
+            TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(slave, connectionUrl);
+            if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
+                scheduleQueue.put(tdsqlHostInfo, new NodeMsg(0L, false));
             }
-            for (TdsqlDataSetInfo oldSlave : offLines) {
-                TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(oldSlave, connectionUrl);
-                if (scheduleQueue.containsKey(tdsqlHostInfo)) {
-                    scheduleQueue.remove(tdsqlHostInfo);
-                }
+        }
+        for (TdsqlDataSetInfo oldSlave : offLines) {
+            TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(oldSlave, connectionUrl);
+            if (scheduleQueue.containsKey(tdsqlHostInfo)) {
+                scheduleQueue.remove(tdsqlHostInfo);
             }
         }
     }
