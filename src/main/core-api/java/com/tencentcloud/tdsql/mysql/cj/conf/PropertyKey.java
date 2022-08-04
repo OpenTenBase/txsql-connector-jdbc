@@ -292,7 +292,8 @@ public enum PropertyKey {
     tdsqlDirectTopoRefreshIntervalMillis("tdsqlDirectTopoRefreshIntervalMillis", true),
     tdsqlDirectTopoRefreshConnTimeoutMillis("tdsqlDirectTopoRefreshConnTimeoutMillis", true),
     tdsqlDirectTopoRefreshStmtTimeoutSeconds("tdsqlDirectTopoRefreshStmtTimeoutSeconds", true),
-    tdsqlDirectCloseConnTimeoutMillis("tdsqlDirectCloseConnTimeoutMillis", true)
+    tdsqlDirectCloseConnTimeoutMillis("tdsqlDirectCloseConnTimeoutMillis", true),
+    tdsqlDirectMasterCarryOptOfReadOnlyMode("tdsqlDirectMasterCarryOptOfReadOnlyMode", true)
     ;
 
     private String keyName;

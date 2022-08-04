@@ -1,8 +1,13 @@
-package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql;
+package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy;
 
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceBlacklistHolder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionCounter;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +18,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * <p></p>
  *
  * @author dorianzhang@tencent.com
+ * @author gyokumeixie@tencent.com
  */
 public class TdsqlSedBalanceStrategy implements TdsqlLoadBalanceStrategy {
 
@@ -31,9 +37,9 @@ public class TdsqlSedBalanceStrategy implements TdsqlLoadBalanceStrategy {
             return null;
         }
 
-        Map<TdsqlHostInfo, Long> tdsqlHostInfoLongMap = scheduleQueue.asMap();
+        Map<TdsqlHostInfo, NodeMsg> tdsqlHostInfoLongMap = scheduleQueue.asMap();
         if (scheduleQueue.size() == 1) {
-            for (Entry<TdsqlHostInfo, Long> entry : tdsqlHostInfoLongMap.entrySet()) {
+            for (Entry<TdsqlHostInfo, NodeMsg> entry : tdsqlHostInfoLongMap.entrySet()) {
                 return entry.getKey();
             }
         }
@@ -42,18 +48,18 @@ public class TdsqlSedBalanceStrategy implements TdsqlLoadBalanceStrategy {
         ReentrantReadWriteLock counterLock = TdsqlLoadBalanceConnectionCounter.getInstance().getCounterLock();
         counterLock.readLock().lock();
         try {
-            List<Map.Entry<TdsqlHostInfo, Long>> counterList = new ArrayList<>(tdsqlHostInfoLongMap.entrySet());
+            List<Map.Entry<TdsqlHostInfo, NodeMsg>> counterList = new ArrayList<>(tdsqlHostInfoLongMap.entrySet());
 
             for (int i = 0; i < numHosts; i++) {
-                Entry<TdsqlHostInfo, Long> curr = counterList.get(i);
+                Entry<TdsqlHostInfo, NodeMsg> curr = counterList.get(i);
                 int currWf = curr.getKey().getWeightFactor();
                 if (currWf > 0) {
-                    long currCount = curr.getValue() + 1;
+                    long currCount = curr.getValue().getCount() + 1;
                     for (int j = i + 1; j < numHosts; j++) {
-                        Entry<TdsqlHostInfo, Long> next = counterList.get(j);
+                        Entry<TdsqlHostInfo, NodeMsg> next = counterList.get(j);
                         int nextWf = next.getKey().getWeightFactor();
                         if (nextWf > 0) {
-                            long nextCount = next.getValue() + 1;
+                            long nextCount = next.getValue().getCount() + 1;
                             if (currCount * nextWf >= nextCount * currWf) {
                                 i = j;
                             }

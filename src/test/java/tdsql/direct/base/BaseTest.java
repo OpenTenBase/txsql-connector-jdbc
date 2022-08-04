@@ -18,6 +18,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlDataSource;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionManager;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectTopoServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
@@ -43,24 +44,36 @@ import org.junit.jupiter.api.TestInfo;
 public abstract class BaseTest {
 
     protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
-    protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
-            + "9.30.1.210:15002,"
-            + "9.30.1.211:15002,"
-            + "9.30.1.225:15002,"
-            + "9.30.1.243:15002,"
-            + "9.30.1.249:15002"
-            + "/mysql?useSSL=false&tdsqlReadWriteMode=rw";
+//    protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
+//            + "9.30.1.210:15002,"
+//            + "9.30.1.211:15002,"
+//            + "9.30.1.225:15002,"
+//            + "9.30.1.243:15002,"
+//            + "9.30.1.249:15002"
+//            + "/mysql?useSSL=false&tdsqlReadWriteMode=rw";
+//    protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
+//            + "9.30.1.210:15002,"
+//            + "9.30.1.211:15002,"
+//            + "9.30.1.225:15002,"
+//            + "9.30.1.243:15002,"
+//            + "9.30.1.249:15002"
+//            + "/mysql?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=12.9";
+//    protected static final String USER_RW = "jdbctest";
+//    protected static final String PASS_RW = "jdbctest";
+//    protected static final String USER_RO = "test_ro";
+//    protected static final String PASS_RO = "test_ro";
+protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
+        + "9.30.1.231:15050,"
+        + "9.30.1.207:15050,"
+        + "/mysql?useSSL=false&tdsqlReadWriteMode=rw";
     protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
-            + "9.30.1.210:15002,"
-            + "9.30.1.211:15002,"
-            + "9.30.1.225:15002,"
-            + "9.30.1.243:15002,"
-            + "9.30.1.249:15002"
+            + "9.30.1.231:15050,"
+            + "9.30.1.207:15050,"
             + "/mysql?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=12.9";
-    protected static final String USER_RW = "jdbctest";
-    protected static final String PASS_RW = "jdbctest";
-    protected static final String USER_RO = "test_ro";
-    protected static final String PASS_RO = "test_ro";
+    protected static final String USER_RW = "tdsqlsys_normal";
+    protected static final String PASS_RW = "tdsqlsys_normal";
+    protected static final String USER_RO = "gl%LDY^1&OKWkLWQP^7&";
+    protected static final String PASS_RO = "gl%LDY^1&OKWkLWQP^7&";
 
     @BeforeEach
     public void setUp(TestInfo testInfo) throws Exception {
@@ -114,9 +127,9 @@ public abstract class BaseTest {
 
     protected void printScheduleQueue() {
         long total = 0;
-        for (Entry<TdsqlHostInfo, Long> entry : TdsqlDirectTopoServer.getInstance().getScheduleQueue().asMap()
+        for (Entry<TdsqlHostInfo, NodeMsg> entry : TdsqlDirectTopoServer.getInstance().getScheduleQueue().asMap()
                 .entrySet()) {
-            total += entry.getValue();
+            total += entry.getValue().getCount();
             System.out.println("Host:Count = " + entry.getKey() + ": " + entry.getValue());
         }
         System.out.println("Total: " + total);

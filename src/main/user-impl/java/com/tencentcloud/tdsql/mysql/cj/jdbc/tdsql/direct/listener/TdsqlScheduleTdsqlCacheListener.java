@@ -4,8 +4,10 @@ import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetUtil;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
+
 import java.util.List;
 
 public class TdsqlScheduleTdsqlCacheListener extends AbstractTdsqlCacheListener {
@@ -15,7 +17,7 @@ public class TdsqlScheduleTdsqlCacheListener extends AbstractTdsqlCacheListener 
     private final ConnectionUrl connectionUrl;
 
     public TdsqlScheduleTdsqlCacheListener(String tdsqlReadWriteMode,
-            TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue, ConnectionUrl connectionUrl) {
+                                           TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue, ConnectionUrl connectionUrl) {
         this.tdsqlReadWriteMode = tdsqlReadWriteMode;
         this.scheduleQueue = scheduleQueue;
         this.connectionUrl = connectionUrl;
@@ -32,11 +34,12 @@ public class TdsqlScheduleTdsqlCacheListener extends AbstractTdsqlCacheListener 
     @SuppressWarnings("unchecked")
     @Override
     public void handleMaster(List<TdsqlDataSetInfo> offLines, List<TdsqlDataSetInfo> onLines) {
-        if (TdsqlDirectReadWriteMode.RW.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode))) {
+//        if (TdsqlDirectReadWriteMode.RW.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode)))
+        {
             for (TdsqlDataSetInfo newMaster : onLines) {
                 TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(newMaster, connectionUrl);
                 if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
-                    scheduleQueue.put(tdsqlHostInfo, 0L);
+                    scheduleQueue.put(tdsqlHostInfo, new NodeMsg(0L, true));
                 }
             }
             for (TdsqlDataSetInfo offLine : offLines) {
@@ -62,11 +65,12 @@ public class TdsqlScheduleTdsqlCacheListener extends AbstractTdsqlCacheListener 
         if (TdsqlDirectReadWriteMode.RW.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode))) {
             // ignored
         }
-        if (TdsqlDirectReadWriteMode.RO.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode))) {
+//        if (TdsqlDirectReadWriteMode.RO.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode)))
+        {
             for (TdsqlDataSetInfo slave : onLines) {
                 TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(slave, connectionUrl);
                 if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
-                    scheduleQueue.put(tdsqlHostInfo, 0L);
+                    scheduleQueue.put(tdsqlHostInfo, new NodeMsg(0L, false));
                 }
             }
             for (TdsqlDataSetInfo oldSlave : offLines) {

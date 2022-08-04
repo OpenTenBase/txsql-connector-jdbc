@@ -1,5 +1,6 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util;
 
+import com.google.gson.Gson;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
@@ -8,122 +9,174 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongBinaryOperator;
 import java.util.function.LongUnaryOperator;
+import java.util.stream.Collectors;
 
 /**
  * <p></p>
  *
  * @author dorianzhang@tencent.com
+ * @author gyokumeixie@tencent.com
  */
 public final class TdsqlAtomicLongMap<K> implements Serializable {
-    private final ConcurrentHashMap<K, Long> map;
-
-    private TdsqlAtomicLongMap(ConcurrentHashMap<K, Long> map) {
-        this.map = checkNotNull(map);
+    private final ConcurrentHashMap<K, NodeMsg> map;
+    private TdsqlAtomicLongMap(ConcurrentHashMap<K, NodeMsg> map) {
+    this.map = checkNotNull(map);
     }
+
 
     public static <K> TdsqlAtomicLongMap<K> create() {
         return new TdsqlAtomicLongMap<K>(new ConcurrentHashMap<>());
     }
 
-    public static <K> TdsqlAtomicLongMap<K> create(Map<? extends K, ? extends Long> m) {
+    public static <K> TdsqlAtomicLongMap<K> create(Map<? extends K, ? extends NodeMsg> m) {
         TdsqlAtomicLongMap<K> result = create();
         result.putAll(m);
         return result;
     }
 
-    public long get(K key) {
-        return map.getOrDefault(key, 0L);
+    public NodeMsg get(K key) {
+        return map.getOrDefault(key, null);
     }
 
-    public long incrementAndGet(K key) {
+    public NodeMsg incrementAndGet(K key) {
         return addAndGet(key, 1);
     }
 
-    public long decrementAndGet(K key) {
+    public NodeMsg decrementAndGet(K key) {
         return addAndGet(key, -1);
     }
 
-    public long addAndGet(K key, long delta) {
-        return accumulateAndGet(key, delta, Long::sum);
-    }
-
-    public long getAndIncrement(K key) {
+    public NodeMsg getAndIncrement(K key) {
         return getAndAdd(key, 1);
     }
 
-    public long getAndDecrement(K key) {
+    public NodeMsg getAndDecrement(K key) {
         return getAndAdd(key, -1);
     }
 
-    public long getAndAdd(K key, long delta) {
+    public NodeMsg addAndGet(K key, long delta) {
+        return accumulateAndGet(key, delta, Long::sum);
+    }
+
+    public NodeMsg getAndAdd(K key, long delta) {
         return getAndAccumulate(key, delta, Long::sum);
     }
 
-    public long updateAndGet(K key, LongUnaryOperator updaterFunction) {
-        checkNotNull(updaterFunction);
-        return map.compute(key, (k, value) -> updaterFunction.applyAsLong((value == null) ? 0L : value.longValue()));
+    public NodeMsg accumulateAndGet(K key, long x, LongBinaryOperator accumulatorFunction) {
+        checkNotNull(accumulatorFunction);
+        return updateAndGet(key, null ,oldValue -> accumulatorFunction.applyAsLong(oldValue, x));
     }
 
-    public long getAndUpdate(K key, LongUnaryOperator updaterFunction) {
+    public NodeMsg getAndAccumulate(K key, long x, LongBinaryOperator accumulatorFunction) {
+        checkNotNull(accumulatorFunction);
+        return getAndUpdate(key,null ,oldValue -> accumulatorFunction.applyAsLong(oldValue, x));
+    }
+
+    /**
+     * 先对map中的内容进行更新，然后返回更新之后的nodeMsg
+     * @param key
+     * @param nodeMsg
+     * @param updaterFunction
+     * @return
+     */
+    public NodeMsg updateAndGet(K key, NodeMsg nodeMsg ,LongUnaryOperator updaterFunction) {
+        checkNotNull(updaterFunction);
+        return map.compute(key, (k, value) -> {
+            Long newValue = updaterFunction.applyAsLong((value == null) ? 0L : value.getCount().longValue());
+            //如果map中key对应的值为空，那么就直接将传入的nodeMsg更新进去，不然就将newCount更新，其他的不变
+            if (value == null){
+                return nodeMsg;
+            }else{
+                value.setCount(newValue);
+                return value;
+            }
+        });
+    }
+
+    /**
+     * 更新nodeMsg中的count的同时，返回旧值
+     * 更新逻辑：如果map中有对应的key value，那么直接将value中的count值进行更新，如果没有对应的key value，那么就将value直接存进去即可
+     * @param key
+     * @param nodeMsg
+     * @param updaterFunction
+     * @return
+     */
+    public NodeMsg getAndUpdate(K key, NodeMsg nodeMsg ,LongUnaryOperator updaterFunction) {
         checkNotNull(updaterFunction);
         AtomicLong holder = new AtomicLong();
+        //此处需要深拷贝，不然在最后返回旧值的时候会覆盖新值。利用第三方库，序列化的形式进行深拷贝
+        NodeMsg temNodeMsg = map.getOrDefault(key, null);
+        Gson gson = new Gson();
+        NodeMsg oldNodeMsg = gson.fromJson(gson.toJson(temNodeMsg), NodeMsg.class);
         map.compute(
                 key,
                 (k, value) -> {
-                    long oldValue = (value == null) ? 0L : value.longValue();
+                    long oldValue = (value == null) ? 0L : value.getCount().longValue();
                     holder.set(oldValue);
-                    return updaterFunction.applyAsLong(oldValue);
+                    long newValue = updaterFunction.applyAsLong(oldValue);
+                    //如果key对应的value为空，那么就将传入的nodeMsg更新进去，不然就只更新count值
+                    if (value ==null){
+                        value = nodeMsg;
+                    } else{
+                        value.setCount(newValue);
+                    }
+                    return value;
                 });
-        return holder.get();
+        if (oldNodeMsg != null){
+            oldNodeMsg.setCount(holder.get());
+        }
+        return oldNodeMsg;
     }
 
-    public long accumulateAndGet(K key, long x, LongBinaryOperator accumulatorFunction) {
-        checkNotNull(accumulatorFunction);
-        return updateAndGet(key, oldValue -> accumulatorFunction.applyAsLong(oldValue, x));
+
+    public NodeMsg put(K key, NodeMsg newValue) {
+        return getAndUpdate(key, newValue ,x -> newValue.getCount());
     }
 
-    public long getAndAccumulate(K key, long x, LongBinaryOperator accumulatorFunction) {
-        checkNotNull(accumulatorFunction);
-        return getAndUpdate(key, oldValue -> accumulatorFunction.applyAsLong(oldValue, x));
-    }
+    /**
+     * 默认schedulequeue中存在keyvalue键值对，直接进行赋值！
+     * @param key
+     * @param newValue
+     * @return
+     */
+//    public NodeMsg put(K key, Long newValue) {
+//        return getAndUpdate(key, null ,x -> newValue);
+//    }
 
-    public long put(K key, long newValue) {
-        return getAndUpdate(key, x -> newValue);
-    }
-
-    public void putAll(Map<? extends K, ? extends Long> m) {
+    public void putAll(Map<? extends K, ? extends NodeMsg> m) {
         m.forEach(this::put);
     }
 
-    public long remove(K key) {
-        Long result = map.remove(key);
-        return (result == null) ? 0L : result.longValue();
+    public NodeMsg remove(K key) {
+        NodeMsg result = map.remove(key);
+        return (result == null) ? null : result;
     }
 
-    boolean remove(K key, long value) {
+    boolean remove(K key, NodeMsg value) {
         return map.remove(key, value);
     }
 
     public boolean removeIfZero(K key) {
-        return remove(key, 0);
+        NodeMsg nodeMsg = map.get(key);
+        return nodeMsg.getCount() == 0 ? remove(key, nodeMsg) : false;
     }
 
     public void removeAllZeros() {
-        map.values().removeIf(x -> x == 0);
+        map.values().removeIf(x -> x.getCount() == 0);
     }
 
     public long sum() {
-        return map.values().stream().mapToLong(Long::longValue).sum();
+        return map.values().stream().collect(Collectors.summarizingLong(x -> x.getCount())).getSum();
     }
 
-    private transient Map<K, Long> asMap;
+    private transient Map<K, NodeMsg> asMap;
 
-    public Map<K, Long> asMap() {
-        Map<K, Long> result = asMap;
+    public Map<K, NodeMsg> asMap() {
+        Map<K, NodeMsg> result = asMap;
         return (result == null) ? asMap = createAsMap() : result;
     }
 
-    private Map<K, Long> createAsMap() {
+    private Map<K, NodeMsg> createAsMap() {
         return Collections.unmodifiableMap(map);
     }
 
@@ -148,25 +201,26 @@ public final class TdsqlAtomicLongMap<K> implements Serializable {
         return map.toString();
     }
 
-    long putIfAbsent(K key, long newValue) {
+    //还要修改
+    NodeMsg putIfAbsent(K key, NodeMsg newValue) {
         AtomicBoolean noValue = new AtomicBoolean(false);
-        Long result =
+        NodeMsg result =
                 map.compute(
                         key,
                         (k, oldValue) -> {
-                            if (oldValue == null || oldValue == 0) {
+                            if (oldValue == null || oldValue.getCount() == 0) {
                                 noValue.set(true);
                                 return newValue;
                             } else {
                                 return oldValue;
                             }
                         });
-        return noValue.get() ? 0L : result.longValue();
+        return noValue.get() ? null : result;
     }
 
-    boolean replace(K key, long expectedOldValue, long newValue) {
-        if (expectedOldValue == 0L) {
-            return putIfAbsent(key, newValue) == 0L;
+    boolean replace(K key, NodeMsg expectedOldValue, NodeMsg newValue) {
+        if (expectedOldValue == null) {
+            return putIfAbsent(key, newValue) == null;
         } else {
             return map.replace(key, expectedOldValue, newValue);
         }

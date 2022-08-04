@@ -19,7 +19,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlSedBalanceStrategy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlSedBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 import java.sql.SQLException;
 import java.util.ArrayList;
