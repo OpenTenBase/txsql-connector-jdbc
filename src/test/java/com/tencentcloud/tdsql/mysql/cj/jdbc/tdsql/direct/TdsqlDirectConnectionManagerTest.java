@@ -83,7 +83,7 @@ class TdsqlDirectConnectionManagerTest {
                 return URLS2;
             }
         };
-        HostInfo hostInfo_S2 = new HostInfo(originUrl_S2, "9.30.1.178", 4017, USER_S, PASS_S, null);
+        HostInfo hostInfo_S2 = new HostInfo(originUrl_S2, "9.30.1.178", 4016, USER_S, PASS_S, null);
         TdsqlHostInfo tdsqlHostInfo_S2 = new TdsqlHostInfo(hostInfo_S2);
         scheduleQueue.put(tdsqlHostInfo_S2, new NodeMsg(3L, false));
     }

@@ -86,8 +86,12 @@ public final class TdsqlDirectConnectionManager {
                 }
             }
             //此时connection为空，说明从库连接建立失败，并且如果允许主库承接只读流量，那么建立主库连接
-            if (connection == null && tdsqlDirectMasterCarryOptOfReadOnlyMode){
-                connection = pickConnection(scheduleQueueMaster, balancer);
+            if (connection == null){
+                if (tdsqlDirectMasterCarryOptOfReadOnlyMode){
+                    connection = pickConnection(scheduleQueueMaster, balancer);
+                } else {
+                    throw new SQLException("there is no slave available");
+                }
             }
         }
 
