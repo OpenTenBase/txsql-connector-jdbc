@@ -128,20 +128,9 @@ public final class TdsqlAtomicLongMap<K> implements Serializable {
         return oldNodeMsg;
     }
 
-
     public NodeMsg put(K key, NodeMsg newValue) {
         return getAndUpdate(key, newValue ,x -> newValue.getCount());
     }
-
-    /**
-     * 默认schedulequeue中存在keyvalue键值对，直接进行赋值！
-     * @param key
-     * @param newValue
-     * @return
-     */
-//    public NodeMsg put(K key, Long newValue) {
-//        return getAndUpdate(key, null ,x -> newValue);
-//    }
 
     public void putAll(Map<? extends K, ? extends NodeMsg> m) {
         m.forEach(this::put);

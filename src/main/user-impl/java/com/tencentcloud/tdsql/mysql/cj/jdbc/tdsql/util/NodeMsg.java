@@ -1,5 +1,7 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util;
 
+import java.util.Objects;
+
 /**
  * <p>
  * 自定义节点信息类
@@ -30,11 +32,15 @@ public class NodeMsg {
 
     @Override
     public int hashCode() {
-        return super.hashCode();
+        return Objects.hash(count, isMaster);
     }
 
     @Override
     public boolean equals(Object obj) {
-        return super.equals(obj);
+        if (this == obj) return true;
+        if (! (obj instanceof NodeMsg)) return false;
+        NodeMsg nodeMsg = (NodeMsg) obj;
+        return Objects.equals(getCount(), nodeMsg.getCount()) &&
+                Objects.equals(getIsMaster(), nodeMsg.getIsMaster());
     }
 }
