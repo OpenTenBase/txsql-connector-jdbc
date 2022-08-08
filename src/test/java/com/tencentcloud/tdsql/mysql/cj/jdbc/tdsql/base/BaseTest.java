@@ -3,6 +3,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.base;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 import java.sql.Connection;
@@ -24,20 +25,13 @@ public abstract class BaseTest {
      */
     protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
     protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
-            + "9.30.1.231:15050,"
-            + "9.30.1.178:4015,"
-            + "/mysql?useSSL=false&tdsqlReadWriteMode=rw";
+            + "9.30.1.231:15005,"
+            + "/mysql?useSSL=false&tdsqlReadWriteMode=rw&tdsqlLoadBalanceStrategy=Lc";
     protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
-            + "9.30.1.231:15050,"
-            + "9.30.1.178:4015,"
-            + "/mysql?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=12.9";
+            + "9.30.1.231:15005,"
+            + "/mysql?useSSL=false&tdsqlReadWriteMode=ro&tdsqlLoadBalanceStrategy=Lc&tdsqlDirectMasterCarryOptOfReadOnlyMode=true";
     protected static final String USER = "tdsqlsys_normal";
-//    protected static final String USER = "gyokumeixie";
-//    protected static final String USER = "tdsql_admin";
-    protected static final String PASS = "gl%LDY^1&OKWkLWQP^7&";
-//    protected static final String PASS = "H3<2m6_7F0B+y5^7";
-    // H3<2m6_7F0B+y5^7
-//    protected static final String PASS = "Mkhdb*8532XucF";
+    protected static final String PASS = "@yBeLM6Njvwcm661Cfs";
 
     @BeforeEach
     public void setUp(TestInfo testInfo) throws Exception {
@@ -59,7 +53,10 @@ public abstract class BaseTest {
             props.setProperty(PropertyKey.USER.getKeyName(), USER);
             props.setProperty(PropertyKey.PASSWORD.getKeyName(), PASS);
         }
-        return getConnection(mode, props);
+        Connection connection = getConnection(mode, props);
+
+//        System.out.println(connection);
+        return connection;
     }
 
     protected Connection getConnection(TdsqlDirectReadWriteMode mode, Properties properties) throws SQLException {
@@ -75,6 +72,6 @@ public abstract class BaseTest {
             props.setProperty(PropertyKey.tdsqlDirectReadWriteMode.getKeyName(), RW.toString());
         }
         props.putAll(properties);
-        return DriverManager.getConnection(URL_RW, props);
+        return DriverManager.getConnection(URL_RO, props);
     }
 }

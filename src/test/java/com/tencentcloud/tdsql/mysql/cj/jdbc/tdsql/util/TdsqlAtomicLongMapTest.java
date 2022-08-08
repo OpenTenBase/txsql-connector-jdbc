@@ -40,11 +40,13 @@ class TdsqlAtomicLongMapTest {
         HostInfo hostInfo3 = new HostInfo(null, "slave2", 3308, "seimin", "www", null);
         HostInfo hostInfo4 = new HostInfo(null, "slave3", 3308, "seimin", "www", null);
         HostInfo hostInfo5 = new HostInfo(null, "slave4", 3308, "seimin", "www", null);
+        HostInfo hostInfo6 = new HostInfo(null, "slave5", 3308, "seimin", "www", null);
         TdsqlHostInfo tdsqlHostInfo1 = new TdsqlHostInfo(hostInfo1);
         TdsqlHostInfo tdsqlHostInfo2 = new TdsqlHostInfo(hostInfo2);
         TdsqlHostInfo tdsqlHostInfo3 = new TdsqlHostInfo(hostInfo3);
         TdsqlHostInfo tdsqlHostInfo4 = new TdsqlHostInfo(hostInfo4);
         TdsqlHostInfo tdsqlHostInfo5 = new TdsqlHostInfo(hostInfo5);
+        TdsqlHostInfo tdsqlHostInfo6 = new TdsqlHostInfo(hostInfo6);
         map.put(tdsqlHostInfo1, new NodeMsg(1L, true));
         map.put(tdsqlHostInfo2, new NodeMsg(1L, false));
         map.put(tdsqlHostInfo3, new NodeMsg(2L, false));
@@ -59,6 +61,7 @@ class TdsqlAtomicLongMapTest {
         TdsqlLoadBalanceStrategy lc = instance.getStrategyInstance("Lc");
         TdsqlHostInfo choice = lc.choice(map);
         System.out.println(choice.getHost());
+        System.out.println("null:" + map.remove(tdsqlHostInfo6));
 
     }
 
