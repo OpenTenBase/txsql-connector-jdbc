@@ -54,8 +54,6 @@ public abstract class BaseTest {
             props.setProperty(PropertyKey.PASSWORD.getKeyName(), PASS);
         }
         Connection connection = getConnection(mode, props);
-
-//        System.out.println(connection);
         return connection;
     }
 
