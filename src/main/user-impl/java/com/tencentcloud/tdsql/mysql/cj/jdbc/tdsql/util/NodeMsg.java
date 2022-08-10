@@ -11,7 +11,7 @@ import java.util.Objects;
  *
  * @author gyokumeixie@tencent.com
  */
-public class NodeMsg {
+public class NodeMsg implements Cloneable{
     private Long count;
     private Boolean isMaster;
     public NodeMsg(){
@@ -28,6 +28,12 @@ public class NodeMsg {
     }
     public Boolean getIsMaster(){
         return isMaster;
+    }
+
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        NodeMsg nodeMsg = new NodeMsg(count, isMaster);
+        return nodeMsg;
     }
 
     @Override

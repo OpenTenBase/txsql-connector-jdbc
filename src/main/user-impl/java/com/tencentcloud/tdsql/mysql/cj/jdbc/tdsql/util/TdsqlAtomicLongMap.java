@@ -1,6 +1,10 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util;
 
-import com.google.gson.Gson;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectLoggerFactory;
+
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
@@ -104,10 +108,17 @@ public final class TdsqlAtomicLongMap<K> implements Serializable {
     public NodeMsg getAndUpdate(K key, NodeMsg nodeMsg ,LongUnaryOperator updaterFunction) {
         checkNotNull(updaterFunction);
         AtomicLong holder = new AtomicLong();
-        //此处需要深拷贝，不然在最后返回旧值的时候会覆盖新值。利用第三方库，序列化的形式进行深拷贝
         NodeMsg temNodeMsg = map.getOrDefault(key, null);
-        Gson gson = new Gson();
-        NodeMsg oldNodeMsg = gson.fromJson(gson.toJson(temNodeMsg), NodeMsg.class);
+        NodeMsg oldNodeMsg = null;
+        if (temNodeMsg != null){
+            try {
+                oldNodeMsg = (NodeMsg) temNodeMsg.clone();
+            } catch (CloneNotSupportedException e) {
+                String errMessage = "Object NodeMsg copy failed!";
+                TdsqlLoggerFactory.logError(errMessage, e);
+            }
+        }
+
         map.compute(
                 key,
                 (k, value) -> {

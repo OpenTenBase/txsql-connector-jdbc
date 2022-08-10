@@ -2,6 +2,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.listener;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetUtil;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode;
@@ -58,20 +59,17 @@ public class TdsqlScheduleTdsqlCacheListener extends AbstractTdsqlCacheListener 
     @SuppressWarnings("unchecked")
     @Override
     public void handleSlave(List<TdsqlDataSetInfo> offLines, List<TdsqlDataSetInfo> onLines) {
-        if (TdsqlDirectReadWriteMode.RO.equals(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode))) {
-            for (TdsqlDataSetInfo slave : onLines) {
-                TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(slave, connectionUrl);
-                if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
-                    scheduleQueue.put(tdsqlHostInfo, new NodeMsg(0L, false));
-                }
-            }
-            for (TdsqlDataSetInfo oldSlave : offLines) {
-                TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(oldSlave, connectionUrl);
-                if (scheduleQueue.containsKey(tdsqlHostInfo)) {
-                    scheduleQueue.remove(tdsqlHostInfo);
-                }
+        for (TdsqlDataSetInfo slave : onLines) {
+            TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(slave, connectionUrl);
+            if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
+                scheduleQueue.put(tdsqlHostInfo, new NodeMsg(0L, false));
             }
         }
-
+        for (TdsqlDataSetInfo oldSlave : offLines) {
+            TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(oldSlave, connectionUrl);
+            if (scheduleQueue.containsKey(tdsqlHostInfo)) {
+                scheduleQueue.remove(tdsqlHostInfo);
+            }
+        }
     }
 }
