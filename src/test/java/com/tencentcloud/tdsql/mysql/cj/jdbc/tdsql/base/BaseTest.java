@@ -23,13 +23,13 @@ public abstract class BaseTest {
      */
     protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
     protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
-            + "9.30.1.231:15005,"
+            + "9.30.1.231:15006,"
             + "/mysql?useSSL=false&tdsqlReadWriteMode=rw&tdsqlLoadBalanceStrategy=Lc";
     protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
-            + "9.30.1.231:15005,"
+            + "9.30.1.231:15006,"
             + "/mysql?useSSL=false&tdsqlReadWriteMode=ro&tdsqlLoadBalanceStrategy=Lc&tdsqlDirectMasterCarryOptOfReadOnlyMode=true";
     protected static final String USER = "tdsqlsys_normal";
-    protected static final String PASS = "@yBeLM6Njvwcm661Cfs";
+    protected static final String PASS = "5R77aqf9kSk8HnN%R";
 
     @BeforeEach
     public void setUp(TestInfo testInfo) throws Exception {
@@ -40,19 +40,6 @@ public abstract class BaseTest {
         System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
         Class.forName(DRIVER_CLASS_NAME);
-    }
-    @Test
-    public void TestConn(){
-        Connection conn = null;
-        Statement stmt = null;
-        PreparedStatement psmt = null;
-        ResultSet rs = null;
-        try {
-            conn = DriverManager.getConnection(URL_RO, USER, PASS);
-            System.out.println("get:" + conn);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
     protected Connection getConnection(TdsqlDirectReadWriteMode mode, String user) throws SQLException {
