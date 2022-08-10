@@ -6,9 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Properties;
 
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RO;
@@ -42,6 +40,19 @@ public abstract class BaseTest {
         System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
         Class.forName(DRIVER_CLASS_NAME);
+    }
+    @Test
+    public void TestConn(){
+        Connection conn = null;
+        Statement stmt = null;
+        PreparedStatement psmt = null;
+        ResultSet rs = null;
+        try {
+            conn = DriverManager.getConnection(URL_RO, USER, PASS);
+            System.out.println("get:" + conn);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     protected Connection getConnection(TdsqlDirectReadWriteMode mode, String user) throws SQLException {
