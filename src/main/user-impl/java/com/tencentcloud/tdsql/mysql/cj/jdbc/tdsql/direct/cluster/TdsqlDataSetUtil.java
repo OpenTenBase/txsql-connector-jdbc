@@ -134,9 +134,11 @@ public class TdsqlDataSetUtil {
 
     public static TdsqlHostInfo convertDataSetInfo(TdsqlDataSetInfo tdsqlDataSetInfo, ConnectionUrl connectionUrl) {
         HostInfo mainHost = connectionUrl.getMainHost();
-        return new TdsqlHostInfo(
+        TdsqlHostInfo tdsqlHostInfo = new TdsqlHostInfo(
                 new HostInfo(mainHost.getOriginalUrl(), tdsqlDataSetInfo.getIp(), Integer.parseInt(tdsqlDataSetInfo.getPort()),
                         mainHost.getUser(), mainHost.getPassword(), mainHost.getHostProperties()));
+        tdsqlHostInfo.setWeightFactor(tdsqlDataSetInfo.getWeight());
+        return tdsqlHostInfo;
     }
 
     /*public static String dataSetList2String(List<TdsqlDataSetInfo> dataSetInfos){
