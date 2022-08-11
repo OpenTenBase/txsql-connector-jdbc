@@ -44,36 +44,28 @@ import org.junit.jupiter.api.TestInfo;
 public abstract class BaseTest {
 
     protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
-//    protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
-//            + "9.30.1.210:15002,"
-//            + "9.30.1.211:15002,"
-//            + "9.30.1.225:15002,"
-//            + "9.30.1.243:15002,"
-//            + "9.30.1.249:15002"
-//            + "/mysql?useSSL=false&tdsqlReadWriteMode=rw";
-//    protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
-//            + "9.30.1.210:15002,"
-//            + "9.30.1.211:15002,"
-//            + "9.30.1.225:15002,"
-//            + "9.30.1.243:15002,"
-//            + "9.30.1.249:15002"
-//            + "/mysql?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=12.9";
-//    protected static final String USER_RW = "jdbctest";
-//    protected static final String PASS_RW = "jdbctest";
-//    protected static final String USER_RO = "test_ro";
-//    protected static final String PASS_RO = "test_ro";
-protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
-        + "9.30.1.231:15050,"
-        + "9.30.1.207:15050,"
+    /**
+     * protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
+     *     protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
+     *             + "9.30.1.231:15006,"
+     *             + "/mysql?useSSL=false&tdsqlReadWriteMode=rw&tdsqlLoadBalanceStrategy=Lc";
+     *     protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
+     *             + "9.30.1.231:15006,"
+     *             + "/mysql?useSSL=false&tdsqlReadWriteMode=ro&tdsqlLoadBalanceStrategy=Lc&tdsqlDirectMasterCarryOptOfReadOnlyMode=true";
+     *     protected static final String USER = "tdsqlsys_normal";
+     *     protected static final String PASS = "5R77aqf9kSk8HnN%R";
+     *
+     */
+    protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
+        + "9.30.1.231:15006,"
         + "/mysql?useSSL=false&tdsqlReadWriteMode=rw";
     protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
-            + "9.30.1.231:15050,"
-            + "9.30.1.207:15050,"
+            + "9.30.1.231:15006,"
             + "/mysql?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=12.9";
     protected static final String USER_RW = "tdsqlsys_normal";
     protected static final String PASS_RW = "tdsqlsys_normal";
-    protected static final String USER_RO = "gl%LDY^1&OKWkLWQP^7&";
-    protected static final String PASS_RO = "gl%LDY^1&OKWkLWQP^7&";
+    protected static final String USER_RO = "5R77aqf9kSk8HnN%R";
+    protected static final String PASS_RO = "5R77aqf9kSk8HnN%R";
 
     @BeforeEach
     public void setUp(TestInfo testInfo) throws Exception {

@@ -35,7 +35,7 @@ class TdsqlAtomicLongMapTest {
          *         }
          *     }
          */
-        HostInfo hostInfo1 = new HostInfo(null, "localhost1", 3307, "seimin", "www", null);
+        HostInfo hostInfo1 = new HostInfo(null, "localhost", 3307, "seimin", "www", null);
         HostInfo hostInfo2 = new HostInfo(null, "slave1", 3308, "seimin", "www", null);
         HostInfo hostInfo3 = new HostInfo(null, "slave2", 3308, "seimin", "www", null);
         HostInfo hostInfo4 = new HostInfo(null, "slave3", 3308, "seimin", "www", null);

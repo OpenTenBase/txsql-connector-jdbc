@@ -87,6 +87,10 @@ public final class TdsqlDirectConnectionManager {
                         if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo)){
                             scheduleQueue.remove(tdsqlHostInfo);
                             //既然节点宕机了，那么保存节点连接实例的map中的信息也要删除！
+                            List<JdbcConnection> jdbcConnections = connectionHolder.get(tdsqlHostInfo);
+                            for (JdbcConnection jdbcConnection : jdbcConnections){
+                                jdbcConnection.close();
+                            }
                             connectionHolder.remove(tdsqlHostInfo);
                         }
                     }
