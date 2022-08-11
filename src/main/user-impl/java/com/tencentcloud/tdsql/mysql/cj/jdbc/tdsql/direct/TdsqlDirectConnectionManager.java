@@ -1,8 +1,11 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct;
 
+import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
@@ -86,7 +89,7 @@ public final class TdsqlDirectConnectionManager {
                         //如果slave中没有，并且master中也没有该节点，那么就说明该从节点调度失败将其从原始调度队列中删除！
                         if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo)){
                             scheduleQueue.remove(tdsqlHostInfo);
-                            //既然节点宕机了，那么保存节点连接实例的map中的信息也要删除！
+                            //既然节点宕机了，关闭之前的连接。那么保存节点连接实例的map中的信息也要删除！
                             List<JdbcConnection> jdbcConnections = connectionHolder.get(tdsqlHostInfo);
                             for (JdbcConnection jdbcConnection : jdbcConnections){
                                 jdbcConnection.close();

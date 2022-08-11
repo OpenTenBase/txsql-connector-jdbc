@@ -39,7 +39,6 @@ public class TdsqlDirectLoadBalanceStrategyFactory{
             }
         } catch (Throwable t) {
             String errMseeage = Messages.getString("InvalidLoadBalanceStrategy", new Object[] { strategy });
-            System.out.println(errMseeage);
             TdsqlLoggerFactory.logError(errMseeage, t);
             throw SQLError.createSQLException(errMseeage, MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, null);
         }
