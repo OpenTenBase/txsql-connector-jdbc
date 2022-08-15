@@ -41,23 +41,6 @@ public final class TdsqlDirectConnectionFactory {
     public JdbcConnection createConnection(ConnectionUrl connectionUrl) throws SQLException {
         directMode = true;
         Properties props = connectionUrl.getConnectionArgumentsAsProperties();
-        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
-        ReentrantReadWriteLock refreshLock = topoServer.getRefreshLock();
-        topoServer.initialize(connectionUrl);
-
-        TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlDirectReadWriteMode());
-        List<TdsqlDataSetInfo> masters = TdsqlDataSetCache.getInstance().getMasters();
-        List<TdsqlDataSetInfo> slaves = TdsqlDataSetCache.getInstance().getSlaves();
-        if (RW.equals(readWriteMode) && masters.isEmpty()) {
-            throw new TdsqlNoBackendInstanceException("No master instance found, master size: 0");
-        }
-        if (RO.equals(readWriteMode) && slaves.isEmpty()) {
-            throw new TdsqlNoBackendInstanceException("No slave instance found");
-        }
-        TdsqlDirectLoggerFactory.logDebug(
-                "New create connection request received, now master: " + masters + ", now slaves: " + slaves);
-
-        String strategy = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(), "Sed");
         String tdsqlDirectMasterCarryOptOfReadOnlyModeStr = props.getProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode.getKeyName(), "false");
         try {
             tdsqlDirectMasterCarryOptOfReadOnlyMode = Boolean.parseBoolean(tdsqlDirectMasterCarryOptOfReadOnlyModeStr);
@@ -66,8 +49,33 @@ public final class TdsqlDirectConnectionFactory {
                     new Object[]{tdsqlDirectMasterCarryOptOfReadOnlyModeStr}) +
                     Messages.getString("ConnectionProperties.tdsqlDirectMasterCarryOptOfReadOnlyMode");
             throw SQLError.createSQLException(errMessage,
-                            MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, null);
+                    MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, null);
         }
+        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+        ReentrantReadWriteLock refreshLock = topoServer.getRefreshLock();
+        topoServer.initialize(connectionUrl);
+        TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlDirectReadWriteMode());
+        List<TdsqlDataSetInfo> masters = TdsqlDataSetCache.getInstance().getMasters();
+        List<TdsqlDataSetInfo> slaves = TdsqlDataSetCache.getInstance().getSlaves();
+
+        if (RW.equals(readWriteMode) && masters.isEmpty()) {
+            throw new TdsqlNoBackendInstanceException("No master instance found, master size: 0");
+        }
+        if (RO.equals(readWriteMode) && slaves.isEmpty()) {
+            if (tdsqlDirectMasterCarryOptOfReadOnlyMode){
+                if (masters.isEmpty()){
+                    throw new TdsqlNoBackendInstanceException("In ReadOnly mode, No slave and master instance found");
+                }
+            }else {
+                throw new TdsqlNoBackendInstanceException("No slave instance found");
+            }
+
+        }
+        TdsqlDirectLoggerFactory.logDebug(
+                "New create connection request received, now master: " + masters + ", now slaves: " + slaves);
+
+        String strategy = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(), "Sed");
+
 
         refreshLock.readLock().lock();
         this.balancer = TdsqlDirectLoadBalanceStrategyFactory.getInstance().getStrategyInstance(strategy);
