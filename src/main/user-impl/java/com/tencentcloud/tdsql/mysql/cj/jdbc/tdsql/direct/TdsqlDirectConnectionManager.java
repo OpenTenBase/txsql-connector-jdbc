@@ -11,10 +11,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.*;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -79,17 +76,17 @@ public final class TdsqlDirectConnectionManager {
             //是否有必要将scheduleQueue中调度不了的从库移除
             //此时connection为空，说明从库连接建立失败，并且如果允许主库承接只读流量，那么建立主库连接
             if (connection == null){
+                //如果slave中没有，并且master中也没有该节点，那么就说明该从节点调度失败将其从原始调度队列中删除！
+                for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfoList){
+                    if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo)){
+                        scheduleQueue.remove(tdsqlHostInfo);
+                        //既然节点宕机了。那么保存节点连接实例的map中的信息也要删除！
+                        connectionHolder.remove(tdsqlHostInfo);
+                    }
+                }
                 if (tdsqlDirectMasterCarryOptOfReadOnlyMode){
                     connection = pickConnection(scheduleQueueMaster, balancer);
                 } else {
-                    for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfoList){
-                        //如果slave中没有，并且master中也没有该节点，那么就说明该从节点调度失败将其从原始调度队列中删除！
-                        if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo)){
-                            scheduleQueue.remove(tdsqlHostInfo);
-                            //既然节点宕机了。那么保存节点连接实例的map中的信息也要删除！
-                            connectionHolder.remove(tdsqlHostInfo);
-                        }
-                    }
                     throw new SQLException("there is no slave available");
                 }
             }
@@ -120,22 +117,24 @@ public final class TdsqlDirectConnectionManager {
         boolean getConnection = false;
         //进行failover操作, attemps 参数代表最多循环遍历scheduleQueueSlave的次数
         int attemps = 0;
+        List<TdsqlHostInfo> scheduleQueueSlaveKeys = Collections.unmodifiableList(
+                new ArrayList<>(scheduleQueue.asMap().keySet()));
         do {
             //因为在调度失败之后，会将节点从调度队列中删除，所以在每一次列表调度全部失败之后、下一次列表调度之前，要将列表中的节点恢复
             if (scheduleQueueSlave.isEmpty()){
-                for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfoList){
-                    if (!scheduleQueue.get(tdsqlHostInfo).getIsMaster()){
-                        scheduleQueueSlave.put(tdsqlHostInfo, scheduleQueue.get(tdsqlHostInfo));
-                    }
+                for (TdsqlHostInfo tdsqlHostInfo: scheduleQueueSlaveKeys){
+                    scheduleQueueSlave.put(tdsqlHostInfo, scheduleQueue.get(tdsqlHostInfo));
                 }
             }
-            //此步骤将从库尝试一遍，
+            //此步骤将从库尝试一遍
             try {
                 connection = pickConnection(scheduleQueueSlave, balancer);
                 if (connection != null){
                     TdsqlLoggerFactory.logInfo("Create connection success [" + currentTdsqlHostInfo.getHostPortPair() + "], return it.");
                     getConnection = true;
                 }else{
+                    //此时为空，说明pickConnection返回的值是空，因为在函数入口就判断了scheduleQueueSlave，所以此时scheduleQueueSlave不为空，但是选不到节点，
+                    //那就说明在使用Sed算法的时候，所有权重为0节点无法被调度
                     attemps ++;
                 }
             }catch (SQLException e){
@@ -191,10 +190,10 @@ public final class TdsqlDirectConnectionManager {
      */
     public JdbcConnection pickConnection(TdsqlAtomicLongMap scheduleQueue, TdsqlLoadBalanceStrategy balancer) throws SQLException {
         TdsqlHostInfo tdsqlHostInfo = balancer.choice(scheduleQueue);
-        if (tdsqlHostInfo == null){
+        currentTdsqlHostInfo = tdsqlHostInfo;
+        if (currentTdsqlHostInfo == null){
             return null;
         }
-        currentTdsqlHostInfo = tdsqlHostInfo;
         JdbcConnection connection = ConnectionImpl.getInstance(tdsqlHostInfo);
         return connection;
     }

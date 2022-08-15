@@ -7,6 +7,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlDire
 import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
+import java.util.Set;
 
 
 class TdsqlAtomicLongMapTest {
@@ -38,11 +39,21 @@ class TdsqlAtomicLongMapTest {
         map.put(tdsqlHostInfo5, new NodeMsg(4L, false));
         map.put(tdsqlHostInfo6, new NodeMsg(4L, false));
         System.out.println(map.get(tdsqlHostInfo1).getCount());
-        TdsqlDirectLoadBalanceStrategyFactory instance = TdsqlDirectLoadBalanceStrategyFactory.getInstance();
-        TdsqlLoadBalanceStrategy lc = instance.getStrategyInstance("Sed");
-        TdsqlHostInfo choice = lc.choice(map);
-        System.out.println(choice.getHost());
-        System.out.println("null:" + map.remove(tdsqlHostInfo6));
+//        TdsqlDirectLoadBalanceStrategyFactory instance = TdsqlDirectLoadBalanceStrategyFactory.getInstance();
+//        TdsqlLoadBalanceStrategy lc = instance.getStrategyInstance("Sed");
+//        TdsqlHostInfo choice = lc.choice(map);
+//        System.out.println(choice.getHost());
+//        System.out.println("null:" + map.remove(tdsqlHostInfo6));
+        Set<TdsqlHostInfo> tdsqlHostInfos = map.asMap().keySet();
+        TdsqlAtomicLongMap temMap = TdsqlAtomicLongMap.create();
+        for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfos){
+            temMap.put(tdsqlHostInfo, map.get(tdsqlHostInfo));
+        }
+        for (TdsqlHostInfo tdsqlHostInfo : tdsqlHostInfos){
+            map.remove(tdsqlHostInfo);
+        }
+        System.out.println(map.isEmpty());
+        System.out.println(temMap.isEmpty());
 
     }
 
