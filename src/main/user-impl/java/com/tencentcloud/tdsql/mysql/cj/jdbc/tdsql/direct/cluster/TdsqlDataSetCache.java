@@ -160,6 +160,13 @@ public class TdsqlDataSetCache {
                 }
                 TdsqlDirectLoggerFactory.logDebug("After update, slaves is: " + this.slaves);
             }
+            if (TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(tdsqlDirectReadWriteMode) && newSlaves.isEmpty() && this.slaves.isEmpty()){
+                TdsqlDirectLoggerFactory.logDebug(
+                        "DataSet slave is null! but in ReadOnly mode, So NOOP!" );
+                if (!slaveCached) {
+                    slaveCached = true;
+                }
+            }
         } finally {
             topoServer.getRefreshLock().writeLock().unlock();
         }

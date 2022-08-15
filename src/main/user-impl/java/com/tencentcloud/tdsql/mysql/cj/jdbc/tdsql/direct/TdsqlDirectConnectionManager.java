@@ -1,11 +1,8 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct;
 
-import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
@@ -42,7 +39,7 @@ public final class TdsqlDirectConnectionManager {
     private final ConcurrentHashMap<TdsqlHostInfo, List<JdbcConnection>> connectionHolder = new ConcurrentHashMap<>();
     private ThreadPoolExecutor recycler;
     private TdsqlHostInfo currentTdsqlHostInfo;
-    private final int retriesAllDown = 10;
+    private final int retriesAllDown = 5;
     private boolean tdsqlDirectMasterCarryOptOfReadOnlyMode = false;
 
     private TdsqlDirectConnectionManager() {
@@ -116,6 +113,9 @@ public final class TdsqlDirectConnectionManager {
      */
     public JdbcConnection failover(TdsqlAtomicLongMap scheduleQueue, TdsqlAtomicLongMap scheduleQueueSlave,
                                    TdsqlLoadBalanceStrategy balancer, List<TdsqlHostInfo> tdsqlHostInfoList){
+        if (scheduleQueueSlave.isEmpty()){
+            return null;
+        }
         JdbcConnection connection = null;
         boolean getConnection = false;
         //进行failover操作, attemps 参数代表最多循环遍历scheduleQueueSlave的次数
@@ -132,8 +132,12 @@ public final class TdsqlDirectConnectionManager {
             //此步骤将从库尝试一遍，
             try {
                 connection = pickConnection(scheduleQueueSlave, balancer);
-                TdsqlLoggerFactory.logInfo("Create connection success [" + currentTdsqlHostInfo.getHostPortPair() + "], return it.");
-                getConnection = true;
+                if (connection != null){
+                    TdsqlLoggerFactory.logInfo("Create connection success [" + currentTdsqlHostInfo.getHostPortPair() + "], return it.");
+                    getConnection = true;
+                }else{
+                    attemps ++;
+                }
             }catch (SQLException e){
                 if (shouldExceptionTriggerConnectionSwitch(e)){
                     //此步骤需要进行异常处理，即从库连接建立失败之后，需要将该从库从调度队列中移除,从库全部失败调度主库
@@ -179,7 +183,7 @@ public final class TdsqlDirectConnectionManager {
         return false;
     }
     /**
-     * 该方法进行正常的连接建立
+     * 该方法进行正常的连接建立，当使用sed并且节权值为0，那么就会选不到节点！
      * @param scheduleQueue
      * @param balancer
      * @return
@@ -187,6 +191,9 @@ public final class TdsqlDirectConnectionManager {
      */
     public JdbcConnection pickConnection(TdsqlAtomicLongMap scheduleQueue, TdsqlLoadBalanceStrategy balancer) throws SQLException {
         TdsqlHostInfo tdsqlHostInfo = balancer.choice(scheduleQueue);
+        if (tdsqlHostInfo == null){
+            return null;
+        }
         currentTdsqlHostInfo = tdsqlHostInfo;
         JdbcConnection connection = ConnectionImpl.getInstance(tdsqlHostInfo);
         return connection;
