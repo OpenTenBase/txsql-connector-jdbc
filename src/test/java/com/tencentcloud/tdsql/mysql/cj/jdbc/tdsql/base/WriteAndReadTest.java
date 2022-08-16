@@ -17,50 +17,50 @@ public class WriteAndReadTest extends BaseTest{
     @Test
     @Order(1)
     public void testDropDatabase() {
-        assertDoesNotThrow(() -> INSTANCE.dropDatabase(RW, URL_RW));
+        assertDoesNotThrow(() -> INSTANCE.dropDatabase(RW, URL_RO));
     }
 
     @Test
     @Order(2)
     public void testCreateDatabase() {
-        assertDoesNotThrow(() -> INSTANCE.createDatabase(RW, URL_RW));
+        assertDoesNotThrow(() -> INSTANCE.createDatabase(RW, URL_RO));
     }
 
     @Test
     @Order(3)
     public void testDropTable() {
-        assertDoesNotThrow(() -> INSTANCE.dropTable(RW, URL_RW));
+        assertDoesNotThrow(() -> INSTANCE.dropTable(RW, URL_RO));
     }
 
     @Test
     @Order(4)
     public void testCreateTable() {
-        assertDoesNotThrow(() -> INSTANCE.createTable(RW, URL_RW));
+        assertDoesNotThrow(() -> INSTANCE.createTable(RW, URL_RO));
     }
 
     @Test
     @Order(5)
     public void testInsert() {
-        assertThrows(CJException.class, () -> INSTANCE.insert(RW, URL_RW),
+        assertThrows(CJException.class, () -> INSTANCE.insert(RW, URL_RO),
                 "INSERT command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
     }
 
     @Test
     @Order(6)
     public void testUpdate() {
-        assertThrows(CJException.class, () -> INSTANCE.update(RW, URL_RW),
+        assertThrows(CJException.class, () -> INSTANCE.update(RW, URL_RO),
                 "UPDATE command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
     }
     @Test
     @Order(7)
     public void testSelect() {
-        assertDoesNotThrow(() -> INSTANCE.select(RO, URL_RW));
+        assertDoesNotThrow(() -> INSTANCE.select(RO, URL_RO));
     }
 
     @Test
     @Order(8)
     public void testDelete() {
-        assertThrows(CJException.class, () -> INSTANCE.delete(RW, URL_RW),
+        assertThrows(CJException.class, () -> INSTANCE.delete(RW, URL_RO),
                 "DELETE command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
     }
 

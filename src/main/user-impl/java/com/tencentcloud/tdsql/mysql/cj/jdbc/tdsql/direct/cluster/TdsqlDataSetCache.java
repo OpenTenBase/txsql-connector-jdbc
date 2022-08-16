@@ -3,12 +3,16 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RO;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RW;
 
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectTopoServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlWaitUtil;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -144,8 +148,19 @@ public class TdsqlDataSetCache {
             }
 
             Integer tdsqlMaxSlaveDelay = topoServer.getTdsqlDirectMaxSlaveDelaySeconds();
+            //获取全局阻塞队列，将不能被调度的节点加进去！
+            Map<TdsqlHostInfo, Long> globalBlocklist = TdsqlDirectConnectionFactory.getGlobalBlocklist();
+            ConnectionUrl connectionUrl = topoServer.getConnectionUrl();
             if (tdsqlMaxSlaveDelay > 0) {
                 newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= tdsqlMaxSlaveDelay);
+                for (TdsqlDataSetInfo newMaster : newSlaves){
+                    if (newMaster.getDelay() >= tdsqlMaxSlaveDelay){
+                        TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(newMaster, connectionUrl);
+                        synchronized (globalBlocklist){
+                            globalBlocklist.put(tdsqlHostInfo, System.currentTimeMillis() + 5000L);
+                        }
+                    }
+                }
             }
             if (!newSlaves.equals(this.slaves)) {
                 TdsqlDirectLoggerFactory.logDebug(

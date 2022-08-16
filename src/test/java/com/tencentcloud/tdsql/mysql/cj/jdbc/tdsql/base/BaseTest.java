@@ -22,12 +22,11 @@ public abstract class BaseTest {
      *     private static final String PASSWORD = "Mkhdb*8532XucF";
      */
     protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
-    protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
-            + "9.30.1.231:15006,"
-            + "/mysql?useSSL=false&tdsqlDirectReadWriteMode=ro&tdsqlLoadBalanceStrategy=Sed";
     protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
             + "9.30.1.231:15006,"
-            + "/mysql?useSSL=false&tdsqlDirectReadWriteMode=ro&tdsqlLoadBalanceStrategy=Sed&tdsqlDirectMasterCarryOptOfReadOnlyMode=true";
+            + "/mysql?useSSL=false&tdsqlDirectReadWriteMode=ro&tdsqlLoadBalanceStrategy=Sed" +
+            "&tdsqlDirectMasterCarryOptOfReadOnlyMode=truetdsqlDirectMaxSlaveDelaySeconds=100" +
+            "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1";
     protected static final String USER = "tdsqlsys_normal";
     protected static final String PASS = "5R77aqf9kSk8HnN%R";
 

@@ -24,7 +24,7 @@ class TdsqlDirectLoadBalanceStrategyFactoryTest {
             TdsqlDirectLoadBalanceStrategyFactory instance = TdsqlDirectLoadBalanceStrategyFactory.getInstance();
             TdsqlLoadBalanceStrategy lc = null;
             try {
-                lc = instance.getStrategyInstance("22222Lc");
+                lc = instance.getStrategyInstance("Lc");
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -38,7 +38,7 @@ class TdsqlDirectLoadBalanceStrategyFactoryTest {
             TdsqlDirectLoadBalanceStrategyFactory instance = TdsqlDirectLoadBalanceStrategyFactory.getInstance();
             TdsqlLoadBalanceStrategy lc = null;
             try {
-                lc = instance.getStrategyInstance("Se222d");
+                lc = instance.getStrategyInstance("Sed");
             } catch (SQLException e) {
                 e.printStackTrace();
             }

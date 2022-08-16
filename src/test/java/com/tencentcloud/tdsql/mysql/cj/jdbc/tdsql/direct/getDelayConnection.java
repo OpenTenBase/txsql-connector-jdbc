@@ -12,7 +12,7 @@ public class getDelayConnection {
             "/test?useLocalSessionStates=true&useUnicode=true&" +
             "characterEncoding=utf-8&serverTimezone=Asia/Shanghai&tdsqlDirectReadWriteMode=ro&" +
             "tdsqlDirectMaxSlaveDelaySeconds=100&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&" +
-            "tdsqlDirectCloseConnTimeoutMillis=500&tdsqlDirectMasterCarryOptOfReadOnlyMode=true";
+            "tdsqlDirectCloseConnTimeoutMillis=500&tdsqlDirectMasterCarryOptOfReadOnlyMode=true&tdsqlLoadBalanceStrategy=Sed";
     protected static final String USER = "tdsqlsys_normal";
     protected static final String PASS = "5R77aqf9kSk8HnN%R";
     public static final String DROP_DATABASE_IF_EXISTS = "DROP DATABASE IF EXISTS `jdbc_direct_db`";

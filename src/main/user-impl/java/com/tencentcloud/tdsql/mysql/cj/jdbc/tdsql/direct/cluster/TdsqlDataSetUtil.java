@@ -137,7 +137,10 @@ public class TdsqlDataSetUtil {
         TdsqlHostInfo tdsqlHostInfo = new TdsqlHostInfo(
                 new HostInfo(mainHost.getOriginalUrl(), tdsqlDataSetInfo.getIp(), Integer.parseInt(tdsqlDataSetInfo.getPort()),
                         mainHost.getUser(), mainHost.getPassword(), mainHost.getHostProperties()));
+        //暂时通过set的方式进行属性赋值，后续优化
         tdsqlHostInfo.setWeightFactor(tdsqlDataSetInfo.getWeight());
+        tdsqlHostInfo.setAlive(tdsqlDataSetInfo.getAlive());
+        tdsqlHostInfo.setDelay(tdsqlDataSetInfo.getDelay());
         return tdsqlHostInfo;
     }
 

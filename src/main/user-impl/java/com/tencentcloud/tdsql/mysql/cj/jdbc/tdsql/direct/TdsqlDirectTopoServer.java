@@ -257,6 +257,10 @@ public final class TdsqlDirectTopoServer {
                 TimeUnit.MILLISECONDS);
     }
 
+    public ConnectionUrl getConnectionUrl(){
+        return this.connectionUrl;
+    }
+
     public String getTdsqlDirectReadWriteMode() {
         return tdsqlDirectReadWriteMode;
     }

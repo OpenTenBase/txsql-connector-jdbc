@@ -19,6 +19,8 @@ public final class TdsqlHostInfo extends HostInfo {
     private final String database;
     private final Map<String, String> hostProperties;
     private int weightFactor;
+    private boolean alive;
+    private Long delay;
 
     public TdsqlHostInfo(HostInfo hostInfo) {
         super(hostInfo.getOriginalUrl(), hostInfo.getHost(), hostInfo.getPort(), hostInfo.getUser(),
@@ -45,6 +47,22 @@ public final class TdsqlHostInfo extends HostInfo {
 
     public void setWeightFactor(int weightFactor) {
         this.weightFactor = weightFactor;
+    }
+
+    public void setAlive(boolean alive){
+        this.alive = alive;
+    }
+
+    public void setDelay(Long delay){
+        this.delay = delay;
+    }
+
+    public Long getDelay(){
+        return this.delay;
+    }
+
+    public boolean getAlive(){
+        return this.alive;
     }
 
     @Override
