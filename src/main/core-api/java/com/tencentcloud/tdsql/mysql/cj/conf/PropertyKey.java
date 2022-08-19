@@ -293,7 +293,11 @@ public enum PropertyKey {
     tdsqlDirectTopoRefreshConnTimeoutMillis("tdsqlDirectTopoRefreshConnTimeoutMillis", true),
     tdsqlDirectTopoRefreshStmtTimeoutSeconds("tdsqlDirectTopoRefreshStmtTimeoutSeconds", true),
     tdsqlDirectCloseConnTimeoutMillis("tdsqlDirectCloseConnTimeoutMillis", true),
-    tdsqlDirectMasterCarryOptOfReadOnlyMode("tdsqlDirectMasterCarryOptOfReadOnlyMode", true)
+    tdsqlDirectMasterCarryOptOfReadOnlyMode("tdsqlDirectMasterCarryOptOfReadOnlyMode", true),
+    tdsqlDirectHeartbeatMonitorEnable("tdsqlDirectHeartbeatMonitorEnable", true),
+    tdsqlDirectHeartbeatIntervalTimeMillis("tdsqlDirectHeartbeatIntervalTimeMillis", true),
+    tdsqlDirectHeartbeatMaxErrorRetries("tdsqlDirectHeartbeatMaxErrorRetries", true),
+    tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis("tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis", true),
     ;
 
     private String keyName;

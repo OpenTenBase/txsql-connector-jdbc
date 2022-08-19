@@ -12,11 +12,9 @@ import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetCache;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.exception.TdsqlNoBackendInstanceException;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlDirectLoadBalanceStrategyFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
 import java.sql.SQLException;
 import java.util.*;
@@ -31,9 +29,7 @@ public final class TdsqlDirectConnectionFactory {
 
     public static boolean directMode = false;
     public static boolean allSlaveCrash = false;
-    private TdsqlLoadBalanceStrategy balancer;
     private boolean tdsqlDirectMasterCarryOptOfReadOnlyMode = false;
-    private static Map<TdsqlHostInfo, Long> globalBlocklist = new HashMap<>();
 
     private TdsqlDirectConnectionFactory() {
     }
@@ -74,17 +70,12 @@ public final class TdsqlDirectConnectionFactory {
         TdsqlDirectLoggerFactory.logDebug(
                 "New create connection request received, now master: " + masters + ", now slaves: " + slaves);
 
-        String strategy = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(), "Sed");
-
-
         refreshLock.readLock().lock();
-        this.balancer = TdsqlDirectLoadBalanceStrategyFactory.getInstance().getStrategyInstance(strategy);
-
         JdbcConnection newConnection;
         //此时已经得到了负载均衡实例
         try {
             newConnection = TdsqlDirectConnectionManager.getInstance()
-                    .createNewConnection(this.balancer, tdsqlDirectMasterCarryOptOfReadOnlyMode);
+                    .createNewConnection(props, tdsqlDirectMasterCarryOptOfReadOnlyMode);
         } finally {
             refreshLock.readLock().unlock();
         }
@@ -99,25 +90,6 @@ public final class TdsqlDirectConnectionFactory {
         if (scheduleQueue.containsKey(tdsqlHostInfo)) {
             scheduleQueue.decrementAndGet(tdsqlHostInfo);
         }
-    }
-    public synchronized static Map<TdsqlHostInfo, Long> getGlobalBlocklist(){
-        Set<TdsqlHostInfo> keys = globalBlocklist.keySet();
-        Iterator i = keys.iterator();
-        //根据超时来判断是否移出阻塞队列，当超时时间<当前时间，则表示进行检测
-        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
-        while(i.hasNext()) {
-            TdsqlHostInfo tdsqlHostInfo = (TdsqlHostInfo)i.next();
-            Long timeout = globalBlocklist.get(tdsqlHostInfo);
-            //在一段时间之后，进行宕机节点的移除移除条件是节点存活并且延迟小于url中设定的延迟
-            if (timeout != null && timeout < System.currentTimeMillis()
-                    && tdsqlHostInfo.getDelay() < topoServer.getTdsqlDirectMaxSlaveDelaySeconds() && tdsqlHostInfo.getAlive()) {
-                //如果存活，并且延迟小于设定的延迟
-                synchronized(globalBlocklist) {
-                    i.remove();
-                }
-            }
-        }
-        return globalBlocklist;
     }
 
     public static TdsqlDirectConnectionFactory getInstance() {

@@ -1,10 +1,11 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.listener;
 
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.*;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectFailoverOperator;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectLoggerFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectMasterSlaveSwitchMode;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetUtil;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -45,6 +46,16 @@ public class TdsqlFailoverTdsqlCacheListener extends AbstractTdsqlCacheListener 
                     .collect(Collectors.toList());
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_OFFLINE, toCloseList);
+            {   //在关闭该节点时，将节点加入到阻塞队列！
+                TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+                ConnectionUrl connectionUrl = topoServer.getConnectionUrl();
+                for (TdsqlDataSetInfo tdsqlDataSetInfo : offLines){
+                    TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(tdsqlDataSetInfo, connectionUrl);
+                    TdsqlDirectBlacklistHolder.getInstance().addBlacklist(tdsqlHostInfo);
+                }
+
+            }
+
         }
         if (!onLines.isEmpty()) {
             TdsqlDirectLoggerFactory.logDebug("Online slaves: " + onLines);

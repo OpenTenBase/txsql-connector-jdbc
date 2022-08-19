@@ -5,6 +5,7 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst
 
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectBlacklistHolder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectTopoServer;
@@ -148,18 +149,13 @@ public class TdsqlDataSetCache {
             }
 
             Integer tdsqlMaxSlaveDelay = topoServer.getTdsqlDirectMaxSlaveDelaySeconds();
-            //获取全局阻塞队列，将不能被调度的节点加进去！
-            Map<TdsqlHostInfo, Long> globalBlocklist = TdsqlDirectConnectionFactory.getGlobalBlocklist();
             ConnectionUrl connectionUrl = topoServer.getConnectionUrl();
-            if (tdsqlMaxSlaveDelay > 0) {
-                newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= tdsqlMaxSlaveDelay);
-                for (TdsqlDataSetInfo newMaster : newSlaves){
-                    if (newMaster.getDelay() >= tdsqlMaxSlaveDelay){
-                        TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(newMaster, connectionUrl);
-                        synchronized (globalBlocklist){
-                            globalBlocklist.put(tdsqlHostInfo, System.currentTimeMillis() + 5000L);
-                        }
-                    }
+            //如果设置了从库最大延迟并且数据库实延迟大于这个设定的延迟 或者 没有设定但是延迟大于10秒，我们都将这个节点认为不可调
+            for (TdsqlDataSetInfo newSlave : newSlaves){
+                if ((tdsqlMaxSlaveDelay > 0 && newSlave.getDelay() >= tdsqlMaxSlaveDelay) || newSlave.getDelay() > 100000){
+                    newSlaves.remove(newSlave);
+                    TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(newSlave, connectionUrl);
+                    TdsqlDirectBlacklistHolder.getInstance().addBlacklist(tdsqlHostInfo);
                 }
             }
             if (!newSlaves.equals(this.slaves)) {

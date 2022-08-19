@@ -18,4 +18,11 @@ public final class TdsqlDirectConst {
     public static final String TDSQL_DIRECT_TOPO_COLUMN_CLUSTER_NAME = "cluster_name";
     public static final String TDSQL_DIRECT_TOPO_COLUMN_MASTER_IP = "master_ip";
     public static final String TDSQL_DIRECT_TOPO_COLUMN_SLAVE_IP_LIST = "slave_iplist";
+
+    public static final Boolean TDSQL_DIRECT_HEARTBEAT_MONITOR_ENABLE = false;
+    public static final Integer TDSQL_DIRECT_HEARTBEAT_INTERVAL_TIME_MILLIS = 3000;
+    public static final Integer TDSQL_DIRECT_HEARTBEAT_MAX_ERROR_RETRIES = 1;
+    public static final Integer TDSQL_DIRECT_HEARTBEAT_ERROR_RETRY_INTERVAL_TIME_MILLIS = 5000;
+    public static final String TDSQL_DIRECT_HEARTBEAT_MONITOR_ENABLE_TRUE = "true";
+    public static final String TDSQL_DIRECT_HEARTBEAT_MONITOR_ENABLE_FALSE = "false";
 }
