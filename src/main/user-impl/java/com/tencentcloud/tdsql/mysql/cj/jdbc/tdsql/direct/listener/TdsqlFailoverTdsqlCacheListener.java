@@ -46,15 +46,6 @@ public class TdsqlFailoverTdsqlCacheListener extends AbstractTdsqlCacheListener 
                     .collect(Collectors.toList());
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_OFFLINE, toCloseList);
-            {   //在关闭该节点时，将节点加入到阻塞队列！
-                TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
-                ConnectionUrl connectionUrl = topoServer.getConnectionUrl();
-                for (TdsqlDataSetInfo tdsqlDataSetInfo : offLines){
-                    TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(tdsqlDataSetInfo, connectionUrl);
-                    TdsqlDirectBlacklistHolder.getInstance().addBlacklist(tdsqlHostInfo);
-                }
-
-            }
 
         }
         if (!onLines.isEmpty()) {

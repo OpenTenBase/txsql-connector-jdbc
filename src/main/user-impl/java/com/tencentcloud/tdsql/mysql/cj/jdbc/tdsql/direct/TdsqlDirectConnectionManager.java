@@ -1,6 +1,5 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct;
 
-import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
@@ -12,17 +11,13 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceBlacklistHolder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlDirectLoadBalanceStrategyFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.*;
-
 import java.sql.SQLException;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.*;
 import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
-
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.*;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RW;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.convert;
 
@@ -38,7 +33,6 @@ public final class TdsqlDirectConnectionManager {
     private ThreadPoolExecutor recycler;
     private TdsqlHostInfo currentTdsqlHostInfo;
     private TdsqlLoadBalanceStrategy balancer;
-    private TdsqlDirectHeartbeatAttributes tdsqlDirectHeartbeatAttributes;
     private final int retriesAllDown = 5;
     private boolean tdsqlDirectMasterCarryOptOfReadOnlyMode = false;
 
@@ -65,9 +59,6 @@ public final class TdsqlDirectConnectionManager {
                 new ArrayList<>(scheduleQueue.asMap().keySet()));
         //主从节点分离到对应的调度队列中
         for (TdsqlHostInfo tdsqlHostInfo : tdsqlHostInfoList){
-            if (TdsqlDirectBlacklistHolder.getInstance().containTdsqlHostInfo(tdsqlHostInfo)){
-                continue;
-            }
             NodeMsg nodeMsg = scheduleQueue.get(tdsqlHostInfo);
             if (nodeMsg.getIsMaster()){
                 scheduleQueueMaster.put(tdsqlHostInfo, nodeMsg);
@@ -75,13 +66,6 @@ public final class TdsqlDirectConnectionManager {
                 scheduleQueueSlave.put(tdsqlHostInfo, nodeMsg);
             }
         }
-        //心跳参数的初始化
-        this.tdsqlDirectHeartbeatAttributes = validateConnectionAttributes(props);
-        //如果开启心跳监测
-        if (tdsqlDirectHeartbeatAttributes.isTdsqlDirectHeartbeatMonitorEnable()){
-            TdsqlDirectHeartbeatMonitor.getInstance().initialize(scheduleQueue, tdsqlDirectHeartbeatAttributes);
-        }
-
 
         TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlDirectReadWriteMode());
         JdbcConnection connection;
@@ -98,8 +82,6 @@ public final class TdsqlDirectConnectionManager {
                     scheduleQueue.remove(tdsqlHostInfo);
                     //既然节点宕机了。那么保存节点连接实例的map中的信息也要删除！
                     connectionHolder.remove(tdsqlHostInfo);
-                    //将节点加入到阻塞队列中
-                    TdsqlDirectBlacklistHolder.getInstance().addBlacklist(tdsqlHostInfo);
                 }
             }
             //此时connection为空，说明从库连接建立失败，并且如果允许主库承接只读流量，那么建立主库连接
@@ -119,129 +101,6 @@ public final class TdsqlDirectConnectionManager {
         connectionHolder.put(currentTdsqlHostInfo, holderList);
         scheduleQueue.incrementAndGet(currentTdsqlHostInfo);
         return connection;
-    }
-
-    /**
-     * <p>心跳检测实体类初始化</p>
-     * @param props
-     */
-
-    public TdsqlDirectHeartbeatAttributes validateConnectionAttributes(Properties props) throws SQLException {
-        TdsqlDirectHeartbeatAttributes tdsqlDirectHeartbeatAttributes = new TdsqlDirectHeartbeatAttributes();
-        // 解析并校验“心跳检测开关”参数，该参数默认值fasle，代表不开启心跳检测
-        String tdsqlDirectHeartbeatMonitorStr = props.getProperty(
-                PropertyKey.tdsqlDirectHeartbeatMonitorEnable.getKeyName(),
-                String.valueOf(TDSQL_DIRECT_HEARTBEAT_MONITOR_ENABLE));
-        try {
-            if (!TDSQL_DIRECT_HEARTBEAT_MONITOR_ENABLE_TRUE.equalsIgnoreCase(tdsqlDirectHeartbeatMonitorStr)
-                    && !TDSQL_DIRECT_HEARTBEAT_MONITOR_ENABLE_FALSE.equalsIgnoreCase(
-                    tdsqlDirectHeartbeatMonitorStr)) {
-                String errMessage =
-                        Messages.getString("ConnectionProperties.badValueForTdsqlDirectHeartbeatMonitorEnable",
-                                new Object[]{tdsqlDirectHeartbeatMonitorStr}) + Messages.getString(
-                                "ConnectionProperties.tdsqlDirectHeartbeatMonitorEnable");
-                TdsqlLoggerFactory.logError(errMessage);
-                throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
-                        null);
-            }
-            boolean tdsqlDirectHeartbeatMonitor = Boolean.parseBoolean(tdsqlDirectHeartbeatMonitorStr);
-            tdsqlDirectHeartbeatAttributes.setTdsqlDirectHeartbeatMonitorEnable(tdsqlDirectHeartbeatMonitor);
-        } catch (Exception e) {
-            String errMessage =
-                    Messages.getString("ConnectionProperties.badValueForTdsqlDirectHeartbeatMonitorEnable",
-                            new Object[]{tdsqlDirectHeartbeatAttributes}) + Messages.getString(
-                            "ConnectionProperties.tdsqlDirectHeartbeatMonitorEnable");
-            TdsqlLoggerFactory.logError(errMessage, e);
-            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
-                    null);
-        }
-
-        // 解析并校验“心跳检测时间间隔”参数，该参数默认值为3000，单位为毫秒
-        // 考虑到对性能的影响，该参数被允许设置的最小值为1000
-        String tdsqlDirectHeartbeatIntervalTimeStr = props.getProperty(
-                PropertyKey.tdsqlDirectHeartbeatIntervalTimeMillis.getKeyName(),
-                String.valueOf(TDSQL_DIRECT_HEARTBEAT_INTERVAL_TIME_MILLIS));
-        try {
-            int tdsqlDirectHeartbeatIntervalTime = Integer.parseInt(tdsqlDirectHeartbeatIntervalTimeStr);
-            if (tdsqlDirectHeartbeatIntervalTime < 1000) {
-                String errMessage = Messages.getString(
-                        "ConnectionProperties.badValueForTdsqlDirectHeartbeatIntervalTimeMillis",
-                        new Object[]{tdsqlDirectHeartbeatIntervalTimeStr}) + Messages.getString(
-                        "ConnectionProperties.tdsqlDirectHeartbeatIntervalTimeMillis");
-                TdsqlLoggerFactory.logError(errMessage);
-                throw SQLError.createSQLException(errMessage,
-                        MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
-                        null);
-            }
-            tdsqlDirectHeartbeatAttributes.setTdsqlDirectHeartbeatIntervalTimeMillis(tdsqlDirectHeartbeatIntervalTime);
-        } catch (NumberFormatException e) {
-            String errMessage = Messages.getString(
-                    "ConnectionProperties.badValueForTdsqlDirectHeartbeatIntervalTimeMillis",
-                    new Object[]{tdsqlDirectHeartbeatIntervalTimeStr}) + Messages.getString(
-                    "ConnectionProperties.tdsqlDirectHeartbeatIntervalTimeMillis");
-            TdsqlLoggerFactory.logError(errMessage, e);
-            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
-                    null);
-        }
-
-        // 解析并校验“心跳检测失败的最大尝试次数”参数，该参数默认值为1次
-        String tdsqlDirectMaximumErrorRetriesStr = props.getProperty(
-                PropertyKey.tdsqlDirectHeartbeatMaxErrorRetries.getKeyName(),
-                String.valueOf(TDSQL_DIRECT_HEARTBEAT_MAX_ERROR_RETRIES));
-        try {
-            int tdsqlDirectMaximumErrorRetries = Integer.parseInt(tdsqlDirectMaximumErrorRetriesStr);
-            if (tdsqlDirectMaximumErrorRetries <= 0) {
-                String errMessage =
-                        Messages.getString("ConnectionProperties.badValueForTdsqlDirectHeartbeatMaxErrorRetries",
-                                new Object[]{tdsqlDirectMaximumErrorRetriesStr}) + Messages.getString(
-                                "ConnectionProperties.tdsqlDirectHeartbeatMaxErrorRetries");
-                TdsqlLoggerFactory.logError(errMessage);
-                throw SQLError.createSQLException(errMessage,
-                        MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
-                        null);
-            }
-            tdsqlDirectHeartbeatAttributes.setTdsqlDirectHeartbeatMaxErrorRetries(tdsqlDirectMaximumErrorRetries);
-        } catch (NumberFormatException e) {
-            String errMessage =
-                    Messages.getString("ConnectionProperties.badValueForTdsqlDirectHeartbeatMaxErrorRetries",
-                            new Object[]{tdsqlDirectMaximumErrorRetriesStr}) + Messages.getString(
-                            "ConnectionProperties.tdsqlDirectHeartbeatMaxErrorRetries");
-            TdsqlLoggerFactory.logError(errMessage, e);
-            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
-                    null);
-        }
-
-        // 解析并校验“心跳检测失败的重试间隔时间"参数，参数默认值为5000，单位为毫秒
-        String tdsqlDirectHeartbeatErrorRetryIntervalTimeMillisStr = props.getProperty(
-                PropertyKey.tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis.getKeyName(),
-                String.valueOf(TDSQL_DIRECT_HEARTBEAT_ERROR_RETRY_INTERVAL_TIME_MILLIS));
-        try {
-            int tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis = Integer.parseInt(
-                    tdsqlDirectHeartbeatErrorRetryIntervalTimeMillisStr);
-            if (tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis < 0 || (
-                    tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis > 0
-                            && tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis < 100)) {
-                String errMessage = Messages.getString(
-                        "ConnectionProperties.badValueForTdsqlDirectHeartbeatErrorRetryIntervalTimeMillis",
-                        new Object[]{tdsqlDirectHeartbeatErrorRetryIntervalTimeMillisStr}) + Messages.getString(
-                        "ConnectionProperties.tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis");
-                TdsqlLoggerFactory.logError(errMessage);
-                throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
-                        null);
-            }
-            tdsqlDirectHeartbeatAttributes.setTdsqlDirectHeartbeatErrorRetryIntervalTimeMillis(
-                    tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis);
-        } catch (NumberFormatException e) {
-            String errMessage = Messages.getString(
-                    "ConnectionProperties.badValueForTdsqlDirectHeartbeatErrorRetryIntervalTimeMillis",
-                    new Object[]{tdsqlDirectHeartbeatErrorRetryIntervalTimeMillisStr}) + Messages.getString(
-                    "ConnectionProperties.tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis");
-            TdsqlLoggerFactory.logError(errMessage, e);
-            throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
-                    null);
-        }
-
-        return tdsqlDirectHeartbeatAttributes;
     }
 
     /**
@@ -267,9 +126,7 @@ public final class TdsqlDirectConnectionManager {
             if (scheduleQueueSlave.isEmpty()){
                 for (TdsqlHostInfo tdsqlHostInfo: scheduleQueueSlaveKeys){
                     //阻塞队列中的节点中的节点不再调度，所以此时如果节点在阻塞队列那么就不参与调度。
-                    if (!TdsqlDirectBlacklistHolder.getInstance().containTdsqlHostInfo(tdsqlHostInfo)){
-                        scheduleQueueSlave.put(tdsqlHostInfo, scheduleQueue.get(tdsqlHostInfo));
-                    }
+                    scheduleQueueSlave.put(tdsqlHostInfo, scheduleQueue.get(tdsqlHostInfo));
                 }
             }
             //此步骤将从库尝试一遍
@@ -337,8 +194,7 @@ public final class TdsqlDirectConnectionManager {
         TdsqlHostInfo tdsqlHostInfo = balancer.choice(scheduleQueue);
         currentTdsqlHostInfo = tdsqlHostInfo;
         if (currentTdsqlHostInfo == null){
-            String errMessage = "Could not create connection to database server. Because all hosts in blacklist ["
-                    + TdsqlDirectBlacklistHolder.getInstance().printBlacklist() + "]";
+            String errMessage = "Could not create connection to database server. Because no hosts in scheduleQueue";
             TdsqlLoggerFactory.logFatal(errMessage);
             throw SQLError.createSQLException(errMessage,
                     MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE,
