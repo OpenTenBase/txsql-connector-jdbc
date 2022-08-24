@@ -69,6 +69,9 @@ public final class TdsqlDirectConnectionManager {
         TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlDirectReadWriteMode());
         JdbcConnection connection;
         if (RW.equals(readWriteMode) || TdsqlDirectConnectionFactory.allSlaveCrash){
+            if (!TdsqlDirectConnectionFactory.allSlaveCrash){
+                TdsqlDirectConnectionFactory.allSlaveCrash = true;
+            }
              connection = pickConnection(scheduleQueueMaster, balancer);
         }else{
             if (tdsqlDirectMasterCarryOptOfReadOnlyMode && scheduleQueueSlave.isEmpty()){
