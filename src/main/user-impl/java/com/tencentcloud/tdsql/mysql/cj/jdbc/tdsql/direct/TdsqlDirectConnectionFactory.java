@@ -29,7 +29,7 @@ public final class TdsqlDirectConnectionFactory {
 
     public static boolean directMode = false;
     public static boolean allSlaveCrash = false;
-    private boolean tdsqlDirectMasterCarryOptOfReadOnlyMode = false;
+    public static boolean tdsqlDirectMasterCarryOptOfReadOnlyMode = false;
 
     private TdsqlDirectConnectionFactory() {
     }
@@ -53,7 +53,6 @@ public final class TdsqlDirectConnectionFactory {
         TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlDirectReadWriteMode());
         List<TdsqlDataSetInfo> masters = TdsqlDataSetCache.getInstance().getMasters();
         List<TdsqlDataSetInfo> slaves = TdsqlDataSetCache.getInstance().getSlaves();
-
         if (RW.equals(readWriteMode) && masters.isEmpty()) {
             throw new TdsqlNoBackendInstanceException("No master instance found, master size: 0");
         }

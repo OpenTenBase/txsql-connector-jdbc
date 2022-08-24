@@ -66,31 +66,33 @@ public final class TdsqlDirectConnectionManager {
                 scheduleQueueSlave.put(tdsqlHostInfo, nodeMsg);
             }
         }
-
         TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlDirectReadWriteMode());
         JdbcConnection connection;
-
         if (RW.equals(readWriteMode) || TdsqlDirectConnectionFactory.allSlaveCrash){
              connection = pickConnection(scheduleQueueMaster, balancer);
         }else{
-            //先进行从库的故障转移
-            connection = failover(scheduleQueue, scheduleQueueSlave, balancer);
-            //是否有必要将scheduleQueue中调度不了的从库移除
-            //如果slave中没有，并且master中也没有该节点，那么就说明该从节点调度失败将其从原始调度队列中删除！
-            for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfoList){
-                if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo) && scheduleQueue.containsKey(tdsqlHostInfo)){
-                    scheduleQueue.remove(tdsqlHostInfo);
-                    //既然节点宕机了。那么保存节点连接实例的map中的信息也要删除！
-                    connectionHolder.remove(tdsqlHostInfo);
+            if (tdsqlDirectMasterCarryOptOfReadOnlyMode && scheduleQueueSlave.isEmpty()){
+                connection = pickConnection(scheduleQueueMaster, balancer);
+            }else {
+                //先进行从库的故障转移
+                connection = failover(scheduleQueue, scheduleQueueSlave, balancer);
+                //是否有必要将scheduleQueue中调度不了的从库移除
+                //如果slave中没有，并且master中也没有该节点，那么就说明该从节点调度失败将其从原始调度队列中删除！
+                for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfoList){
+                    if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo) && scheduleQueue.containsKey(tdsqlHostInfo)){
+                        scheduleQueue.remove(tdsqlHostInfo);
+                        //既然节点宕机了。那么保存节点连接实例的map中的信息也要删除！
+                        connectionHolder.remove(tdsqlHostInfo);
+                    }
                 }
-            }
-            //此时connection为空，说明从库连接建立失败，并且如果允许主库承接只读流量，那么建立主库连接
-            if (connection == null){
-                if (tdsqlDirectMasterCarryOptOfReadOnlyMode){
-                    connection = pickConnection(scheduleQueueMaster, balancer);
-                    TdsqlDirectConnectionFactory.allSlaveCrash = true;
-                } else {
-                    throw new SQLException("there is no slave available");
+                //此时connection为空，说明从库连接建立失败，并且如果允许主库承接只读流量，那么建立主库连接
+                if (connection == null){
+                    if (tdsqlDirectMasterCarryOptOfReadOnlyMode){
+                        connection = pickConnection(scheduleQueueMaster, balancer);
+                        TdsqlDirectConnectionFactory.allSlaveCrash = true;
+                    } else {
+                        throw new SQLException("there is no slave available");
+                    }
                 }
             }
         }
@@ -141,7 +143,8 @@ public final class TdsqlDirectConnectionManager {
                     attemps ++;
                 }
             }catch (SQLException e){
-                if (shouldExceptionTriggerConnectionSwitch(e)){
+//                if (shouldExceptionTriggerConnectionSwitch(e))
+                {
                     //此步骤需要进行异常处理，即从库连接建立失败之后，需要将该从库从调度队列中移除,从库全部失败调度主库
                     TdsqlLoggerFactory.logError(
                             "Could not create connection to database server [" + currentTdsqlHostInfo.getHostPortPair()
@@ -192,14 +195,14 @@ public final class TdsqlDirectConnectionManager {
      */
     public JdbcConnection pickConnection(TdsqlAtomicLongMap scheduleQueue, TdsqlLoadBalanceStrategy balancer) throws SQLException {
         TdsqlHostInfo tdsqlHostInfo = balancer.choice(scheduleQueue);
-        currentTdsqlHostInfo = tdsqlHostInfo;
-        if (currentTdsqlHostInfo == null){
+        if (tdsqlHostInfo == null){
             String errMessage = "Could not create connection to database server. Because no hosts in scheduleQueue";
             TdsqlLoggerFactory.logFatal(errMessage);
             throw SQLError.createSQLException(errMessage,
                     MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE,
                     null);
         }
+        currentTdsqlHostInfo = tdsqlHostInfo;
         JdbcConnection connection = ConnectionImpl.getInstance(tdsqlHostInfo);
         return connection;
     }

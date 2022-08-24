@@ -2,8 +2,12 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster;
 
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RO;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RW;
+
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectTopoServer;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.listener.TdsqlFailoverTdsqlCacheListener;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlWaitUtil;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -144,11 +148,11 @@ public class TdsqlDataSetCache {
 
             Integer tdsqlMaxSlaveDelay = topoServer.getTdsqlDirectMaxSlaveDelaySeconds();
             //如果设置了从库最大延迟并且数据库实延迟大于这个设定的延迟 或者 没有设定但是延迟大于10秒，我们都将这个节点认为不可调
-            for (TdsqlDataSetInfo newSlave : newSlaves){
-                if ((tdsqlMaxSlaveDelay > 0 && newSlave.getDelay() >= tdsqlMaxSlaveDelay) || newSlave.getDelay() > 100000){
-                    newSlaves.remove(newSlave);
-                }
+            if (tdsqlMaxSlaveDelay > 0) {
+                newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= tdsqlMaxSlaveDelay);
+
             }
+            newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= 100000);
             if (!newSlaves.equals(this.slaves)) {
                 TdsqlDirectLoggerFactory.logDebug(
                         "DataSet slave have changed, old: " + this.slaves + ", new: " + newSlaves);
@@ -174,8 +178,15 @@ public class TdsqlDataSetCache {
         }
     }
 
+
+    //
     public boolean isCached() {
-        return masterCached && slaveCached && !TdsqlDirectTopoServer.getInstance().getScheduleQueue().isEmpty();
+        if (masterCached && slaveCached){
+            return true;
+        }else if (masterCached && TdsqlDirectConnectionFactory.tdsqlDirectMasterCarryOptOfReadOnlyMode){
+            return true;
+        }
+        return false;
     }
 
     private static class SingletonInstance {

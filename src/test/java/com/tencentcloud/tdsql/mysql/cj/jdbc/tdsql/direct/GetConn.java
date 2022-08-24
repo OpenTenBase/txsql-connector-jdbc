@@ -15,7 +15,7 @@ public class GetConn extends BaseTest {
     private static final String DB_URL = "jdbc:tdsql-mysql:direct://9.30.1.207:15006,9.30.1.231:15006/test?useLocalSessionStates=true" +
             "&useUnicode=true&characterEncoding=utf-8" +
             "&serverTimezone=Asia/Shanghai&tdsqlDirectReadWriteMode=ro" +
-            "&tdsqlDirectMaxSlaveDelaySeconds=0" +
+            "&tdsqlDirectMaxSlaveDelaySeconds=100" +
             "&tdsqlDirectTopoRefreshIntervalMillis=500&tdsqlDirectTopoRefreshConnTimeoutMillis=500" +
             "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
             "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true&tdsqlLoadBalanceStrategy=Sed";
@@ -81,10 +81,10 @@ public class GetConn extends BaseTest {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                //int createcout = dataSource.getCreateTaskCount();
+//                int createcout = dataSource.getCreateTaskCount();
                 System.out.println("DruidDataSource activeCount:" + activeCount);
 //                System.out.println("DruidDataSource IdleCount:" + idlecount);
-                //System.out.println("DruidDataSource createCount:"+createcout);
+//                System.out.println("DruidDataSource createCount:"+createcout);
                 while (rs.next()) {
 //                    System.out.println("ID: " + rs.getLong(1));
                 }
@@ -96,8 +96,8 @@ public class GetConn extends BaseTest {
                 e.printStackTrace();
             }
 
-            //final long cost = System.currentTimeMillis();
-            //System.out.println("正常结束，耗时：" + cost);
+            final long cost = System.currentTimeMillis();
+//            System.out.println("正常结束，耗时：" + cost);
         }
     }
 
