@@ -28,8 +28,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public final class TdsqlDirectConnectionFactory {
 
     public static boolean directMode = false;
-    public static boolean allSlaveCrash = false;
-    public static boolean tdsqlDirectMasterCarryOptOfReadOnlyMode = false;
+    private boolean allSlaveCrash = false;
+    private boolean tdsqlDirectMasterCarryOptOfReadOnlyMode = false;
 
     private TdsqlDirectConnectionFactory() {
     }
@@ -74,7 +74,7 @@ public final class TdsqlDirectConnectionFactory {
         //此时已经得到了负载均衡实例
         try {
             newConnection = TdsqlDirectConnectionManager.getInstance()
-                    .createNewConnection(props, tdsqlDirectMasterCarryOptOfReadOnlyMode);
+                    .createNewConnection(props);
         } finally {
             refreshLock.readLock().unlock();
         }
@@ -91,12 +91,42 @@ public final class TdsqlDirectConnectionFactory {
         }
     }
 
+    public boolean isAllSlaveCrash() {
+        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+        topoServer.getRefreshLock().readLock().lock();
+        try {
+            return this.allSlaveCrash;
+        }finally {
+            topoServer.getRefreshLock().readLock().unlock();
+        }
+    }
+
+    public void setAllSlaveCrash(boolean allSlaveCrash) {
+        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+        topoServer.getRefreshLock().readLock().lock();
+        try {
+            this.allSlaveCrash = allSlaveCrash;
+        }finally {
+            topoServer.getRefreshLock().readLock().unlock();
+        }
+
+    }
+
+    public boolean isTdsqlDirectMasterCarryOptOfReadOnlyMode() {
+        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+        topoServer.getRefreshLock().readLock().lock();
+        try {
+            return this.tdsqlDirectMasterCarryOptOfReadOnlyMode;
+        }finally {
+            topoServer.getRefreshLock().readLock().unlock();
+        }
+    }
+
     public static TdsqlDirectConnectionFactory getInstance() {
         return TdsqlDirectConnectionFactory.SingletonInstance.INSTANCE;
     }
 
     private static class SingletonInstance {
-
         private static final TdsqlDirectConnectionFactory INSTANCE = new TdsqlDirectConnectionFactory();
     }
 

@@ -45,10 +45,12 @@ public final class TdsqlDirectConnectionManager {
         return SingletonInstance.INSTANCE;
     }
 
-    public synchronized JdbcConnection createNewConnection(Properties props, boolean tdsqlDirectMasterCarryOptOfReadOnlyMode) throws SQLException {
-        this.tdsqlDirectMasterCarryOptOfReadOnlyMode = tdsqlDirectMasterCarryOptOfReadOnlyMode;
+    public synchronized JdbcConnection createNewConnection(Properties props) throws SQLException {
+        TdsqlDirectConnectionFactory tdsqlDirectConnectionFactory = TdsqlDirectConnectionFactory.getInstance();
+        this.tdsqlDirectMasterCarryOptOfReadOnlyMode = tdsqlDirectConnectionFactory.isTdsqlDirectMasterCarryOptOfReadOnlyMode();
         String strategy = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(), "Sed");
         this.balancer = TdsqlDirectLoadBalanceStrategyFactory.getInstance().getStrategyInstance(strategy);
+
 
         TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
         TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = topoServer.getScheduleQueue();
@@ -68,34 +70,30 @@ public final class TdsqlDirectConnectionManager {
         }
         TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlDirectReadWriteMode());
         JdbcConnection connection;
-        if (RW.equals(readWriteMode) || TdsqlDirectConnectionFactory.allSlaveCrash){
-            if (!TdsqlDirectConnectionFactory.allSlaveCrash){
-                TdsqlDirectConnectionFactory.allSlaveCrash = true;
+        if (RW.equals(readWriteMode) || (tdsqlDirectConnectionFactory.isAllSlaveCrash() && tdsqlDirectMasterCarryOptOfReadOnlyMode)){
+            if (!tdsqlDirectConnectionFactory.isAllSlaveCrash()){
+                tdsqlDirectConnectionFactory.setAllSlaveCrash(true);
             }
              connection = pickConnection(scheduleQueueMaster, balancer);
         }else{
-            if (tdsqlDirectMasterCarryOptOfReadOnlyMode && scheduleQueueSlave.isEmpty()){
-                connection = pickConnection(scheduleQueueMaster, balancer);
-            }else {
-                //先进行从库的故障转移
-                connection = failover(scheduleQueue, scheduleQueueSlave, balancer);
-                //是否有必要将scheduleQueue中调度不了的从库移除
-                //如果slave中没有，并且master中也没有该节点，那么就说明该从节点调度失败将其从原始调度队列中删除！
-                for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfoList){
-                    if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo) && scheduleQueue.containsKey(tdsqlHostInfo)){
-                        scheduleQueue.remove(tdsqlHostInfo);
-                        //既然节点宕机了。那么保存节点连接实例的map中的信息也要删除！
-                        connectionHolder.remove(tdsqlHostInfo);
-                    }
+            //先进行从库的故障转移
+            connection = failover(scheduleQueue, scheduleQueueSlave, balancer);
+            //是否有必要将scheduleQueue中调度不了的从库移除
+            //如果slave中没有，并且master中也没有该节点，那么就说明该从节点调度失败将其从原始调度队列中删除！
+            for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfoList){
+                if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo) && scheduleQueue.containsKey(tdsqlHostInfo)){
+                    scheduleQueue.remove(tdsqlHostInfo);
+                    //既然节点宕机了。那么保存节点连接实例的map中的信息也要删除！
+                    connectionHolder.remove(tdsqlHostInfo);
                 }
-                //此时connection为空，说明从库连接建立失败，并且如果允许主库承接只读流量，那么建立主库连接
-                if (connection == null){
-                    if (tdsqlDirectMasterCarryOptOfReadOnlyMode){
-                        connection = pickConnection(scheduleQueueMaster, balancer);
-                        TdsqlDirectConnectionFactory.allSlaveCrash = true;
-                    } else {
-                        throw new SQLException("there is no slave available");
-                    }
+            }
+            //此时connection为空，说明从库连接建立失败，并且如果允许主库承接只读流量，那么建立主库连接
+            if (connection == null){
+                if (tdsqlDirectMasterCarryOptOfReadOnlyMode){
+                    tdsqlDirectConnectionFactory.setAllSlaveCrash(true);
+                    connection = pickConnection(scheduleQueueMaster, balancer);
+                } else {
+                    throw new SQLException("there is no slave available");
                 }
             }
         }
@@ -146,7 +144,7 @@ public final class TdsqlDirectConnectionManager {
                     attemps ++;
                 }
             }catch (SQLException e){
-//                if (shouldExceptionTriggerConnectionSwitch(e))
+                if (shouldExceptionTriggerConnectionSwitch(e))
                 {
                     //此步骤需要进行异常处理，即从库连接建立失败之后，需要将该从库从调度队列中移除,从库全部失败调度主库
                     TdsqlLoggerFactory.logError(

@@ -178,15 +178,20 @@ public class TdsqlDataSetCache {
         }
     }
 
-
-    //
     public boolean isCached() {
-        if (masterCached && slaveCached){
-            return true;
-        }else if (masterCached && TdsqlDirectConnectionFactory.tdsqlDirectMasterCarryOptOfReadOnlyMode){
-            return true;
+        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+        topoServer.getRefreshLock().writeLock().lock();
+        try {
+            if (masterCached && slaveCached){
+                return true;
+            }else if (masterCached && TdsqlDirectConnectionFactory.getInstance().isTdsqlDirectMasterCarryOptOfReadOnlyMode()){
+                return true;
+            }
+            return false;
+        }finally {
+            topoServer.getRefreshLock().writeLock().unlock();
         }
-        return false;
+
     }
 
     private static class SingletonInstance {
