@@ -28,10 +28,10 @@ public class TdsqlDirectLoadBalanceStrategyFactory{
     public TdsqlLoadBalanceStrategy getStrategyInstance(String strategy) throws SQLException {
         try {
             switch (strategy){
-                case "Lc":
+                case "lc":
                     this.balancer = new TdsqlLcBalanceStrategy();
                     break;
-                case "Sed":
+                case "sed":
                     this.balancer = new TdsqlSedBalanceStrategy();
                     break;
                 default:
