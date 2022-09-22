@@ -986,6 +986,15 @@ public class PropertyDefinitions {
                         Integer.MIN_VALUE,
                         0,
                         Integer.MAX_VALUE),
+
+                // Enable Query Attributes
+                new BooleanPropertyDefinition(PropertyKey.tdsqlQueryAttributesEnable,
+                        DEFAULT_VALUE_TRUE,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlQueryAttributesEnable"),
+                        "1.4.2",
+                        CATEGORY_HA,
+                        Integer.MIN_VALUE),
         };
 
         HashMap<PropertyKey, PropertyDefinition<?>> propertyKeyToPropertyDefinitionMap = new HashMap<>();

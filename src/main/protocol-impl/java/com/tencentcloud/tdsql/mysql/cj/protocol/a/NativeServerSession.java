@@ -102,9 +102,12 @@ public class NativeServerSession implements ServerSession {
 
     private RuntimeProperty<Boolean> cacheDefaultTimeZone = null;
 
+    private RuntimeProperty<Boolean> tdsqlQueryAttributesEnable = null;
+
     public NativeServerSession(PropertySet propertySet) {
         this.propertySet = propertySet;
         this.cacheDefaultTimeZone = this.propertySet.getBooleanProperty(PropertyKey.cacheDefaultTimeZone);
+        this.tdsqlQueryAttributesEnable = this.propertySet.getBooleanProperty(PropertyKey.tdsqlQueryAttributesEnable);
         this.serverSessionStateController = new NativeServerSessionStateController();
     }
 
@@ -227,6 +230,9 @@ public class NativeServerSession implements ServerSession {
 
     @Override
     public boolean supportsQueryAttributes() {
+        if (!this.tdsqlQueryAttributesEnable.getValue()) {
+            return false;
+        }
         return (this.clientParam & CLIENT_QUERY_ATTRIBUTES) != 0;
     }
 
