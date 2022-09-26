@@ -298,6 +298,9 @@ public enum PropertyKey {
     tdsqlDirectHeartbeatIntervalTimeMillis("tdsqlDirectHeartbeatIntervalTimeMillis", true),
     tdsqlDirectHeartbeatMaxErrorRetries("tdsqlDirectHeartbeatMaxErrorRetries", true),
     tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis("tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis", true),
+
+    // Enable Query Attributes
+    tdsqlQueryAttributesEnable("tdsqlQueryAttributesEnable", true),
     ;
 
     private String keyName;

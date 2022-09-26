@@ -195,7 +195,8 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
                 | (this.propertySet.getBooleanProperty(PropertyKey.trackSessionState).getValue() ? // 
                         capabilityFlags & NativeServerSession.CLIENT_SESSION_TRACK : 0) //
                 | capabilityFlags & NativeServerSession.CLIENT_DEPRECATE_EOF //
-                | capabilityFlags & NativeServerSession.CLIENT_QUERY_ATTRIBUTES // 
+                | (this.propertySet.getBooleanProperty(PropertyKey.tdsqlQueryAttributesEnable).getValue() ?
+                        capabilityFlags & NativeServerSession.CLIENT_QUERY_ATTRIBUTES : 0) //
                 | capabilityFlags & NativeServerSession.CLIENT_MULTI_FACTOR_AUTHENTICATION;
 
         sessState.setClientParam(clientParam);
