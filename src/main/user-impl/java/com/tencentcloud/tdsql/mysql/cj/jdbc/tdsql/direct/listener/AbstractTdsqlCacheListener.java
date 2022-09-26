@@ -32,8 +32,8 @@ public abstract class AbstractTdsqlCacheListener implements PropertyChangeListen
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
-        ReentrantReadWriteLock refreshLock = TdsqlDirectTopoServer.getInstance().getRefreshLock();
-        refreshLock.writeLock().lock();
+//        ReentrantReadWriteLock refreshLock = TdsqlDirectTopoServer.getInstance().getRefreshLock();
+//        refreshLock.writeLock().lock();
         List<TdsqlDataSetInfo>[] res = getSplitList(evt);
         try {
             if (evt.getPropertyName().equals(TdsqlDataSetCache.MASTERS_PROPERTY_NAME)) {
@@ -42,7 +42,7 @@ public abstract class AbstractTdsqlCacheListener implements PropertyChangeListen
                 handleSlave(res[0], res[1]);
             }
         } finally {
-            refreshLock.writeLock().unlock();
+//            refreshLock.writeLock().unlock();
         }
     }
 }

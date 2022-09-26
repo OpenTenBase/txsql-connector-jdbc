@@ -1,5 +1,7 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct;
 
+import com.tencentcloud.tdsql.mysql.cj.Messages;
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
@@ -11,6 +13,11 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetCache;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.exception.TdsqlNoBackendInstanceException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectDataSourceCounter;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlDirectLoadBalanceStrategyFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.*;
 import java.sql.SQLException;
@@ -18,8 +25,8 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.*;
 import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RW;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.convert;
+
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.*;
 
 /**
  * <p></p>
@@ -29,30 +36,57 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadW
  */
 public final class TdsqlDirectConnectionManager {
 
+    private String ownerUuid;
     private final ConcurrentHashMap<TdsqlHostInfo, List<JdbcConnection>> connectionHolder = new ConcurrentHashMap<>();
     private ThreadPoolExecutor recycler;
     private TdsqlHostInfo currentTdsqlHostInfo;
     private TdsqlLoadBalanceStrategy balancer;
     private final int retriesAllDown = 5;
     private boolean tdsqlDirectMasterCarryOptOfReadOnlyMode = false;
+    private boolean allSlaveCrash = false;
 
-    private TdsqlDirectConnectionManager() {
-        initializeCompensator();
+    public TdsqlDirectConnectionManager(String ownerUuid) {
+        this.ownerUuid = ownerUuid;
+        initializeCompensator(ownerUuid);
         initializeRecycler();
     }
 
-    public static TdsqlDirectConnectionManager getInstance() {
-        return SingletonInstance.INSTANCE;
-    }
+    public synchronized JdbcConnection createNewConnection(ConnectionUrl connectionUrl) throws SQLException {
 
-    public synchronized JdbcConnection createNewConnection(Properties props) throws SQLException {
-        TdsqlDirectConnectionFactory tdsqlDirectConnectionFactory = TdsqlDirectConnectionFactory.getInstance();
-        this.tdsqlDirectMasterCarryOptOfReadOnlyMode = tdsqlDirectConnectionFactory.isTdsqlDirectMasterCarryOptOfReadOnlyMode();
-        String strategy = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(), "Sed");
+        Properties props = connectionUrl.getConnectionArgumentsAsProperties();
+        String tdsqlDirectMasterCarryOptOfReadOnlyModeStr = props.getProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode.getKeyName(), "false");
+        try {
+            this.tdsqlDirectMasterCarryOptOfReadOnlyMode = Boolean.parseBoolean(tdsqlDirectMasterCarryOptOfReadOnlyModeStr);
+        } catch (Exception e) {
+            String errMessage = Messages.getString("ConnectionProperties.badValurForTdsqlDirectMasterCarryOptOfReadOnlyMode",
+                    new Object[]{tdsqlDirectMasterCarryOptOfReadOnlyModeStr}) +
+                    Messages.getString("ConnectionProperties.tdsqlDirectMasterCarryOptOfReadOnlyMode");
+            throw SQLError.createSQLException(errMessage,
+                    MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, null);
+        }
+        String strategy = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(), "sed");
         this.balancer = TdsqlDirectLoadBalanceStrategyFactory.getInstance().getStrategyInstance(strategy);
 
+        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer();
+        TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlDirectReadWriteMode());
 
-        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+        List<TdsqlDataSetInfo> masters = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getDataSetCache().getMasters();
+        List<TdsqlDataSetInfo> slaves = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getDataSetCache().getSlaves();
+        if (RW.equals(readWriteMode) && masters.isEmpty()) {
+            throw new TdsqlNoBackendInstanceException("No master instance found, master size: 0");
+        }
+        if (RO.equals(readWriteMode) && slaves.isEmpty()) {
+            if (this.tdsqlDirectMasterCarryOptOfReadOnlyMode){
+                if (masters.isEmpty()){
+                    throw new TdsqlNoBackendInstanceException("In ReadOnly mode, No slave and master instance found");
+                }
+            }else {
+                throw new TdsqlNoBackendInstanceException("No slave instance found");
+            }
+        }
+        TdsqlDirectLoggerFactory.logDebug(
+                "New create connection request received, now master: " + masters + ", now slaves: " + slaves);
+
         TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = topoServer.getScheduleQueue();
         //此时scheduleQueue中不仅有主库还有从库,此时将主从库分开
         TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueueSlave = TdsqlAtomicLongMap.create();
@@ -68,17 +102,14 @@ public final class TdsqlDirectConnectionManager {
                 scheduleQueueSlave.put(tdsqlHostInfo, nodeMsg);
             }
         }
-        TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlDirectReadWriteMode());
+
         JdbcConnection connection;
-        if (RW.equals(readWriteMode) || (tdsqlDirectConnectionFactory.isAllSlaveCrash() && tdsqlDirectMasterCarryOptOfReadOnlyMode)){
-            if (!tdsqlDirectConnectionFactory.isAllSlaveCrash()){
-                tdsqlDirectConnectionFactory.setAllSlaveCrash(true);
-            }
+        //在读写模式或者主库可承接只读流量并且从库全部宕机，直接建立连接到主库
+        if (RW.equals(readWriteMode) || (this.isAllSlaveCrash() && this.tdsqlDirectMasterCarryOptOfReadOnlyMode)){
              connection = pickConnection(scheduleQueueMaster, balancer);
         }else{
             //先进行从库的故障转移
             connection = failover(scheduleQueue, scheduleQueueSlave, balancer);
-            //是否有必要将scheduleQueue中调度不了的从库移除
             //如果slave中没有，并且master中也没有该节点，那么就说明该从节点调度失败将其从原始调度队列中删除！
             for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfoList){
                 if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo) && scheduleQueue.containsKey(tdsqlHostInfo)){
@@ -90,10 +121,10 @@ public final class TdsqlDirectConnectionManager {
             //此时connection为空，说明从库连接建立失败，并且如果允许主库承接只读流量，那么建立主库连接
             if (connection == null){
                 if (tdsqlDirectMasterCarryOptOfReadOnlyMode){
-                    tdsqlDirectConnectionFactory.setAllSlaveCrash(true);
+                    this.setAllSlaveCrash(true);
                     connection = pickConnection(scheduleQueueMaster, balancer);
                 } else {
-                    throw new SQLException("there is no slave available");
+                    throw new SQLException("There is no slave available");
                 }
             }
         }
@@ -104,6 +135,37 @@ public final class TdsqlDirectConnectionManager {
         connectionHolder.put(currentTdsqlHostInfo, holderList);
         scheduleQueue.incrementAndGet(currentTdsqlHostInfo);
         return connection;
+    }
+
+    public boolean isAllSlaveCrash() {
+        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer();
+        topoServer.getRefreshLock().readLock().lock();
+        try {
+            return this.allSlaveCrash;
+        }finally {
+            topoServer.getRefreshLock().readLock().unlock();
+        }
+    }
+
+    public void setAllSlaveCrash(boolean allSlaveCrash) {
+        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer();
+        topoServer.getRefreshLock().readLock().lock();
+        try {
+            this.allSlaveCrash = allSlaveCrash;
+        }finally {
+            topoServer.getRefreshLock().readLock().unlock();
+        }
+
+    }
+
+    public boolean isTdsqlDirectMasterCarryOptOfReadOnlyMode() {
+        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer();
+        topoServer.getRefreshLock().readLock().lock();
+        try {
+            return this.tdsqlDirectMasterCarryOptOfReadOnlyMode;
+        }finally {
+            topoServer.getRefreshLock().readLock().unlock();
+        }
     }
 
     /**
@@ -140,7 +202,7 @@ public final class TdsqlDirectConnectionManager {
                     getConnection = true;
                 }else{
                     //此时为空，说明pickConnection返回的值是空，因为在函数入口就判断了scheduleQueueSlave，所以此时scheduleQueueSlave不为空，但是选不到节点，
-                    //那就说明在使用Sed算法的时候，所有权重为0节点无法被调度
+                    //那就说明在使用sed算法的时候，所有权重为0节点无法被调度
                     attemps ++;
                 }
             }catch (SQLException e){
@@ -150,6 +212,7 @@ public final class TdsqlDirectConnectionManager {
                     TdsqlLoggerFactory.logError(
                             "Could not create connection to database server [" + currentTdsqlHostInfo.getHostPortPair()
                                     + "], starting to schedule other nodes.", e);
+                    //
                     refreshScheduleQueue(null, null, scheduleQueueSlave, currentTdsqlHostInfo);
                     //当从库为空的时候，表明从库已经调度了一遍并且全部失败，那么此时将attemps+1，
                     if (scheduleQueueSlave.isEmpty()){
@@ -161,7 +224,7 @@ public final class TdsqlDirectConnectionManager {
                     }
                 }
             }
-        }while (attemps < retriesAllDown && !getConnection);
+        }while (attemps < this.retriesAllDown && !getConnection);
         return connection;
     }
     /**
@@ -237,13 +300,13 @@ public final class TdsqlDirectConnectionManager {
             TdsqlDirectLoggerFactory.logDebug("To close list is empty, close operation ignore!");
             return;
         }
-        this.recycler.submit(new RecyclerTask(toCloseList));
+        this.recycler.submit(new RecyclerTask(this.ownerUuid, toCloseList));
     }
 
-    private void initializeCompensator() {
+    private void initializeCompensator(String ownerUuid) {
         ScheduledThreadPoolExecutor compensator = new ScheduledThreadPoolExecutor(1,
                 new TdsqlThreadFactoryBuilder().setDaemon(true).setNameFormat("Compensator-pool-").build());
-        compensator.scheduleWithFixedDelay(new CompensatorTask(), 0L, 1L, TimeUnit.SECONDS);
+        compensator.scheduleWithFixedDelay(new CompensatorTask(ownerUuid), 0L, 1L, TimeUnit.SECONDS);
     }
 
     private void initializeRecycler() {
@@ -255,12 +318,15 @@ public final class TdsqlDirectConnectionManager {
     }
 
     private static class CompensatorTask extends AbstractTdsqlCaughtRunnable {
-
+        private String ownerUuid;
+        public CompensatorTask(String ownerUuid){
+            this.ownerUuid = ownerUuid;
+        }
         @Override
         public void caughtAndRun() {
-            TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = TdsqlDirectTopoServer.getInstance().getScheduleQueue();
-            ConcurrentHashMap<TdsqlHostInfo, List<JdbcConnection>> connectionHolder = TdsqlDirectConnectionManager.getInstance()
-                    .getAllConnection();
+            TdsqlDirectInfo tdsqlDirectInfo = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid);
+            TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = tdsqlDirectInfo.getTopoServer().getScheduleQueue();
+            ConcurrentHashMap<TdsqlHostInfo, List<JdbcConnection>> connectionHolder = tdsqlDirectInfo.getTdsqlDirectConnectionManager().getAllConnection();
             for (Entry<TdsqlHostInfo, List<JdbcConnection>> entry : connectionHolder.entrySet()) {
                 TdsqlHostInfo tdsqlHostInfo = entry.getKey();
                 int realCount = entry.getValue().size();
@@ -280,30 +346,33 @@ public final class TdsqlDirectConnectionManager {
 
     private static class RecyclerTask extends AbstractTdsqlCaughtRunnable {
 
+        private String ownerUuid;
         private final List<String> recycleList;
         private final Executor netTimeoutExecutor = new TdsqlSynchronousExecutor();
 
-        private RecyclerTask(List<String> recycleList) {
+        private RecyclerTask(String ownerUuid, List<String> recycleList) {
+            this.ownerUuid = ownerUuid;
             this.recycleList = recycleList;
         }
 
         @Override
         public void caughtAndRun() {
+            TdsqlDirectInfo tdsqlDirectInfo = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid);
             ConcurrentHashMap<TdsqlHostInfo, List<JdbcConnection>> allConnection =
-                    TdsqlDirectConnectionManager.getInstance().getAllConnection();
+                    tdsqlDirectInfo.getTdsqlDirectConnectionManager().getAllConnection();
             Iterator<Entry<TdsqlHostInfo, List<JdbcConnection>>> entryIterator = allConnection.entrySet()
                     .iterator();
             while (entryIterator.hasNext()) {
                 Entry<TdsqlHostInfo, List<JdbcConnection>> entry = entryIterator.next();
                 String holdHostPortPair = entry.getKey().getHostPortPair();
-                if (recycleList.contains(holdHostPortPair)) {
+                if (this.recycleList.contains(holdHostPortPair)) {
                     TdsqlDirectLoggerFactory.logDebug("Start close [" + holdHostPortPair + "]'s connections!");
                     for (JdbcConnection jdbcConnection : entry.getValue()) {
                         ConnectionImpl connection = (ConnectionImpl) jdbcConnection;
                         if (connection != null && !connection.isClosed()) {
                             try {
-                                connection.setNetworkTimeout(netTimeoutExecutor, TdsqlDirectTopoServer.getInstance()
-                                        .getTdsqlDirectCloseConnTimeoutMillis());
+                                connection.setNetworkTimeout(this.netTimeoutExecutor,
+                                        tdsqlDirectInfo.getTopoServer().getTdsqlDirectCloseConnTimeoutMillis());
                             } catch (Exception e) {
                                 // ignore
                             } finally {
@@ -327,11 +396,6 @@ public final class TdsqlDirectConnectionManager {
 
     public List<JdbcConnection> getConnectionList(TdsqlHostInfo tdsqlHostInfo) {
         return connectionHolder.getOrDefault(tdsqlHostInfo, new CopyOnWriteArrayList<>());
-    }
-
-    private static class SingletonInstance {
-
-        private static final TdsqlDirectConnectionManager INSTANCE = new TdsqlDirectConnectionManager();
     }
 
 }

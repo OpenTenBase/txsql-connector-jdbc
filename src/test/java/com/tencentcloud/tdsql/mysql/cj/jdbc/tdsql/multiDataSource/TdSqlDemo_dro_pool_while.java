@@ -1,16 +1,17 @@
-package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct;
+package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.multiDataSource;
 
 import com.alibaba.druid.pool.DruidDataSource;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.base.BaseTest;
-import org.junit.jupiter.api.Test;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class GetConn extends BaseTest {
+public class TdSqlDemo_dro_pool_while {
     private static final String DRIVER_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
     private static final String DB_URL = "jdbc:tdsql-mysql:direct://9.30.1.207:15006,9.30.1.231:15006/test?useLocalSessionStates=true" +
             "&useUnicode=true&characterEncoding=utf-8" +
@@ -43,7 +44,7 @@ public class GetConn extends BaseTest {
             e.printStackTrace();
         }
     }
-    @Test
+    @org.junit.jupiter.api.Test
     public void TestConn(){
         ThreadPoolExecutor executorService = new ThreadPoolExecutor(
                 1000,

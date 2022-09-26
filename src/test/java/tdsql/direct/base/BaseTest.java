@@ -107,24 +107,24 @@ public abstract class BaseTest {
 
     protected void printAllConnection() {
         int total = 0;
-        for (Entry<TdsqlHostInfo, List<JdbcConnection>> entry : TdsqlDirectConnectionManager.getInstance()
-                .getAllConnection().entrySet()) {
-            for (JdbcConnection jdbcConnection : entry.getValue()) {
-                ++total;
-                System.out.println("Host:Connection = " + entry.getKey() + ": " + jdbcConnection);
-            }
-        }
-        System.out.println("Total: " + total);
+//        for (Entry<TdsqlHostInfo, List<JdbcConnection>> entry : TdsqlDirectConnectionManager.getInstance()
+//                .getAllConnection().entrySet()) {
+//            for (JdbcConnection jdbcConnection : entry.getValue()) {
+//                ++total;
+//                System.out.println("Host:Connection = " + entry.getKey() + ": " + jdbcConnection);
+//            }
+//        }
+//        System.out.println("Total: " + total);
     }
 
     protected void printScheduleQueue() {
         long total = 0;
-        for (Entry<TdsqlHostInfo, NodeMsg> entry : TdsqlDirectTopoServer.getInstance().getScheduleQueue().asMap()
-                .entrySet()) {
-            total += entry.getValue().getCount();
-            System.out.println("Host:Count = " + entry.getKey() + ": " + entry.getValue());
-        }
-        System.out.println("Total: " + total);
+//        for (Entry<TdsqlHostInfo, NodeMsg> entry : TdsqlDirectTopoServer.getInstance().getScheduleQueue().asMap()
+//                .entrySet()) {
+//            total += entry.getValue().getCount();
+//            System.out.println("Host:Count = " + entry.getKey() + ": " + entry.getValue());
+//        }
+//        System.out.println("Total: " + total);
     }
 
     protected DataSource createMysqlDataSource() {

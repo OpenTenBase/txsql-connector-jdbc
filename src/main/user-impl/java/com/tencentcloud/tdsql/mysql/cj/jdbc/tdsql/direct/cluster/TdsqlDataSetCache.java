@@ -8,17 +8,20 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFa
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectTopoServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.listener.TdsqlFailoverTdsqlCacheListener;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectDataSourceCounter;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlWaitUtil;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * 所有数据节点缓存.
  */
 public class TdsqlDataSetCache {
 
+    private String ownerUuid;
     private final PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
     private final List<TdsqlDataSetInfo> masters = new CopyOnWriteArrayList<>();
     private final List<TdsqlDataSetInfo> slaves = new CopyOnWriteArrayList<>();
@@ -28,7 +31,8 @@ public class TdsqlDataSetCache {
     public static final String MASTERS_PROPERTY_NAME = "masters";
     public static final String SLAVES_PROPERTY_NAME = "slaves";
 
-    private TdsqlDataSetCache() {
+    public TdsqlDataSetCache(String ownerUuid) {
+        this.ownerUuid = ownerUuid;
     }
 
     /**
@@ -58,16 +62,17 @@ public class TdsqlDataSetCache {
     }
 
     public synchronized List<TdsqlDataSetInfo> getMasters() {
-        TdsqlDirectTopoServer.getInstance().getRefreshLock().readLock().lock();
+        ReentrantReadWriteLock refreshLock = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer().getRefreshLock();
+        refreshLock.readLock().lock();
         try {
             return masters;
         } finally {
-            TdsqlDirectTopoServer.getInstance().getRefreshLock().readLock().unlock();
+            refreshLock.readLock().unlock();
         }
     }
 
     public synchronized void setMasters(List<TdsqlDataSetInfo> newMasters) {
-        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer();
         topoServer.getRefreshLock().writeLock().lock();
         try {
             // 当获取到的主库拓扑信息为空的时候，需要分多种情况判断
@@ -111,16 +116,17 @@ public class TdsqlDataSetCache {
     }
 
     public synchronized List<TdsqlDataSetInfo> getSlaves() {
-        TdsqlDirectTopoServer.getInstance().getRefreshLock().readLock().lock();
+        ReentrantReadWriteLock refreshLock = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer().getRefreshLock();
+        refreshLock.readLock().lock();
         try {
             return slaves;
         } finally {
-            TdsqlDirectTopoServer.getInstance().getRefreshLock().readLock().unlock();
+            refreshLock.readLock().unlock();
         }
     }
 
     public synchronized void setSlaves(List<TdsqlDataSetInfo> newSlaves) {
-        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer();
         topoServer.getRefreshLock().writeLock().lock();
         try {
             // 当获取到的从库拓扑信息为空的时候，需要分多种情况判断
@@ -179,12 +185,14 @@ public class TdsqlDataSetCache {
     }
 
     public boolean isCached() {
-        TdsqlDirectTopoServer topoServer = TdsqlDirectTopoServer.getInstance();
+        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer();
         topoServer.getRefreshLock().writeLock().lock();
         try {
             if (masterCached && slaveCached){
                 return true;
-            }else if (masterCached && TdsqlDirectConnectionFactory.getInstance().isTdsqlDirectMasterCarryOptOfReadOnlyMode()){
+
+            }else if (masterCached && TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).
+                    getTdsqlDirectConnectionManager().isTdsqlDirectMasterCarryOptOfReadOnlyMode()){
                 return true;
             }
             return false;
@@ -194,12 +202,12 @@ public class TdsqlDataSetCache {
 
     }
 
-    private static class SingletonInstance {
-
-        public static final TdsqlDataSetCache INSTANCE = new TdsqlDataSetCache();
-    }
-
-    public static TdsqlDataSetCache getInstance() {
-        return SingletonInstance.INSTANCE;
-    }
+//    private static class SingletonInstance {
+//
+//        public static final TdsqlDataSetCache INSTANCE = new TdsqlDataSetCache();
+//    }
+//
+//    public static TdsqlDataSetCache getInstance() {
+//        return SingletonInstance.INSTANCE;
+//    }
 }

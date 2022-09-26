@@ -715,8 +715,8 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
             }
 
             realClose(true, true, false, null);
-            if (TdsqlDirectConnectionFactory.directMode) {
-                TdsqlDirectConnectionFactory.getInstance().closeConnection(this, origHostInfo);
+            if (TdsqlDirectConnectionFactory.directMode && origHostInfo instanceof TdsqlHostInfo) {
+                TdsqlDirectConnectionFactory.getInstance().closeConnection(this, (TdsqlHostInfo)origHostInfo);
             }
             if (TdsqlLoadBalanceConnectionFactory.tdsqlLoadBalanceMode && origHostInfo instanceof TdsqlHostInfo) {
                 TdsqlLoadBalanceConnectionFactory.getInstance().closeConnection((TdsqlHostInfo) origHostInfo);

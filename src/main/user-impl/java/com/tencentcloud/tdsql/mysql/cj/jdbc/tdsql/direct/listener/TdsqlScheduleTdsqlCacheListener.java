@@ -4,22 +4,42 @@ import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetUtil;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectDataSourceCounter;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
 
+import java.beans.PropertyChangeEvent;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class TdsqlScheduleTdsqlCacheListener extends AbstractTdsqlCacheListener {
 
+    private final String ownerUuid;
     private final TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue;
     private final String tdsqlReadWriteMode;
     private final ConnectionUrl connectionUrl;
 
     public TdsqlScheduleTdsqlCacheListener(String tdsqlReadWriteMode,
-                                           TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue, ConnectionUrl connectionUrl) {
+                                           TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue, ConnectionUrl connectionUrl, String ownerUuid) {
         this.tdsqlReadWriteMode = tdsqlReadWriteMode;
         this.scheduleQueue = scheduleQueue;
         this.connectionUrl = connectionUrl;
+        this.ownerUuid = ownerUuid;
+    }
+
+    /**
+     * 属性变化监测，在子类中进行加锁
+     * @param evt
+     */
+    @Override
+    public void propertyChange(PropertyChangeEvent evt) {
+        ReentrantReadWriteLock refreshLock = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(ownerUuid).getTopoServer().getRefreshLock();
+        try {
+            refreshLock.writeLock().lock();
+            super.propertyChange(evt);
+        }finally {
+            refreshLock.writeLock().unlock();
+        }
     }
 
     /**
@@ -35,6 +55,7 @@ public class TdsqlScheduleTdsqlCacheListener extends AbstractTdsqlCacheListener 
     public void handleMaster(List<TdsqlDataSetInfo> offLines, List<TdsqlDataSetInfo> onLines) {
         for (TdsqlDataSetInfo newMaster : onLines) {
             TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(newMaster, connectionUrl);
+            tdsqlHostInfo.setOwnerUuid(this.ownerUuid);
             if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
                 scheduleQueue.put(tdsqlHostInfo, new NodeMsg(0L, true));
             }
@@ -59,12 +80,14 @@ public class TdsqlScheduleTdsqlCacheListener extends AbstractTdsqlCacheListener 
     public void handleSlave(List<TdsqlDataSetInfo> offLines, List<TdsqlDataSetInfo> onLines) {
         for (TdsqlDataSetInfo slave : onLines) {
             TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(slave, connectionUrl);
+            tdsqlHostInfo.setOwnerUuid(this.ownerUuid);
             if (!scheduleQueue.containsKey(tdsqlHostInfo)) {
                 scheduleQueue.put(tdsqlHostInfo, new NodeMsg(0L, false));
             }
         }
         for (TdsqlDataSetInfo oldSlave : offLines) {
             TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(oldSlave, connectionUrl);
+            tdsqlHostInfo.setOwnerUuid(this.ownerUuid);
             if (scheduleQueue.containsKey(tdsqlHostInfo)) {
                 scheduleQueue.remove(tdsqlHostInfo);
             }

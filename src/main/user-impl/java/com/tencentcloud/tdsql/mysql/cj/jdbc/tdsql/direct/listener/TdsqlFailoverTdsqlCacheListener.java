@@ -5,9 +5,12 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.*;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetUtil;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectDataSourceCounter;
 
+import java.beans.PropertyChangeEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 /**
@@ -16,9 +19,27 @@ import java.util.stream.Collectors;
 public class TdsqlFailoverTdsqlCacheListener extends AbstractTdsqlCacheListener {
 
     private final String tdsqlReadWriteMode;
+    private final String ownerUuid;
 
-    public TdsqlFailoverTdsqlCacheListener(String tdsqlReadWriteMode) {
+    public TdsqlFailoverTdsqlCacheListener(String tdsqlReadWriteMode, String ownerUuid) {
         this.tdsqlReadWriteMode = tdsqlReadWriteMode;
+        this.ownerUuid = ownerUuid;
+    }
+
+    /**
+     * 属性变化监测，在子类中进行加锁
+     * @param evt
+     */
+    @Override
+    public void propertyChange(PropertyChangeEvent evt) {
+        ReentrantReadWriteLock refreshLock = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(ownerUuid).
+                getTopoServer().getRefreshLock();
+        try {
+            refreshLock.writeLock().lock();
+            super.propertyChange(evt);
+        }finally {
+            refreshLock.writeLock().unlock();
+        }
     }
 
     /**
@@ -27,11 +48,11 @@ public class TdsqlFailoverTdsqlCacheListener extends AbstractTdsqlCacheListener 
     @Override
     public void handleMaster(List<TdsqlDataSetInfo> offLines, List<TdsqlDataSetInfo> onLines) {
         if (!offLines.isEmpty()) {
-            TdsqlDirectLoggerFactory.logDebug("Offline master: " + offLines);
+            TdsqlDirectLoggerFactory.logDebug("DataSource：" + this.ownerUuid + ", " + "Offline master: " + offLines);
             List<String> toCloseList = offLines.stream().map(d -> String.format("%s:%s", d.getIp(), d.getPort()))
                     .collect(Collectors.toList());
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
-                    TdsqlDirectMasterSlaveSwitchMode.MASTER_SLAVE_SWITCH, toCloseList);
+                    TdsqlDirectMasterSlaveSwitchMode.MASTER_SLAVE_SWITCH, toCloseList, this.ownerUuid);
         }
     }
 
@@ -41,18 +62,18 @@ public class TdsqlFailoverTdsqlCacheListener extends AbstractTdsqlCacheListener 
     @Override
     public void handleSlave(List<TdsqlDataSetInfo> offLines, List<TdsqlDataSetInfo> onLines) {
         if (!offLines.isEmpty()) {
-            TdsqlDirectLoggerFactory.logDebug("Offline slaves: " + offLines);
+            TdsqlDirectLoggerFactory.logDebug("DataSource：" + this.ownerUuid + ", " + "Offline slaves: " + offLines);
             List<String> toCloseList = offLines.stream().map(d -> String.format("%s:%s", d.getIp(), d.getPort()))
                     .collect(Collectors.toList());
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
-                    TdsqlDirectMasterSlaveSwitchMode.SLAVE_OFFLINE, toCloseList);
+                    TdsqlDirectMasterSlaveSwitchMode.SLAVE_OFFLINE, toCloseList, this.ownerUuid);
 
         }
         if (!onLines.isEmpty()) {
-            TdsqlDirectLoggerFactory.logDebug("Online slaves: " + onLines);
+            TdsqlDirectLoggerFactory.logDebug("DataSource：" + this.ownerUuid + ", " + "Online slaves: " + onLines);
             List<String> toCloseList = new ArrayList<>();
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
-                    TdsqlDirectMasterSlaveSwitchMode.SLAVE_ONLINE, toCloseList);
+                    TdsqlDirectMasterSlaveSwitchMode.SLAVE_ONLINE, toCloseList, this.ownerUuid);
         }
     }
 }
