@@ -14,7 +14,7 @@ public class getConn {
             "&tdsqlDirectMaxSlaveDelaySeconds=50" +
             "&tdsqlDirectTopoRefreshIntervalMillis=500&tdsqlDirectTopoRefreshConnTimeoutMillis=500" +
             "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
-            "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true&tdsqlLoadBalanceStrategy=Sed";
+            "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true&tdsqlLoadBalanceStrategy=sed&logger=CommonsLogger";
     private static final String USERNAME = "tdsqlsys_normal";
     private static final String PASSWORD = "5R77aqf9kSk8HnN%R";
 

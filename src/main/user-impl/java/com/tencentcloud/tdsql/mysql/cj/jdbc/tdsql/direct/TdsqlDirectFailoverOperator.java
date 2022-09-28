@@ -14,7 +14,7 @@ public class TdsqlDirectFailoverOperator {
     private TdsqlDirectFailoverOperator() {
     }
 
-    public static void subsequentOperation(TdsqlDirectReadWriteMode rwMode, TdsqlDirectMasterSlaveSwitchMode switchMode,
+    public static synchronized void subsequentOperation(TdsqlDirectReadWriteMode rwMode, TdsqlDirectMasterSlaveSwitchMode switchMode,
             List<String> toCloseList, String ownerUuid) {
         TdsqlDirectLoggerFactory.logDebug("Because current direct read write mode is: " + rwMode);
         switch (rwMode) {

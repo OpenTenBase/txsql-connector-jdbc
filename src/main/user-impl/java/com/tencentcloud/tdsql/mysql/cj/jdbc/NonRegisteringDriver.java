@@ -218,6 +218,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
 
                         // 初始化日志框架，通过URL参数logger指定
                         if (TdsqlLoggerFactory.loggerInitialized.compareAndSet(false, true)) {
+//                            TdsqlLoggerFactory.initLogConstructor(new TdsqlHostInfo(conStr.getMainHost()));
                             TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost()));
                         }
 
@@ -242,6 +243,11 @@ public class NonRegisteringDriver implements java.sql.Driver {
                     return ReplicationConnectionProxy.createProxyInstance(conStr);
 
                 case DIRECT_CONNECTION:
+                    // 初始化日志框架，通过URL参数logger指定
+                    if (TdsqlLoggerFactory.loggerInitialized.compareAndSet(false, true)) {
+//                        TdsqlLoggerFactory.initLogConstructor(new TdsqlHostInfo(conStr.getMainHost()));
+                            TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost()));
+                    }
                     // 当URL类型为直连时，进入具备读写分离特性的数据库连接直连处理逻辑
                     return TdsqlDirectConnectionFactory.getInstance().createConnection(conStr);
 

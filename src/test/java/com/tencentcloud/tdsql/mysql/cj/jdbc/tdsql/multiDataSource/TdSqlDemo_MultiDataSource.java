@@ -14,7 +14,9 @@ import java.util.concurrent.TimeUnit;
 
 public class TdSqlDemo_MultiDataSource {
     private static final String DRIVER_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
-    private static final String DB_URL1 = "jdbc:tdsql-mysql:direct://9.30.1.207:15006,9.30.1.231:15006/test?useLocalSessionStates=true" +
+    private static final String DB_URL1 = "jdbc:tdsql-mysql:direct://9.30.2.89:15024,9.30.2.94:15024/test_2"
+        +
+            "?useLocalSessionStates=true" +
             "&useUnicode=true&characterEncoding=utf-8" +
             "&serverTimezone=Asia/Shanghai&tdsqlDirectReadWriteMode=ro" +
             "&tdsqlDirectMaxSlaveDelaySeconds=0" +
@@ -29,7 +31,9 @@ public class TdSqlDemo_MultiDataSource {
 //            "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
 //            "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true&tdsqlLoadBalanceStrategy=sed";
 
-    private static final String DB_URL2 = "jdbc:tdsql-mysql:direct://9.30.1.207:15006,9.30.1.231:15006/test_2?useLocalSessionStates=true" +
+    private static final String DB_URL2 = "jdbc:tdsql-mysql:direct://9.30.2.89:15024,9.30.2.116:15024/test_2"
+    +
+            "?useLocalSessionStates=true" +
             "&useUnicode=true&characterEncoding=utf-8" +
             "&serverTimezone=Asia/Shanghai&tdsqlDirectReadWriteMode=ro" +
             "&tdsqlDirectMaxSlaveDelaySeconds=200" +
@@ -43,8 +47,8 @@ public class TdSqlDemo_MultiDataSource {
 //            "&tdsqlDirectTopoRefreshIntervalMillis=500&tdsqlDirectTopoRefreshConnTimeoutMillis=500" +
 //            "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
 //            "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true&tdsqlLoadBalanceStrategy=sed";
-    private static final String USERNAME = "tdsqlsys_normal";
-    private static final String PASSWORD = "5R77aqf9kSk8HnN%R";
+    private static final String USERNAME = "qt4s";
+    private static final String PASSWORD = "g<m:7KNDF.L1<^1C1";
     private static final DruidDataSource dataSource1 = new DruidDataSource();
     private static final DruidDataSource dataSource2 = new DruidDataSource();
 
@@ -164,7 +168,7 @@ public class TdSqlDemo_MultiDataSource {
 
             try (Connection conn = dataSource2.getConnection();
                  Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT `id`, `name` FROM mysqltest limit 1")) {
+                 ResultSet rs = stmt.executeQuery("SELECT `id`, `name` FROM t_user limit 1")) {
 
                 int activeCount = dataSource2.getActiveCount();//当前连接数
                 int idlecount = dataSource2.getPoolingCount();
