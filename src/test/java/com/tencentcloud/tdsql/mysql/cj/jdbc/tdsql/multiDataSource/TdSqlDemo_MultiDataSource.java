@@ -29,11 +29,16 @@ public class TdSqlDemo_MultiDataSource {
     //            "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
     //            "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true&tdsqlLoadBalanceStrategy=sed";
 
-    private static final String DB_URL2 = "jdbc:tdsql-mysql:direct://9.30.2.116:15024,9.30.2.250:15024/test_2"
-            + "?tdsqlDirectReadWriteMode=rw"
-            + "&tdsqlDirectMaxSlaveDelaySeconds=200"
-            + "&tdsqlDirectTopoRefreshIntervalMillis=1000"
-            + "&tdsqlLoadBalanceStrategy=sed";
+    private static final String DB_URL2 = "jdbc:tdsql-mysql:direct://9.30.2.116:15024,9.30.2.250:15024/test_2" +
+                "?useUnicode=true&characterEncoding=utf-8" +
+                "&serverTimezone=Asia/Shanghai&tdsqlDirectReadWriteMode=rw" +
+                "&tdsqlDirectTopoRefreshIntervalMillis=500&tdsqlDirectTopoRefreshConnTimeoutMillis=500" +
+                "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
+                "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true&tdsqlLoadBalanceStrategy=sed";
+//            + "?tdsqlDirectReadWriteMode=rw"
+//            + "&tdsqlDirectMaxSlaveDelaySeconds=200"
+//            + "&tdsqlDirectTopoRefreshIntervalMillis=1000"
+//            + "&tdsqlLoadBalanceStrategy=sed";
 
     //    private static final String DB_URL2 = "jdbc:tdsql-mysql:direct://9.30.1.207:15006/test_2?useLocalSessionStates=true" +
     //            "&useUnicode=true&characterEncoding=utf-8" +
