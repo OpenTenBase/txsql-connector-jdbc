@@ -12,8 +12,7 @@ import java.util.concurrent.*;
 
 public class TdSqlDemo_MultiDataSourcePre {
     private static final String DRIVER_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
-    private static final String DB_URL1 = "jdbc:tdsql-mysql:direct://9.30.2.89:15024,9.30.2.94:15024/test_2"
-        +
+    private static final String DB_URL1 = "jdbc:tdsql-mysql:direct://9.30.2.89:15024,9.30.2.94:15024/test_2" +
             "?useLocalSessionStates=true" +
             "&useUnicode=true&characterEncoding=utf-8" +
             "&serverTimezone=Asia/Shanghai&tdsqlDirectReadWriteMode=ro" +
@@ -21,16 +20,7 @@ public class TdSqlDemo_MultiDataSourcePre {
             "&tdsqlDirectTopoRefreshIntervalMillis=500&tdsqlDirectTopoRefreshConnTimeoutMillis=500" +
             "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
             "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true&tdsqlLoadBalanceStrategy=sed";
-
-//    private static final String DB_URL1 = "jdbc:tdsql-mysql:direct://9.30.1.207:15006/test?useLocalSessionStates=true" +
-//            "&useUnicode=true&characterEncoding=utf-8" +
-//            "&serverTimezone=Asia/Shanghai&tdsqlDirectReadWriteMode=ro" +
-//            "&tdsqlDirectTopoRefreshIntervalMillis=500&tdsqlDirectTopoRefreshConnTimeoutMillis=500" +
-//            "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
-//            "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true&tdsqlLoadBalanceStrategy=sed";
-
-    private static final String DB_URL2 = "jdbc:tdsql-mysql:direct://9.30.2.89:15024,9.30.2.116:15024/test_2"
-    +
+    private static final String DB_URL2 = "jdbc:tdsql-mysql:direct://9.30.2.89:15024,9.30.2.116:15024/test_2" +
             "?useLocalSessionStates=true" +
             "&useUnicode=true&characterEncoding=utf-8" +
             "&serverTimezone=Asia/Shanghai&tdsqlDirectReadWriteMode=rw" +
@@ -38,13 +28,6 @@ public class TdSqlDemo_MultiDataSourcePre {
             "&tdsqlDirectTopoRefreshIntervalMillis=500&tdsqlDirectTopoRefreshConnTimeoutMillis=500" +
             "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
             "&tdsqlLoadBalanceStrategy=sed&autoReconnect=true";
-
-//    private static final String DB_URL2 = "jdbc:tdsql-mysql:direct://9.30.1.207:15006/test_2?useLocalSessionStates=true" +
-//            "&useUnicode=true&characterEncoding=utf-8" +
-//            "&serverTimezone=Asia/Shanghai&tdsqlDirectReadWriteMode=ro" +
-//            "&tdsqlDirectTopoRefreshIntervalMillis=500&tdsqlDirectTopoRefreshConnTimeoutMillis=500" +
-//            "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
-//            "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true&tdsqlLoadBalanceStrategy=sed";
     private static final String USERNAME = "qt4s";
     private static final String PASSWORD = "g<m:7KNDF.L1<^1C1";
     private static final DruidDataSource dataSource1 = new DruidDataSource();
