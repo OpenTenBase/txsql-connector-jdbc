@@ -8,6 +8,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDi
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
 import com.tencentcloud.tdsql.mysql.cj.log.Log;
+import com.tencentcloud.tdsql.mysql.cj.log.LogFactory;
 
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -19,12 +20,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public final class TdsqlDirectConnectionFactory {
     public static boolean directMode = false;
-
     private TdsqlDirectConnectionFactory() {
     }
 
-    public JdbcConnection createConnection(ConnectionUrl connectionUrl) throws SQLException {
+    public synchronized JdbcConnection createConnection(ConnectionUrl connectionUrl) throws SQLException {
         directMode = true;
+//        TdsqlLoggerFactory.logInfo("---------------------LogInfo-------------------");
+//        TdsqlLoggerFactory.logError("---------------------Logerr----------------------");
+//        TdsqlLoggerFactory.logDebug("---------------------Logdebug----------------------");
+//        TdsqlLoggerFactory.logFatal("---------------------Logfatal----------------------");
         //针对每一个ConnectionUrl，新建一个直连信息类TdsqlDirectInfo
         TdsqlDirectInfo tdsqlDirectInfo = this.validateConnectionAttributes(connectionUrl);
         //根据TdsqlDirectInfo初始化直连多数据源信息记录类

@@ -22,6 +22,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcPropertySetImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetCache;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetCluster;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetUtil;
@@ -158,6 +159,7 @@ public final class TdsqlDirectTopoServer {
 
     private void createProxyConnection() throws SQLException {
         TdsqlDirectLoggerFactory.logDebug( "Start create proxy connection for refresh topology!");
+        TdsqlLoggerFactory.logDebug(  "seimini------------------------------"+ "Start create proxy connection for refresh topology!");
         if (this.proxyConnection != null && !this.proxyConnection.isClosed() && this.proxyConnection.isValid(1)) {
             TdsqlDirectLoggerFactory.logDebug("Proxy connection seems perfect, NOOP!");
             return;

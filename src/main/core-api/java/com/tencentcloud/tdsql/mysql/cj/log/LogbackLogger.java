@@ -1,12 +1,14 @@
 package com.tencentcloud.tdsql.mysql.cj.log;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import ch.qos.logback.classic.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.slf4j.LoggerFactory;
 
-public class Log4JLogger implements Log{
+public class LogbackLogger implements Log{
     private Logger log;
-    public Log4JLogger(String name) {
-        this.log = Logger.getLogger(name);
+
+    public LogbackLogger(String name) {
+
     }
 
     public boolean isDebugEnabled() {
@@ -14,11 +16,11 @@ public class Log4JLogger implements Log{
     }
 
     public boolean isErrorEnabled() {
-        return this.log.isEnabledFor(Level.ERROR);
+        return this.log.isErrorEnabled();
     }
 
     public boolean isFatalEnabled() {
-        return this.log.isEnabledFor(Level.FATAL);
+        return this.log.isErrorEnabled();
     }
 
     public boolean isInfoEnabled() {
@@ -30,7 +32,7 @@ public class Log4JLogger implements Log{
     }
 
     public boolean isWarnEnabled() {
-        return this.log.isEnabledFor(Level.WARN);
+        return this.log.isWarnEnabled();
     }
 
     public void logDebug(Object msg) {

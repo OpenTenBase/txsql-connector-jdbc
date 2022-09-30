@@ -35,11 +35,11 @@ public class TdSqlDemo_MultiDataSource {
     +
             "?useLocalSessionStates=true" +
             "&useUnicode=true&characterEncoding=utf-8" +
-            "&serverTimezone=Asia/Shanghai&tdsqlDirectReadWriteMode=ro" +
+            "&serverTimezone=Asia/Shanghai&tdsqlDirectReadWriteMode=rw" +
             "&tdsqlDirectMaxSlaveDelaySeconds=200" +
             "&tdsqlDirectTopoRefreshIntervalMillis=500&tdsqlDirectTopoRefreshConnTimeoutMillis=500" +
             "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
-            "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true&tdsqlLoadBalanceStrategy=sed";
+            "&tdsqlLoadBalanceStrategy=sed";
 
 //    private static final String DB_URL2 = "jdbc:tdsql-mysql:direct://9.30.1.207:15006/test_2?useLocalSessionStates=true" +
 //            "&useUnicode=true&characterEncoding=utf-8" +
@@ -100,7 +100,7 @@ public class TdSqlDemo_MultiDataSource {
 
         while (true) {
             try {
-                executorService.execute(new QueryTask1());
+//                executorService.execute(new QueryTask1());
                 executorService.execute(new QueryTask2());
             } catch (Exception e) {
                 final long cost_err = System.currentTimeMillis();

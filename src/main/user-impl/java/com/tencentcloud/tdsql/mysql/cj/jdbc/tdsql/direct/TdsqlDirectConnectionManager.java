@@ -89,13 +89,16 @@ public final class TdsqlDirectConnectionManager {
 
         TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = topoServer.getScheduleQueue();
         //此时scheduleQueue中不仅有主库还有从库,此时将主从库分开
+        Map<TdsqlHostInfo, NodeMsg> scheduleQueueTemp = scheduleQueue.asMap();
         TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueueSlave = TdsqlAtomicLongMap.create();
         TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueueMaster = TdsqlAtomicLongMap.create();
+//        List<TdsqlHostInfo> tdsqlHostInfoList = Collections.unmodifiableList(
+//                new ArrayList<>(scheduleQueue.asMap().keySet()));
         List<TdsqlHostInfo> tdsqlHostInfoList = Collections.unmodifiableList(
-                new ArrayList<>(scheduleQueue.asMap().keySet()));
+                new ArrayList<>(scheduleQueueTemp.keySet()));
         //主从节点分离到对应的调度队列中
         for (TdsqlHostInfo tdsqlHostInfo : tdsqlHostInfoList){
-            NodeMsg nodeMsg = scheduleQueue.get(tdsqlHostInfo);
+            NodeMsg nodeMsg = scheduleQueueTemp.get(tdsqlHostInfo);
             if (nodeMsg.getIsMaster()){
                 scheduleQueueMaster.put(tdsqlHostInfo, nodeMsg);
             }else {
@@ -107,6 +110,8 @@ public final class TdsqlDirectConnectionManager {
         //在读写模式或者主库可承接只读流量并且从库全部宕机，直接建立连接到主库
         if (RW.equals(readWriteMode) || (this.isAllSlaveCrash() && this.tdsqlDirectMasterCarryOptOfReadOnlyMode)){
              connection = pickConnection(scheduleQueueMaster, balancer);
+            System.out.println("seimin-------------------------------scheduleQueue" + scheduleQueue.size()   + "--------------scheduleQueueMaster" + scheduleQueueMaster.size());
+//             connection = pickConnection(scheduleQueue, balancer);
         }else{
             //先进行从库的故障转移
             connection = failover(scheduleQueue, scheduleQueueSlave, balancer);

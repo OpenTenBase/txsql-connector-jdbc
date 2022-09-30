@@ -1,108 +1,103 @@
-/*
- * Copyright 1999-2018 Alibaba Group Holding Ltd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.tencentcloud.tdsql.mysql.cj.log;
 
-public class NoLoggingImpl implements Log {
+import org.apache.commons.logging.LogFactory;
+
+
+public class CommonsLoggingLogger implements Log {
+    private org.apache.commons.logging.Log log;
+
+    public CommonsLoggingLogger(String name){
+        this.log = LogFactory.getLog(name);
+    }
+
     @Override
     public boolean isDebugEnabled() {
-        return false;
+        return this.log.isDebugEnabled();
     }
 
     @Override
     public boolean isErrorEnabled() {
-        return false;
+        return this.log.isErrorEnabled();
     }
 
     @Override
     public boolean isFatalEnabled() {
-        return false;
+        return this.log.isFatalEnabled();
     }
 
     @Override
     public boolean isInfoEnabled() {
-        return false;
+        return this.log.isInfoEnabled();
     }
 
     @Override
     public boolean isTraceEnabled() {
-        return false;
+        return this.log.isTraceEnabled();
     }
 
     @Override
     public boolean isWarnEnabled() {
-        return false;
+        return this.log.isWarnEnabled();
     }
 
     @Override
     public void logDebug(Object msg) {
-
+        this.log.debug(msg.toString());
     }
 
     @Override
     public void logDebug(Object msg, Throwable thrown) {
-
+        this.log.debug(msg.toString(), thrown);
     }
 
     @Override
     public void logError(Object msg) {
-
+        this.log.error(msg.toString());
     }
 
     @Override
     public void logError(Object msg, Throwable thrown) {
-
+        this.log.error(msg.toString(), thrown);
     }
 
     @Override
     public void logFatal(Object msg) {
-
+        this.log.fatal(msg.toString());
     }
 
     @Override
     public void logFatal(Object msg, Throwable thrown) {
-
+        this.log.fatal(msg.toString(), thrown);
     }
 
     @Override
     public void logInfo(Object msg) {
-
+        this.log.info(msg.toString());
     }
 
     @Override
     public void logInfo(Object msg, Throwable thrown) {
-
+        this.log.info(msg.toString(), thrown);
     }
 
     @Override
     public void logTrace(Object msg) {
-
+        this.log.trace(msg.toString());
     }
 
     @Override
     public void logTrace(Object msg, Throwable thrown) {
-
+        this.log.trace(msg.toString(), thrown);
     }
 
     @Override
     public void logWarn(Object msg) {
-
+        this.log.warn(msg.toString());
     }
 
     @Override
     public void logWarn(Object msg, Throwable thrown) {
-
+        this.log.warn(msg.toString(), thrown);
     }
+
 }

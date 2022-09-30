@@ -57,6 +57,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
+import com.tencentcloud.tdsql.mysql.cj.log.LogFactory;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 
 /**
@@ -245,7 +246,6 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 case DIRECT_CONNECTION:
                     // 初始化日志框架，通过URL参数logger指定
                     if (TdsqlLoggerFactory.loggerInitialized.compareAndSet(false, true)) {
-//                        TdsqlLoggerFactory.initLogConstructor(new TdsqlHostInfo(conStr.getMainHost()));
                             TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost()));
                     }
                     // 当URL类型为直连时，进入具备读写分离特性的数据库连接直连处理逻辑

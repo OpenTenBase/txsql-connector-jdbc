@@ -19,27 +19,9 @@ public final class TdsqlLoggerFactory {
 
     public static final AtomicBoolean loggerInitialized = new AtomicBoolean(false);
     private static Log log;
-//    private static Constructor logConstructor;
 
     private TdsqlLoggerFactory() {
     }
-
-//    public static void initLogConstructor(TdsqlHostInfo tdsqlHostInfo){
-//        Properties properties = tdsqlHostInfo.exposeAsProperties();
-//        properties.remove(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName());
-//        properties.remove(PropertyKey.tdsqlLoadBalanceWeightFactor.getKeyName());
-//        properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatMonitorEnable.getKeyName());
-//        properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatIntervalTimeMillis.getKeyName());
-//        properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatMaxErrorRetries.getKeyName());
-//        properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis.getKeyName());
-//        PropertySet propertySet = new JdbcPropertySetImpl();
-//        propertySet.initializeProperties(properties);
-//        logConstructor = LogFactory.setAndGetLogConstructor(propertySet.getStringProperty(PropertyKey.logger).getStringValue());
-//    }
-
-//    public static Log getLog(Class clazz) {
-//        return LogFactory.getLog(Log.LOGGER_INSTANCE_NAME);
-//    }
 
     public static void setLogger(TdsqlHostInfo tdsqlHostInfo) {
         Properties properties = tdsqlHostInfo.exposeAsProperties();
@@ -53,8 +35,8 @@ public final class TdsqlLoggerFactory {
         propertySet.initializeProperties(properties);
         log = LogFactory.getLogger(propertySet.getStringProperty(PropertyKey.logger).getStringValue(),
                 Log.LOGGER_INSTANCE_NAME);
+        log.isInfoEnabled();
     }
-
 
     public static void logDebug(Object msg) {
         if (log != null && log.isDebugEnabled()) {

@@ -35,7 +35,7 @@ import java.util.logging.Logger;
 /**
  * Logging functionality for JDK1.4
  */
-public class Jdk14Logger implements Log {
+public class JdkLogger implements Log {
     private static final Level DEBUG = Level.FINE;
 
     private static final Level ERROR = Level.SEVERE;
@@ -59,7 +59,7 @@ public class Jdk14Logger implements Log {
      * @param name
      *            logger name as per {@link Logger#getLogger(String)}
      */
-    public Jdk14Logger(String name) {
+    public JdkLogger(String name) {
         this.jdkLogger = Logger.getLogger(name);
     }
 
