@@ -37,7 +37,7 @@ public class TdSqlDemo_MultiDataSourcePre {
             "&tdsqlDirectMaxSlaveDelaySeconds=200" +
             "&tdsqlDirectTopoRefreshIntervalMillis=500&tdsqlDirectTopoRefreshConnTimeoutMillis=500" +
             "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
-            "&tdsqlLoadBalanceStrategy=sed";
+            "&tdsqlLoadBalanceStrategy=sed&autoReconnect=true";
 
 //    private static final String DB_URL2 = "jdbc:tdsql-mysql:direct://9.30.1.207:15006/test_2?useLocalSessionStates=true" +
 //            "&useUnicode=true&characterEncoding=utf-8" +
@@ -102,7 +102,7 @@ public class TdSqlDemo_MultiDataSourcePre {
         while (true) {
             TimeUnit.MILLISECONDS.sleep(4);
             try {
-                executorService.execute(new QueryTask1());
+//                executorService.execute(new QueryTask1());
                 executorService.execute(new QueryTask2());
             } catch (Exception e) {
                 final long cost_err = System.currentTimeMillis();
