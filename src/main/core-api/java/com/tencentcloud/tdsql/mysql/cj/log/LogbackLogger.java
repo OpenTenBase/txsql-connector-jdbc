@@ -1,8 +1,6 @@
 package com.tencentcloud.tdsql.mysql.cj.log;
 
 import ch.qos.logback.classic.Logger;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.slf4j.LoggerFactory;
 
 public class LogbackLogger implements Log{
     private Logger log;

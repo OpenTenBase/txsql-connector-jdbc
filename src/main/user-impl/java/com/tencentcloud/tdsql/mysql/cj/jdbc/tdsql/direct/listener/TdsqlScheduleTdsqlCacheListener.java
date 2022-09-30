@@ -55,6 +55,7 @@ public class TdsqlScheduleTdsqlCacheListener extends AbstractTdsqlCacheListener 
     public void handleMaster(List<TdsqlDataSetInfo> offLines, List<TdsqlDataSetInfo> onLines) {
         for (TdsqlDataSetInfo onLine : onLines) {
             TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(onLine, connectionUrl);
+            tdsqlHostInfo.setOwnerUuid(this.ownerUuid);
             // 如果里面没有
             if ((scheduleQueue.containsKey(tdsqlHostInfo) && !scheduleQueue.get(tdsqlHostInfo).getIsMaster()) || !scheduleQueue.containsKey(tdsqlHostInfo)) {
                 scheduleQueue.remove(tdsqlHostInfo);
@@ -81,6 +82,7 @@ public class TdsqlScheduleTdsqlCacheListener extends AbstractTdsqlCacheListener 
     public void handleSlave(List<TdsqlDataSetInfo> offLines, List<TdsqlDataSetInfo> onLines) {
         for (TdsqlDataSetInfo slave : onLines) {
             TdsqlHostInfo tdsqlHostInfo = TdsqlDataSetUtil.convertDataSetInfo(slave, connectionUrl);
+            tdsqlHostInfo.setOwnerUuid(this.ownerUuid);
             if ((scheduleQueue.containsKey(tdsqlHostInfo) && scheduleQueue.get(tdsqlHostInfo).getIsMaster()) || !scheduleQueue.containsKey(tdsqlHostInfo)) {
                 scheduleQueue.remove(tdsqlHostInfo);
                 scheduleQueue.put(tdsqlHostInfo, new NodeMsg(0L, false));

@@ -3,10 +3,10 @@ package com.tencentcloud.tdsql.mysql.cj.log;
 import org.apache.commons.logging.LogFactory;
 
 
-public class CommonsLoggingLogger implements Log {
+public class CommonsLogger implements Log {
     private org.apache.commons.logging.Log log;
 
-    public CommonsLoggingLogger(String name){
+    public CommonsLogger(String name){
         this.log = LogFactory.getLog(name);
     }
 
