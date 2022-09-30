@@ -7,10 +7,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.time.LocalTime;
+import java.util.concurrent.*;
 
 public class TdSqlDemo_MultiDataSource {
     private static final String DRIVER_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
@@ -97,6 +95,9 @@ public class TdSqlDemo_MultiDataSource {
                 TimeUnit.MILLISECONDS,
                 new ArrayBlockingQueue<>(100000),
                 new AbortPolicy());
+        ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
+        scheduledThreadPoolExecutor.scheduleAtFixedRate(() -> System.out.println("Time: " + LocalTime.now() + ", Pool Size: " + executorService.getPoolSize()
+                + ", queue Size: " + executorService.getQueue().size()), 0, 1000, TimeUnit.MILLISECONDS);
 
         while (true) {
             try {
