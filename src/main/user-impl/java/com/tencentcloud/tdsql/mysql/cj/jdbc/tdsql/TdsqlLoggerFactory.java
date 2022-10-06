@@ -3,6 +3,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcPropertySetImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.log.Log;
 import com.tencentcloud.tdsql.mysql.cj.log.LogFactory;
 
@@ -21,6 +22,10 @@ public final class TdsqlLoggerFactory {
     private static Log log;
 
     private TdsqlLoggerFactory() {
+    }
+
+    public static void setLogger(Log log) {
+        TdsqlLoggerFactory.log = log;
     }
 
     public static void setLogger(TdsqlHostInfo tdsqlHostInfo) {

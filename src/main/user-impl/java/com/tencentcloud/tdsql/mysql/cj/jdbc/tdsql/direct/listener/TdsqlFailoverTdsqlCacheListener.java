@@ -2,6 +2,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.listener;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.*;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetUtil;
@@ -48,7 +49,7 @@ public class TdsqlFailoverTdsqlCacheListener extends AbstractTdsqlCacheListener 
     @Override
     public void handleMaster(List<TdsqlDataSetInfo> offLines, List<TdsqlDataSetInfo> onLines) {
         if (!offLines.isEmpty()) {
-            TdsqlDirectLoggerFactory.logDebug("DataSource：" + this.ownerUuid + ", " + "Offline master: " + offLines);
+            TdsqlLoggerFactory.logDebug("DataSource：" + this.ownerUuid + ", " + "Offline master: " + offLines);
             List<String> toCloseList = offLines.stream().map(d -> String.format("%s:%s", d.getIp(), d.getPort()))
                     .collect(Collectors.toList());
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
@@ -62,7 +63,7 @@ public class TdsqlFailoverTdsqlCacheListener extends AbstractTdsqlCacheListener 
     @Override
     public void handleSlave(List<TdsqlDataSetInfo> offLines, List<TdsqlDataSetInfo> onLines) {
         if (!offLines.isEmpty()) {
-            TdsqlDirectLoggerFactory.logDebug("DataSource：" + this.ownerUuid + ", " + "Offline slaves: " + offLines);
+            TdsqlLoggerFactory.logDebug("DataSource：" + this.ownerUuid + ", " + "Offline slaves: " + offLines);
             List<String> toCloseList = offLines.stream().map(d -> String.format("%s:%s", d.getIp(), d.getPort()))
                     .collect(Collectors.toList());
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
@@ -70,7 +71,7 @@ public class TdsqlFailoverTdsqlCacheListener extends AbstractTdsqlCacheListener 
 
         }
         if (!onLines.isEmpty()) {
-            TdsqlDirectLoggerFactory.logDebug("DataSource：" + this.ownerUuid + ", " + "Online slaves: " + onLines);
+            TdsqlLoggerFactory.logDebug("DataSource：" + this.ownerUuid + ", " + "Online slaves: " + onLines);
             List<String> toCloseList = new ArrayList<>();
             TdsqlDirectFailoverOperator.subsequentOperation(TdsqlDirectReadWriteMode.convert(tdsqlReadWriteMode),
                     TdsqlDirectMasterSlaveSwitchMode.SLAVE_ONLINE, toCloseList, this.ownerUuid);

@@ -85,7 +85,7 @@ public class TdSqlDemo_MultiDataSourcePre {
         while (true) {
             TimeUnit.MILLISECONDS.sleep(4);
             try {
-//                executorService.execute(new QueryTask1());
+                executorService.execute(new QueryTask1());
                 executorService.execute(new QueryTask2());
             } catch (Exception e) {
                 final long cost_err = System.currentTimeMillis();

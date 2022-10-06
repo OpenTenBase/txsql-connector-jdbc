@@ -84,7 +84,7 @@ public final class TdsqlDirectConnectionManager {
                 throw new TdsqlNoBackendInstanceException("No slave instance found");
             }
         }
-        TdsqlDirectLoggerFactory.logDebug(
+        TdsqlLoggerFactory.logDebug(
                 "New create connection request received, now master: " + masters + ", now slaves: " + slaves);
 
         TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = topoServer.getScheduleQueue();
@@ -110,8 +110,6 @@ public final class TdsqlDirectConnectionManager {
         //在读写模式或者主库可承接只读流量并且从库全部宕机，直接建立连接到主库
         if (RW.equals(readWriteMode) || (this.isAllSlaveCrash() && this.tdsqlDirectMasterCarryOptOfReadOnlyMode)){
              connection = pickConnection(scheduleQueueMaster, balancer);
-            System.out.println("seimin-------------------------------scheduleQueue" + scheduleQueue.size()   + "--------------scheduleQueueMaster" + scheduleQueueMaster.size());
-//             connection = pickConnection(scheduleQueue, balancer);
         }else{
             //先进行从库的故障转移
             connection = failover(scheduleQueue, scheduleQueueSlave, balancer);
@@ -302,7 +300,7 @@ public final class TdsqlDirectConnectionManager {
 
     public synchronized void close(List<String> toCloseList) {
         if (toCloseList == null || toCloseList.isEmpty()) {
-            TdsqlDirectLoggerFactory.logDebug("To close list is empty, close operation ignore!");
+            TdsqlLoggerFactory.logDebug("To close list is empty, close operation ignore!");
             return;
         }
         this.recycler.submit(new RecyclerTask(this.ownerUuid, toCloseList));
@@ -371,7 +369,7 @@ public final class TdsqlDirectConnectionManager {
                 Entry<TdsqlHostInfo, List<JdbcConnection>> entry = entryIterator.next();
                 String holdHostPortPair = entry.getKey().getHostPortPair();
                 if (this.recycleList.contains(holdHostPortPair)) {
-                    TdsqlDirectLoggerFactory.logDebug("Start close [" + holdHostPortPair + "]'s connections!");
+                    TdsqlLoggerFactory.logDebug("Start close [" + holdHostPortPair + "]'s connections!");
                     for (JdbcConnection jdbcConnection : entry.getValue()) {
                         ConnectionImpl connection = (ConnectionImpl) jdbcConnection;
                         if (connection != null && !connection.isClosed()) {
@@ -384,16 +382,16 @@ public final class TdsqlDirectConnectionManager {
                                 try {
                                     connection.close();
                                 } catch (Exception e) {
-                                    TdsqlDirectLoggerFactory.logError(
+                                    TdsqlLoggerFactory.logError(
                                             "Closing [" + holdHostPortPair + "] connection failed!");
                                 }
                             }
                         }
                     }
                     entryIterator.remove();
-                    TdsqlDirectLoggerFactory.logDebug("Finish close [" + holdHostPortPair + "]'s connections!");
+                    TdsqlLoggerFactory.logDebug("Finish close [" + holdHostPortPair + "]'s connections!");
                 } else {
-                    TdsqlDirectLoggerFactory.logDebug("To closes not in connection holder! NOOP!");
+                    TdsqlLoggerFactory.logDebug("To closes not in connection holder! NOOP!");
                 }
             }
         }

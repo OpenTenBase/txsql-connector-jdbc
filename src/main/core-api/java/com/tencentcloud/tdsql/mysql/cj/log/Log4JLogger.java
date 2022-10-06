@@ -1,12 +1,13 @@
 package com.tencentcloud.tdsql.mysql.cj.log;
 
 import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 public class Log4JLogger implements Log{
     private Logger log;
     public Log4JLogger(String name) {
-        this.log = Logger.getLogger(name);
+        this.log = LogManager.getLogger(name);
     }
 
     public boolean isDebugEnabled() {

@@ -1,12 +1,21 @@
 package com.tencentcloud.tdsql.mysql.cj.log;
 
-import ch.qos.logback.classic.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ *
+ * <p>
+ *     logback不能单独使用，需要搭配日志框架slf4j
+ * </p>
+ */
 
 public class LogbackLogger implements Log{
     private Logger log;
 
     public LogbackLogger(String name) {
-
+        this.log = LoggerFactory.getLogger(name);
     }
 
     public boolean isDebugEnabled() {
