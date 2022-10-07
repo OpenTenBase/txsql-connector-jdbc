@@ -159,7 +159,6 @@ public final class TdsqlDirectTopoServer {
 
     private void createProxyConnection() throws SQLException {
         TdsqlLoggerFactory.logDebug( "Start create proxy connection for refresh topology!");
-        TdsqlLoggerFactory.logDebug(  "seimini------------------------------"+ "Start create proxy connection for refresh topology!");
         if (this.proxyConnection != null && !this.proxyConnection.isClosed() && this.proxyConnection.isValid(1)) {
             TdsqlLoggerFactory.logDebug("Proxy connection seems perfect, NOOP!");
             return;

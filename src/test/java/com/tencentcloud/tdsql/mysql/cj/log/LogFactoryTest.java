@@ -49,7 +49,7 @@ class LogFactoryTest {
 
 
     public void printLog(Log logger){
-        System.out.println(logger.getClass());
+        System.out.println(logger.getClass().getName());
         logger.logInfo("info");
         logger.logDebug("debug");
         logger.logError("error");

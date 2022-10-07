@@ -27,7 +27,7 @@ public class TdSqlDemo_MultiDataSourcePre {
             "&tdsqlDirectMaxSlaveDelaySeconds=200" +
             "&tdsqlDirectTopoRefreshIntervalMillis=500&tdsqlDirectTopoRefreshConnTimeoutMillis=500" +
             "&tdsqlDirectTopoRefreshStmtTimeoutSeconds=1&tdsqlDirectCloseConnTimeoutMillis=500" +
-            "&tdsqlLoadBalanceStrategy=sed&autoReconnect=true";
+            "&tdsqlLoadBalanceStrategy=sed&autoReconnect=true&logger=Slf4JLogger";
     private static final String USERNAME = "qt4s";
     private static final String PASSWORD = "g<m:7KNDF.L1<^1C1";
     private static final DruidDataSource dataSource1 = new DruidDataSource();
@@ -85,7 +85,7 @@ public class TdSqlDemo_MultiDataSourcePre {
         while (true) {
             TimeUnit.MILLISECONDS.sleep(4);
             try {
-                executorService.execute(new QueryTask1());
+//                executorService.execute(new QueryTask1());
                 executorService.execute(new QueryTask2());
             } catch (Exception e) {
                 final long cost_err = System.currentTimeMillis();

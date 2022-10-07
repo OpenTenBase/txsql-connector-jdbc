@@ -40,7 +40,6 @@ public final class TdsqlLoggerFactory {
         propertySet.initializeProperties(properties);
         log = LogFactory.getLogger(propertySet.getStringProperty(PropertyKey.logger).getStringValue(),
                 Log.LOGGER_INSTANCE_NAME);
-        log.isInfoEnabled();
     }
 
     public static void logDebug(Object msg) {

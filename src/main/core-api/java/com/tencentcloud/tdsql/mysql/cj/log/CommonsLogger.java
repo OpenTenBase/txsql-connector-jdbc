@@ -2,7 +2,12 @@ package com.tencentcloud.tdsql.mysql.cj.log;
 
 import org.apache.commons.logging.LogFactory;
 
-
+/**
+ *
+ * <p>
+ *     CommonsLogger为所有的java日志实现提供一个统一的接口，使项目与日志实现解耦
+ * </p>
+ */
 public class CommonsLogger implements Log {
     private org.apache.commons.logging.Log log;
 

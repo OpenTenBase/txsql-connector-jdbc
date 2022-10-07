@@ -63,7 +63,7 @@ public class LogFactory {
         }
 
         try {
-            Class<?> loggerClass = null;
+            Class<?> loggerClass;
 
             try {
                 loggerClass = Class.forName(className);     // classname
@@ -91,129 +91,6 @@ public class LogFactory {
         } catch (ClassCastException cce) {
             throw ExceptionFactory.createException(WrongArgumentException.class,
                     "Logger class '" + className + "' does not implement the '" + Log.class.getName() + "' interface", cce);
-        }
-    }
-
-    //-----------------------------------------------------
-
-    public static Log getLog(Class clazz) {
-        return getLog(clazz.getName());
-    }
-
-    public static Log getLog(String loggerName) {
-        try {
-            return (Log) logConstructor.newInstance(loggerName);
-        } catch (Throwable t) {
-            throw new RuntimeException("Error creating logger for logger '" + loggerName + "'.  Cause: " + t, t);
-        }
-    }
-
-    public static Log getLogger1(String logType, String instanceName) {
-        if (logType == null) {
-            throw ExceptionFactory.createException(WrongArgumentException.class, "Logger class can not be NULL");
-        }
-
-        if (instanceName == null) {
-            throw ExceptionFactory.createException(WrongArgumentException.class, "Logger instance name can not be NULL");
-        }
-        //第一个参数是类型，第二个参数是tdsql-connector
-        if (logType != null) {
-            if (logType.equalsIgnoreCase("Slf4JLogger")) {
-                tryImplementation("org.slf4j.Logger", "com.tencentcloud.tdsql.mysql.cj.log.Slf4JLogger");
-            } else if (logType.equalsIgnoreCase("Log4JLogger")) {
-                tryImplementation("org.apache.log4j.Logger", "com.tencentcloud.tdsql.mysql.cj.log.Log4JLogger");
-            } else if (logType.equalsIgnoreCase("log4J2Logger")) {
-                tryImplementation("org.apache.logging.log4j.Logger", "com.tencentcloud.tdsql.mysql.cj.log.Log4J2Logger");
-            } else if (logType.equalsIgnoreCase("commonsLog")) {
-                tryImplementation("org.apache.commons.logging.LogFactory",
-                        "com.tencentcloud.tdsql.mysql.cj.log.JakartaCommonsLoggingImpl");
-            } else if (logType.equalsIgnoreCase("jdkLog")) {
-                tryImplementation("java.util.logging.Logger", "com.tencentcloud.tdsql.mysql.cj.log.JdkLogger");
-            }
-        }
-        // 优先选择log4j,而非Apache Common Logging. 因为后者无法设置真实Log调用者的信息
-        tryImplementation("org.slf4j.Logger", "com.jd.jdbc.sqlparser.support.logging.SLF4JImpl");
-        tryImplementation("org.apache.log4j.Logger", "com.jd.jdbc.sqlparser.support.logging.Log4jImpl");
-        tryImplementation("org.apache.logging.log4j.Logger", "com.jd.jdbc.sqlparser.support.logging.Log4j2Impl");
-        tryImplementation("org.apache.commons.logging.LogFactory",
-                "com.jd.jdbc.sqlparser.support.logging.JakartaCommonsLoggingImpl");
-        tryImplementation("java.util.logging.Logger", "com.jd.jdbc.sqlparser.support.logging.Jdk14LoggingImpl");
-
-        if (logConstructor == null) {
-            try {
-//                logConstructor = NoLoggingImpl.class.getConstructor(String.class);
-                logConstructor = NullLogger.class.getConstructor(String.class);
-            } catch (Exception e) {
-                throw new IllegalStateException(e.getMessage(), e);
-            }
-        }
-        try {
-            return (Log) logConstructor.newInstance(instanceName);
-        } catch (Throwable t) {
-            throw new RuntimeException("Error creating logger for logger '" + instanceName + "'.  Cause: " + t, t);
-        }
-
-    }
-
-    public static Constructor setAndGetLogConstructor(String logType){
-        if (logType != null) {
-            if (logType.equalsIgnoreCase("Slf4JLogger")) {
-                tryImplementation("org.slf4j.Logger", "com.tencentcloud.tdsql.mysql.cj.log.Slf4JLogger");
-            } else if (logType.equalsIgnoreCase("Log4JLogger")) {
-                tryImplementation("org.apache.log4j.Logger", "com.tencentcloud.tdsql.mysql.cj.log.Log4JLogger");
-            } else if (logType.equalsIgnoreCase("log4J2Logger")) {
-                tryImplementation("org.apache.logging.log4j.Logger", "com.tencentcloud.tdsql.mysql.cj.log.Log4J2Logger");
-            } else if (logType.equalsIgnoreCase("commonsLog")) {
-                tryImplementation("org.apache.commons.logging.LogFactory",
-                        "com.jd.jdbc.sqlparser.support.logging.JakartaCommonsLoggingImpl");
-            } else if (logType.equalsIgnoreCase("jdkLog")) {
-                tryImplementation("java.util.logging.Logger", "com.jd.jdbc.sqlparser.support.logging.Jdk14LoggingImpl");
-            }
-        }
-        // 优先选择log4j,而非Apache Common Logging. 因为后者无法设置真实Log调用者的信息
-        tryImplementation("org.slf4j.Logger", "com.jd.jdbc.sqlparser.support.logging.SLF4JImpl");
-        tryImplementation("org.apache.log4j.Logger", "com.jd.jdbc.sqlparser.support.logging.Log4jImpl");
-        tryImplementation("org.apache.logging.log4j.Logger", "com.jd.jdbc.sqlparser.support.logging.Log4j2Impl");
-        tryImplementation("org.apache.commons.logging.LogFactory",
-                "com.jd.jdbc.sqlparser.support.logging.JakartaCommonsLoggingImpl");
-        tryImplementation("java.util.logging.Logger", "com.jd.jdbc.sqlparser.support.logging.Jdk14LoggingImpl");
-
-        if (logConstructor == null) {
-            try {
-//                logConstructor = NoLoggingImpl.class.getConstructor(String.class);
-                logConstructor = NullLogger.class.getConstructor(String.class);
-            } catch (Exception e) {
-                throw new IllegalStateException(e.getMessage(), e);
-            }
-        }
-        return logConstructor;
-    }
-
-    private static void tryImplementation(String testClassName, String implClassName) {
-        if (logConstructor != null) {
-            return;
-        }
-
-        try {
-            Resources.classForName(testClassName);
-            Class implClass = Resources.classForName(implClassName);
-            logConstructor = implClass.getConstructor(new Class[]{String.class});
-
-            Class<?> declareClass = logConstructor.getDeclaringClass();
-            if (!Log.class.isAssignableFrom(declareClass)) {
-                logConstructor = null;
-            }
-
-            try {
-                if (null != logConstructor) {
-                    logConstructor.newInstance(LogFactory.class.getName());
-                }
-            } catch (Throwable t) {
-                logConstructor = null;
-            }
-
-        } catch (Throwable t) {
-            // skip
         }
     }
 }
