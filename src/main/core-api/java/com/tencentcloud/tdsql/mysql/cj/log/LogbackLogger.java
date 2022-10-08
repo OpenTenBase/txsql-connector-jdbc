@@ -1,9 +1,9 @@
 package com.tencentcloud.tdsql.mysql.cj.log;
 
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
 import org.apache.commons.logging.impl.LogFactoryImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -13,10 +13,10 @@ import org.slf4j.LoggerFactory;
  */
 
 public class LogbackLogger implements Log{
-    private org.apache.commons.logging.Log log;
+    private Logger log;
 
     public LogbackLogger(String name) {
-        this.log = LogFactoryImpl.getLog(name);
+        this.log = new LoggerContext().getLogger(name);
     }
 
     public boolean isDebugEnabled() {
