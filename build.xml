@@ -352,7 +352,7 @@
             <arg value="-version" />
         </exec>
 
-        <fail message="Java 8 is required. Set the full path to this JDK home with the property 'com.tencentcloud.tdsql.mysql.cj.build.jdk'. Default: '/opt/jdk1.8.0_341').">
+        <fail message="Java 8 is required. Set the full path to this JDK home with the property 'com.tencentcloud.tdsql.mysql.cj.build.jdk'. Default: '/usr/lib/jvm/jdk1.8').">
             <condition>
                 <not>
                     <and>
