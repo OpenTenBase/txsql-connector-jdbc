@@ -13,12 +13,11 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetCache;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.exception.TdsqlNoBackendInstanceException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectDataSourceCounter;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlDirectLoadBalanceStrategyFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlBalanceStrategyFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.*;
 import java.sql.SQLException;
 import java.util.*;
@@ -65,7 +64,7 @@ public final class TdsqlDirectConnectionManager {
                     MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, null);
         }
         String strategy = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(), "sed");
-        this.balancer = TdsqlDirectLoadBalanceStrategyFactory.getInstance().getStrategyInstance(strategy);
+        this.balancer = TdsqlBalanceStrategyFactory.getInstance().getStrategyInstance(strategy);
 
         TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer();
         TdsqlDirectReadWriteMode readWriteMode = convert(topoServer.getTdsqlDirectReadWriteMode());

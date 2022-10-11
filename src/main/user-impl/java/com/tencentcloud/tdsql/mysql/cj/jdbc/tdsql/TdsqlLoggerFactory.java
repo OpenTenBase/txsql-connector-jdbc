@@ -36,6 +36,18 @@ public final class TdsqlLoggerFactory {
         properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatIntervalTimeMillis.getKeyName());
         properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatMaxErrorRetries.getKeyName());
         properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectReadWriteMode.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectTopoRefreshConnTimeoutMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectTopoRefreshStmtTimeoutSeconds.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectCloseConnTimeoutMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectHeartbeatMonitorEnable.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectHeartbeatIntervalTimeMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectHeartbeatMaxErrorRetries.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlQueryAttributesEnable.getKeyName());
         PropertySet propertySet = new JdbcPropertySetImpl();
         propertySet.initializeProperties(properties);
         log = LogFactory.getLogger(propertySet.getStringProperty(PropertyKey.logger).getStringValue(),

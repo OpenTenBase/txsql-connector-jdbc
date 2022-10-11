@@ -4,7 +4,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -24,6 +23,7 @@ public class TdsqlLoadBalanceInfo {
      */
     private String datasourceUuid;
     private List<TdsqlHostInfo> tdsqlHostInfoList;
+    private String tdsqlLoadBalanceStrategy;
     private List<Integer> tdsqlLoadBalanceWeightFactorList;
     private boolean tdsqlLoadBalanceHeartbeatMonitorEnable;
     private int tdsqlLoadBalanceHeartbeatIntervalTimeMillis;
@@ -83,6 +83,14 @@ public class TdsqlLoadBalanceInfo {
         for (TdsqlHostInfo tdsqlHostInfo : this.tdsqlHostInfoList) {
             tdsqlHostInfo.setOwnerUuid(this.datasourceUuid);
         }
+    }
+
+    public String getTdsqlLoadBalanceStrategy() {
+        return tdsqlLoadBalanceStrategy;
+    }
+
+    public void setTdsqlLoadBalanceStrategy(String tdsqlLoadBalanceStrategy) {
+        this.tdsqlLoadBalanceStrategy = tdsqlLoadBalanceStrategy;
     }
 
     public void setTdsqlLoadBalanceWeightFactorList(List<Integer> tdsqlLoadBalanceWeightFactorList) {
@@ -159,14 +167,16 @@ public class TdsqlLoadBalanceInfo {
                 == that.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis
                 && datasourceUuid.equals(that.datasourceUuid)
                 && tdsqlHostInfoList.equals(that.tdsqlHostInfoList)
-                && tdsqlLoadBalanceWeightFactorList.equals(that.tdsqlLoadBalanceWeightFactorList);
+                && tdsqlLoadBalanceWeightFactorList.equals(that.tdsqlLoadBalanceWeightFactorList)
+                && tdsqlLoadBalanceStrategy.equalsIgnoreCase(that.tdsqlLoadBalanceStrategy);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(datasourceUuid, tdsqlHostInfoList, tdsqlLoadBalanceWeightFactorList,
-                tdsqlLoadBalanceHeartbeatMonitorEnable, tdsqlLoadBalanceHeartbeatIntervalTimeMillis,
-                tdsqlLoadBalanceHeartbeatMaxErrorRetries, tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis);
+        return Objects.hash(datasourceUuid, tdsqlHostInfoList, tdsqlLoadBalanceStrategy,
+                tdsqlLoadBalanceWeightFactorList, tdsqlLoadBalanceHeartbeatMonitorEnable,
+                tdsqlLoadBalanceHeartbeatIntervalTimeMillis, tdsqlLoadBalanceHeartbeatMaxErrorRetries,
+                tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis);
     }
 
     @Override
@@ -174,6 +184,7 @@ public class TdsqlLoadBalanceInfo {
         return "TdsqlLoadBalanceInfo{" +
                 "datasourceUuid='" + datasourceUuid + '\'' +
                 ", tdsqlHostInfoList=" + tdsqlHostInfoList +
+                ", tdsqlLoadBalanceStrategy='" + tdsqlLoadBalanceStrategy + '\'' +
                 ", tdsqlLoadBalanceWeightFactorList=" + tdsqlLoadBalanceWeightFactorList +
                 ", tdsqlLoadBalanceHeartbeatMonitorEnable=" + tdsqlLoadBalanceHeartbeatMonitorEnable +
                 ", tdsqlLoadBalanceHeartbeatIntervalTimeMillis=" + tdsqlLoadBalanceHeartbeatIntervalTimeMillis +

@@ -10,7 +10,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlDirectLoadBalanceStrategyFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlBalanceStrategyFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +47,7 @@ class TdsqlDirectConnectionManagerTest {
     static TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = TdsqlAtomicLongMap.create();
     @Test
     public void TestFailOver() throws SQLException {
-        TdsqlDirectLoadBalanceStrategyFactory instance = TdsqlDirectLoadBalanceStrategyFactory.getInstance();
+        TdsqlBalanceStrategyFactory instance = TdsqlBalanceStrategyFactory.getInstance();
         TdsqlLoadBalanceStrategy lc = instance.getStrategyInstance("Lc");
         JdbcConnection newConnection = createNewConnection(lc , true);
         System.out.println(newConnection);

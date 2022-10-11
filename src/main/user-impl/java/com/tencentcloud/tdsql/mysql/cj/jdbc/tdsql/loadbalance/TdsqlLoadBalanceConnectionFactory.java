@@ -4,10 +4,10 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBa
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_MAX_ERROR_RETRIES;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_LC;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE_FALSE;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE_TRUE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_LC;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
 
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
@@ -20,6 +20,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlBalanceStrategyFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlSedBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 import java.sql.SQLException;
@@ -133,7 +134,8 @@ public final class TdsqlLoadBalanceConnectionFactory {
         }
 
         // 初始化负载均衡算法策略对象，目前支持SED算法策略，如果后续算法策略扩展，这里会做相应的修改
-        TdsqlLoadBalanceStrategy strategy = new TdsqlSedBalanceStrategy();
+        TdsqlLoadBalanceStrategy strategy = TdsqlBalanceStrategyFactory.getInstance()
+                .getStrategyInstance(tdsqlLoadBalanceInfo.getTdsqlLoadBalanceStrategy());
         // 根据全局连接计数器，执行负载均衡算法策略，选择出一个需要建立数据库连接的IP地址
         TdsqlHostInfo choice = strategy.choice(
                 TdsqlLoadBalanceConnectionCounter.getInstance()
@@ -189,7 +191,8 @@ public final class TdsqlLoadBalanceConnectionFactory {
         tdsqlLoadBalanceInfo.setTdsqlHostInfoList(tdsqlHostInfoList);
 
         // 解析并校验“策略算法”参数，目前允许设置为"SED"或者"LC"
-        String tdsqlLoadBalanceStrategyStr = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName());
+        String tdsqlLoadBalanceStrategyStr = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(),
+                TDSQL_LOAD_BALANCE_STRATEGY_SED);
         if (!TDSQL_LOAD_BALANCE_STRATEGY_SED.equalsIgnoreCase(tdsqlLoadBalanceStrategyStr)
                 && !TDSQL_LOAD_BALANCE_STRATEGY_LC.equalsIgnoreCase(tdsqlLoadBalanceStrategyStr)) {
             String errMessage = Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceStrategy",
@@ -199,6 +202,7 @@ public final class TdsqlLoadBalanceConnectionFactory {
             throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE,
                     null);
         }
+        tdsqlLoadBalanceInfo.setTdsqlLoadBalanceStrategy(tdsqlLoadBalanceStrategyStr);
 
         // 由于负载因子需要与IP地址一一对应，因此加入了一些必要的处理逻辑
         // 1.当负载因子少于IP地址的个数时，缺少的负载因子会被赋值为默认值1

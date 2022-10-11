@@ -57,7 +57,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public final class TdsqlDirectTopoServer {
 
-    private String ownerUuid;
+    private final String ownerUuid;
     private ScheduledThreadPoolExecutor topoServerScheduler = null;
     private String tdsqlDirectReadWriteMode = TDSQL_DIRECT_READ_WRITE_MODE_RW;
     private Integer tdsqlDirectMaxSlaveDelaySeconds = TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
@@ -177,9 +177,7 @@ public final class TdsqlDirectTopoServer {
         LoadBalanceConnectionUrl myConnUrl = new LoadBalanceConnectionUrl(connectionUrl.getHostsList(), config);
         try {
             this.proxyConnection = LoadBalancedConnectionProxy.createProxyInstance(myConnUrl);
-            if (!this.proxyConnection.isClosed() && this.proxyConnection.isValid(1)) {
-                TdsqlLoggerFactory.setLogger(((JdbcConnection) this.proxyConnection).getSession().getLog());
-            } else {
+            if (this.proxyConnection.isClosed() || !this.proxyConnection.isValid(3)) {
                 TdsqlLoggerFactory.logError(errMsg);
                 throw SQLError.createSQLException(Messages.getString("Connection.UnableToConnect"),
                         MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
@@ -192,11 +190,11 @@ public final class TdsqlDirectTopoServer {
     }
 
     private void getTopology() throws SQLException {
-        if (this.proxyConnection == null || this.proxyConnection.isClosed() || !this.proxyConnection.isValid(1)) {
-            TdsqlLoggerFactory.logDebug("Proxy connection is invalid, reconnection it!");
+        if (this.proxyConnection == null || this.proxyConnection.isClosed() || !this.proxyConnection.isValid(3)) {
+            TdsqlLoggerFactory.logWarn("Proxy connection is invalid, reconnection it!");
             try {
                 this.proxyConnection.close();
-            } catch (SQLException e) {
+            } catch (Throwable e) {
                 // ignore
             } finally {
                 createProxyConnection();
@@ -286,7 +284,7 @@ public final class TdsqlDirectTopoServer {
     }
 
     private static class TopoRefreshTask extends AbstractTdsqlCaughtRunnable {
-        private String ownerUuid;
+        private final String ownerUuid;
         public TopoRefreshTask(String ownerUuid){
             this.ownerUuid = ownerUuid;
         }

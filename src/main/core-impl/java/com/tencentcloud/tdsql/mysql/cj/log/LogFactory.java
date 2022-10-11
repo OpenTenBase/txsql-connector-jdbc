@@ -29,27 +29,23 @@
 
 package com.tencentcloud.tdsql.mysql.cj.log;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
 import com.tencentcloud.tdsql.mysql.cj.util.Util;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * Creates instances of loggers for the driver to use.
  */
 public class LogFactory {
-    private static Constructor logConstructor;
 
     /**
      * Returns a logger instance of the given class, with the given instance
      * name.
-     * 
-     * @param className
-     *            the class to instantiate
-     * @param instanceName
-     *            the instance name
+     *
+     * @param className the class to instantiate
+     * @param instanceName the instance name
      * @return a logger instance
      */
     public static Log getLogger(String className, String instanceName) {
@@ -59,38 +55,38 @@ public class LogFactory {
         }
 
         if (instanceName == null) {
-            throw ExceptionFactory.createException(WrongArgumentException.class, "Logger instance name can not be NULL");
+            throw ExceptionFactory.createException(WrongArgumentException.class,
+                    "Logger instance name can not be NULL");
         }
 
         try {
             Class<?> loggerClass;
 
             try {
-                loggerClass = Class.forName(className);     // classname
+                loggerClass = Class.forName(className);
             } catch (ClassNotFoundException nfe) {
                 loggerClass = Class.forName(Util.getPackageName(LogFactory.class) + "." + className);
             }
 
-            Constructor<?> constructor = loggerClass.getConstructor(new Class<?>[] { String.class });
+            Constructor<?> constructor = loggerClass.getConstructor(String.class);
 
-            return (Log) constructor.newInstance(new Object[] { instanceName });    // 实例名称
-        } catch (ClassNotFoundException cnfe) {
-            throw ExceptionFactory.createException(WrongArgumentException.class, "Unable to load class for logger '" + className + "'", cnfe);
-        } catch (NoSuchMethodException nsme) {
+            return (Log) constructor.newInstance(new Object[]{instanceName});
+        } catch (ClassNotFoundException e1) {
             throw ExceptionFactory.createException(WrongArgumentException.class,
-                    "Logger class does not have a single-arg constructor that takes an instance name", nsme);
-        } catch (InstantiationException inse) {
+                    "Unable to load class for logger '" + className + "'", e1);
+        } catch (NoSuchMethodException e2) {
+            throw ExceptionFactory.createException(WrongArgumentException.class,
+                    "Logger class does not have a single-arg constructor that takes an instance name", e2);
+        } catch (InstantiationException | InvocationTargetException inse) {
             throw ExceptionFactory.createException(WrongArgumentException.class,
                     "Unable to instantiate logger class '" + className + "', exception in constructor?", inse);
-        } catch (InvocationTargetException ite) {
+        } catch (IllegalAccessException e3) {
             throw ExceptionFactory.createException(WrongArgumentException.class,
-                    "Unable to instantiate logger class '" + className + "', exception in constructor?", ite);
-        } catch (IllegalAccessException iae) {
+                    "Unable to instantiate logger class '" + className + "', constructor not public", e3);
+        } catch (ClassCastException e4) {
             throw ExceptionFactory.createException(WrongArgumentException.class,
-                    "Unable to instantiate logger class '" + className + "', constructor not public", iae);
-        } catch (ClassCastException cce) {
-            throw ExceptionFactory.createException(WrongArgumentException.class,
-                    "Logger class '" + className + "' does not implement the '" + Log.class.getName() + "' interface", cce);
+                    "Logger class '" + className + "' does not implement the '" + Log.class.getName() + "' interface",
+                    e4);
         }
     }
 }
