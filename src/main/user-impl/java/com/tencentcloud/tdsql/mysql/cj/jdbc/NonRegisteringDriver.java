@@ -29,7 +29,7 @@
 
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_STRATEGY;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
 import static com.tencentcloud.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
 
 import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
@@ -57,7 +57,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
-import com.tencentcloud.tdsql.mysql.cj.log.LogFactory;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 
 /**
@@ -225,7 +224,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
 
                         // 判断是否使用了正确的负载均衡策略算法
                         String strategy = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(), null);
-                        if (!DEFAULT_TDSQL_LOAD_BALANCE_STRATEGY.equalsIgnoreCase(strategy)) {
+                        if (!TDSQL_LOAD_BALANCE_STRATEGY_SED.equalsIgnoreCase(strategy)) {
                             String errMessage =
                                     Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceStrategy",
                                             new Object[]{strategy}) + Messages.getString(

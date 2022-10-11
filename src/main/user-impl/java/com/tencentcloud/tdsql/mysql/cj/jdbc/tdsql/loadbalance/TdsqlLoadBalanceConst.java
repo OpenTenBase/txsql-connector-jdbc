@@ -7,7 +7,8 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance;
  */
 public final class TdsqlLoadBalanceConst {
 
-    public static final String DEFAULT_TDSQL_LOAD_BALANCE_STRATEGY = "sed";
+    public static final String TDSQL_LOAD_BALANCE_STRATEGY_SED = "sed";
+    public static final String TDSQL_LOAD_BALANCE_STRATEGY_LC = "lc";
     public static final Boolean DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_MONITOR_ENABLE = true;
     public static final Integer DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS = 3000;
     public static final Integer DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_MAX_ERROR_RETRIES = 1;
