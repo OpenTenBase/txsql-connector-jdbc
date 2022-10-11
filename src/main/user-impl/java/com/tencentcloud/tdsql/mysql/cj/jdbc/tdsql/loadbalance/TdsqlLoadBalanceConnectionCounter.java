@@ -4,7 +4,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,8 +39,9 @@ public class TdsqlLoadBalanceConnectionCounter {
         if (!this.counterDatasourceMap.containsKey(datasourceUuid)) {
             TdsqlAtomicLongMap<TdsqlHostInfo> counter = TdsqlAtomicLongMap.create();
             for (TdsqlHostInfo tdsqlHostInfo : tdsqlLoadBalanceInfo.getTdsqlHostInfoList()) {
-//                counter.put(tdsqlHostInfo, 0L);
-                //在本类中，所有的put方法，都从之前put一个Long类型修改为一个NodeMsg实例，因为isMaster字段在该功能中不重要，所以将其设为null
+                // counter.put(tdsqlHostInfo, 0L);
+                // 在本类中，所有的put方法，都从之前put一个Long类型修改为一个NodeMsg实例，
+                // 因为isMaster字段在该功能中不重要，所以将其设为null
                 counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
             }
             this.counterDatasourceMap.put(datasourceUuid, counter);
@@ -80,20 +80,21 @@ public class TdsqlLoadBalanceConnectionCounter {
         try {
             TdsqlAtomicLongMap<TdsqlHostInfo> counter = this.counterDatasourceMap.get(tdsqlHostInfo.getOwnerUuid());
             if (!counter.containsKey(tdsqlHostInfo)) {
-//                counter.put(tdsqlHostInfo, 1L);
+                // counter.put(tdsqlHostInfo, 1L);
                 counter.put(tdsqlHostInfo, new NodeMsg(1L, null));
                 TdsqlLoggerFactory.logInfo(
                         "Increment counter to 1 success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
                                 + this.printCounter() + "]");
+            } else {
                 NodeMsg nodeMsg = counter.incrementAndGet(tdsqlHostInfo);
-                //新增一个判空逻辑
-                if(nodeMsg != null){
+                // 新增一个判空逻辑
+                if (nodeMsg != null) {
                     long currCount = nodeMsg.getCount();
                     TdsqlLoggerFactory.logInfo(
                             "Increment counter to " + currCount + " success [" + tdsqlHostInfo.getHostPortPair()
                                     + "], current counter [" + this.printCounter() + "]");
-                }else {
-                    TdsqlLoggerFactory.logInfo("the scheduleQueue does't have tdsqlHostInfo!");
+                } else {
+                    TdsqlLoggerFactory.logInfo("the scheduleQueue doesn't have tdsqlHostInfo!");
                 }
 
             }
@@ -117,24 +118,24 @@ public class TdsqlLoadBalanceConnectionCounter {
         try {
             TdsqlAtomicLongMap<TdsqlHostInfo> counter = this.counterDatasourceMap.get(tdsqlHostInfo.getOwnerUuid());
             if (!counter.containsKey(tdsqlHostInfo)) {
-//                counter.put(tdsqlHostInfo, 0L);
+                // counter.put(tdsqlHostInfo, 0L);
                 counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
                 TdsqlLoggerFactory.logInfo(
                         "Decrement counter to 0 success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
                                 + this.printCounter() + "]");
             } else {
                 NodeMsg nodeMsg = counter.decrementAndGet(tdsqlHostInfo);
-                if (nodeMsg != null){
+                if (nodeMsg != null) {
                     long currCount = nodeMsg.getCount();
                     if (currCount < 0) {
-//                        counter.put(tdsqlHostInfo, 0L);
+                        // counter.put(tdsqlHostInfo, 0L);
                         counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
                     }
                     TdsqlLoggerFactory.logInfo(
                             "Decrement counter to " + currCount + " success [" + tdsqlHostInfo.getHostPortPair()
                                     + "], current counter [" + this.printCounter() + "]");
-                }else {
-                    TdsqlLoggerFactory.logInfo("the scheduleQueue does't have tdsqlHostInfo!");
+                } else {
+                    TdsqlLoggerFactory.logInfo("the scheduleQueue doesn't have tdsqlHostInfo!");
                 }
 
             }
@@ -156,7 +157,7 @@ public class TdsqlLoadBalanceConnectionCounter {
         this.counterLock.writeLock().lock();
         try {
             TdsqlAtomicLongMap<TdsqlHostInfo> counter = this.counterDatasourceMap.get(tdsqlHostInfo.getOwnerUuid());
-//            counter.put(tdsqlHostInfo, 0L);
+            // counter.put(tdsqlHostInfo, 0L);
             counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
             TdsqlLoggerFactory.logInfo(
                     "Reset counter to 0 success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
@@ -197,10 +198,10 @@ public class TdsqlLoadBalanceConnectionCounter {
                 for (Entry<TdsqlHostInfo, NodeMsg> mapEntry : value.asMap().entrySet()) {
                     String hostPortPair = mapEntry.getKey().getHostPortPair();
                     NodeMsg nodeMsg = mapEntry.getValue();
-                    if (nodeMsg != null){
+                    if (nodeMsg != null) {
                         Long count = nodeMsg.getCount();
                         hostCount.add(hostPortPair + "=" + count);
-                    }else{
+                    } else {
                         TdsqlLoggerFactory.logInfo("the scheduleQueue does't have tdsqlHostInfo!");
                     }
 

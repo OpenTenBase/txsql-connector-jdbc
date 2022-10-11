@@ -35,15 +35,21 @@ import tdsql.loadbalance.base.BaseTest;
  */
 public class FailoverTest extends BaseTest {
 
-    private String jdbcUrl = "jdbc:tdsql-mysql:loadbalance://9.30.1.231:15006,9.30.1.207:15006/db1?";
+    private String jdbcUrl = "jdbc:tdsql-mysql:loadbalance:" +
+            "//9.30.0.250:15023,9.30.2.116:15023/test" +
+            "?tdsqlLoadBalanceStrategy=sed" +
+            "&logger=Slf4JLogger" +
+            "&tdsqlLoadBalanceWeightFactor=1,1" +
+            "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
+            "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000";
 
     @Test
     public void case01() throws Exception {
         Properties prop = new Properties();
         prop.setProperty(PROP_DRIVERCLASSNAME, DRIVER_CLASS_NAME);
         prop.setProperty(PROP_URL, jdbcUrl);
-        prop.setProperty(PROP_USERNAME, "joseph");
-        prop.setProperty(PROP_PASSWORD, "Aaaaaaaa1!");
+        prop.setProperty(PROP_USERNAME, "qt4s");
+        prop.setProperty(PROP_PASSWORD, "g<m:7KNDF.L1<^1C");
         prop.setProperty(PROP_INITIALSIZE, "20");
         prop.setProperty(PROP_MINIDLE, "20");
         prop.setProperty(PROP_MAXACTIVE, "20");
@@ -57,8 +63,8 @@ public class FailoverTest extends BaseTest {
         HikariConfig config = new HikariConfig();
         config.setDriverClassName(DRIVER_CLASS_NAME);
         config.setJdbcUrl(jdbcUrl);
-        config.setUsername("joseph");
-        config.setPassword("Aaaaaaaa1!");
+        config.setUsername("qt4s");
+        config.setPassword("g<m:7KNDF.L1<^1C");
         config.setMinimumIdle(20);
         config.setMaximumPoolSize(20);
         config.setMaxLifetime(30000);
