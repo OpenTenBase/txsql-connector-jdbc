@@ -186,7 +186,7 @@ public final class TdsqlLoadBalanceConnectionFactory {
         TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo = new TdsqlLoadBalanceInfo();
         tdsqlLoadBalanceInfo.setTdsqlHostInfoList(tdsqlHostInfoList);
 
-        // 解析并校验“策略算法”参数，目前仅允许设置为"SED"
+        // 解析并校验“策略算法”参数，目前允许设置为"SED"或者"LC"
         String tdsqlLoadBalanceStrategyStr = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName());
         if (!TDSQL_LOAD_BALANCE_STRATEGY_SED.equalsIgnoreCase(tdsqlLoadBalanceStrategyStr)
                 && !TDSQL_LOAD_BALANCE_STRATEGY_LC.equalsIgnoreCase(tdsqlLoadBalanceStrategyStr)) {
