@@ -97,35 +97,37 @@ public final class TdsqlLoadBalanceConnectionFactory {
             // 对于每一个DataSource，该逻辑只会生效一次
             // 这时，如果IP地址无法建立数据库连接，则该IP地址会被加入黑名单
             // 同时，该IP地址会在全局连接计数器中被移除，被移除的IP地址在之后的负载均衡算法策略中不会被调度
-            CountDownLatch firstCheckFinished = TdsqlLoadBalanceHeartbeatMonitor.getInstance()
+            List<CountDownLatch> latchList = TdsqlLoadBalanceHeartbeatMonitor.getInstance()
                     .getFirstCheckFinished(tdsqlLoadBalanceInfo.getDatasourceUuid());
-            if (firstCheckFinished.getCount() != 0L) {
-                try {
-                    // 考虑到有可能在第一次心跳检测时，存在建立数据库连接无法及时响应返回的情况（表象是建立连接卡住）
-                    // 在这里设置了等待检测结果的超时时间，设置为了需要检测的IP地址个数乘以重试次数加一次再乘以2秒
-                    // 之所以乘以2秒，是因为心跳检测建立连接的超时时间为1秒，之后执行检测SQL语句的超时时间也为1秒
-                    // 因为多个IP地址的检测时并行进行的，因此等待超时设置为该值也就变得足够了
-                    boolean await = firstCheckFinished.await(tdsqlLoadBalanceInfo.getTdsqlHostInfoList().size() * (
-                                    tdsqlLoadBalanceInfo.getTdsqlLoadBalanceHeartbeatMaxErrorRetries() + 1) * 2L,
-                            TimeUnit.SECONDS);
-                    // 如果等待第一次心跳检测结果超时了，说明应用程序在第一次启动时，网络环境或者后端数据库存在异常
-                    // 此时，我们会记录错误级别的日志，同时抛出异常阻止应用程序建立连接
-                    if (!await) {
+            for (CountDownLatch latch : latchList) {
+                if (latch.getCount() != 0L) {
+                    try {
+                        // 考虑到有可能在第一次心跳检测时，存在建立数据库连接无法及时响应返回的情况（表象是建立连接卡住）
+                        // 在这里设置了等待检测结果的超时时间，设置为了需要检测的IP地址个数乘以重试次数加一次再乘以2秒
+                        // 之所以乘以2秒，是因为心跳检测建立连接的超时时间为1秒，之后执行检测SQL语句的超时时间也为1秒
+                        // 因为多个IP地址的检测时并行进行的，因此等待超时设置为该值也就变得足够了
+                        boolean await = latch.await(tdsqlLoadBalanceInfo.getTdsqlHostInfoList().size() * (
+                                        tdsqlLoadBalanceInfo.getTdsqlLoadBalanceHeartbeatMaxErrorRetries() + 1) * 2L,
+                                TimeUnit.SECONDS);
+                        // 如果等待第一次心跳检测结果超时了，说明应用程序在第一次启动时，网络环境或者后端数据库存在异常
+                        // 此时，我们会记录错误级别的日志，同时抛出异常阻止应用程序建立连接
+                        if (!await) {
+                            String errMessage = "Wait for first heartbeat check finished timeout!";
+                            TdsqlLoggerFactory.logError(errMessage);
+                            throw SQLError.createSQLException(errMessage,
+                                    MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
+                        } else {
+                            TdsqlLoggerFactory.logInfo(
+                                    "All host in current datasource has finished first heartbeat checked! "
+                                            + "Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
+                                            .printBlacklist() + "]");
+                        }
+                    } catch (InterruptedException e) {
                         String errMessage = "Wait for first heartbeat check finished timeout!";
-                        TdsqlLoggerFactory.logError(errMessage);
+                        TdsqlLoggerFactory.logError(errMessage, e);
                         throw SQLError.createSQLException(errMessage,
                                 MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
-                    } else {
-                        TdsqlLoggerFactory.logInfo(
-                                "All host in current datasource has finished first heartbeat checked! "
-                                        + "Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
-                                        .printBlacklist() + "]");
                     }
-                } catch (InterruptedException e) {
-                    String errMessage = "Wait for first heartbeat check finished timeout!";
-                    TdsqlLoggerFactory.logError(errMessage, e);
-                    throw SQLError.createSQLException(errMessage,
-                            MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
                 }
             }
         }

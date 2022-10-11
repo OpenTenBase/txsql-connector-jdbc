@@ -9,8 +9,10 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlThreadFactoryBuilder;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -46,7 +48,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
     private TdsqlLoadBalanceHeartbeatMonitor() {
     }
 
-    public void initialize(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) {
+    public synchronized void initialize(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) {
         // 仅初始化一次，建立核心线程数为10的调度任务线程池，之后的心跳检测任务都会提交到这个线程池去执行
         // 核心线程数设置为10是考虑到，如果存在多个数据源，并且每个数据源都使用负载均衡建立连接的情况
         // 如果只有一个数据源，这种情况比较普遍，大概率配置的IP地址个数达不到核心线程数
@@ -63,15 +65,26 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         // 根据生成的DataSourceUuid，初始化第一次心跳检测完成计数器
         // 计数器的大小设置为该DataSource里面配置的IP地址的个数，每个IP地址心跳检测完成后，计数器递减
         String datasourceUuid = tdsqlLoadBalanceInfo.getDatasourceUuid();
-        if (!this.firstCheckFinishedMap.containsKey(datasourceUuid)) {
-            this.firstCheckFinishedMap.put(datasourceUuid,
-                    new CountDownLatch(tdsqlLoadBalanceInfo.getTdsqlHostInfoList().size()));
-            TdsqlLoggerFactory.logInfo("Found new datasource [" + datasourceUuid + "]");
+        Set<String> ipPortSet = TdsqlLoadBalanceInfo.parseDatasourceUuid(datasourceUuid);
+        // 取出DataSourceUuid中的IP和端口字符串列表，逐一判断
+        for (String ipPortStr : ipPortSet) {
+            if (firstCheckFinishedMap.containsKey(ipPortStr)) {
+                continue;
+            }
+            this.firstCheckFinishedMap.put(ipPortStr, new CountDownLatch(1));
+            TdsqlLoggerFactory.logInfo("Found new host [" + ipPortStr + "] in [" + datasourceUuid + "]");
         }
 
         // 判断IP地址列表中的IP地址是否已经加入过心跳检测任务，避免相同的IP地址重复加入
         for (TdsqlHostInfo tdsqlHostInfo : tdsqlLoadBalanceInfo.getTdsqlHostInfoList()) {
-            if (this.monitoredTdsqlHostInfoSet.contains(tdsqlHostInfo)) {
+            boolean hasMonitored = false;
+            for (TdsqlHostInfo monitoredInfo : monitoredTdsqlHostInfoSet) {
+                if (monitoredInfo.getHostPortPair().equalsIgnoreCase(tdsqlHostInfo.getHostPortPair())) {
+                    hasMonitored = true;
+                    break;
+                }
+            }
+            if (hasMonitored) {
                 continue;
             }
             this.heartbeatMonitor.scheduleWithFixedDelay(new HeartbeatMonitorTask(tdsqlHostInfo,
@@ -80,13 +93,20 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                             this.firstCheckFinishedMap), 0L,
                     tdsqlLoadBalanceInfo.getTdsqlLoadBalanceHeartbeatIntervalTimeMillis(), TimeUnit.MILLISECONDS);
             this.monitoredTdsqlHostInfoSet.add(tdsqlHostInfo);
-            TdsqlLoggerFactory.logInfo("Add new host to heartbeat monitor. [ds: " + datasourceUuid + ", host:"
-                    + tdsqlHostInfo.getHostPortPair() + "]");
+            TdsqlLoggerFactory.logInfo(
+                    "Add new host [" + tdsqlHostInfo.getHostPortPair() + "] to heartbeat monitor. [ds: "
+                            + datasourceUuid + ", host:" + tdsqlHostInfo.getHostPortPair() + "]");
         }
     }
 
-    public CountDownLatch getFirstCheckFinished(String datasourceUuid) {
-        return this.firstCheckFinishedMap.get(datasourceUuid);
+    public List<CountDownLatch> getFirstCheckFinished(String datasourceUuid) {
+        List<CountDownLatch> latchList = new ArrayList<>();
+        for (String ipPort : TdsqlLoadBalanceInfo.parseDatasourceUuid(datasourceUuid)) {
+            if (this.firstCheckFinishedMap.containsKey(ipPort)) {
+                latchList.add(this.firstCheckFinishedMap.get(ipPort));
+            }
+        }
+        return latchList;
     }
 
     /**
@@ -157,7 +177,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                         // 并根据该IP地址所属的DataSourceUuid，获取到第一次心跳检测计数器，对其进行更新
                         if (this.isFirstCheck) {
                             this.isFirstCheck = false;
-                            this.firstCheckFinishedMap.get(tdsqlHostInfo.getOwnerUuid()).countDown();
+                            this.firstCheckFinishedMap.get(tdsqlHostInfo.getHostPortPair()).countDown();
                         }
                         // 心跳检测成功记录调试级别日志，退出当前循环后，等待下次调度
                         TdsqlLoggerFactory.logInfo(
@@ -178,7 +198,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                             // 并根据该IP地址所属的DataSourceUuid，获取到第一次心跳检测计数器，对其进行更新
                             if (this.isFirstCheck) {
                                 this.isFirstCheck = false;
-                                this.firstCheckFinishedMap.get(tdsqlHostInfo.getOwnerUuid()).countDown();
+                                this.firstCheckFinishedMap.get(tdsqlHostInfo.getHostPortPair()).countDown();
                             }
                         } else {
                             // 心跳检测失败处理逻辑，程序执行到这里有可能是建立连接失败、超时，或执行心跳检测SQL失败、超时。
