@@ -269,8 +269,7 @@ public final class TdsqlDirectConnectionManager {
                     null);
         }
         currentTdsqlHostInfo = tdsqlHostInfo;
-        JdbcConnection connection = ConnectionImpl.getInstance(tdsqlHostInfo);
-        return connection;
+        return ConnectionImpl.getInstance(tdsqlHostInfo);
     }
 
     /**

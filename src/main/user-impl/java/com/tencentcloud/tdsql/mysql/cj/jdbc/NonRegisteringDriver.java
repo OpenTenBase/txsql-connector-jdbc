@@ -29,6 +29,8 @@
 
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode.DIRECT;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode.LOAD_BALANCE;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_LC;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
 import static com.tencentcloud.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
@@ -48,6 +50,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.FailoverConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionProxy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
@@ -218,7 +221,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
                         // 初始化日志框架，通过URL参数logger指定
                         if (TdsqlLoggerFactory.loggerInitialized.compareAndSet(false, true)) {
                             // TdsqlLoggerFactory.initLogConstructor(new TdsqlHostInfo(conStr.getMainHost()));
-                            TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost()));
+                            TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost(), LOAD_BALANCE));
                         }
 
                         // 判断是否使用了正确的负载均衡策略算法
@@ -245,7 +248,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 case DIRECT_CONNECTION:
                     // 初始化日志框架，通过URL参数logger指定
                     if (TdsqlLoggerFactory.loggerInitialized.compareAndSet(false, true)) {
-                        TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost()));
+                        TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost(), DIRECT));
                     }
                     // 当URL类型为直连时，进入具备读写分离特性的数据库连接直连处理逻辑
                     return TdsqlDirectConnectionFactory.getInstance().createConnection(conStr);

@@ -1,7 +1,10 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode.DIRECT;
+
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.exception.TdsqlRouteParseException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst;
@@ -136,7 +139,7 @@ public class TdsqlDataSetUtil {
         HostInfo mainHost = connectionUrl.getMainHost();
         TdsqlHostInfo tdsqlHostInfo = new TdsqlHostInfo(
                 new HostInfo(mainHost.getOriginalUrl(), tdsqlDataSetInfo.getIp(), Integer.parseInt(tdsqlDataSetInfo.getPort()),
-                        mainHost.getUser(), mainHost.getPassword(), mainHost.getHostProperties()));
+                        mainHost.getUser(), mainHost.getPassword(), mainHost.getHostProperties()), DIRECT);
         //暂时通过set的方式进行属性赋值，后续优化
         tdsqlHostInfo.setWeightFactor(tdsqlDataSetInfo.getWeight());
         tdsqlHostInfo.setAlive(tdsqlDataSetInfo.getAlive());

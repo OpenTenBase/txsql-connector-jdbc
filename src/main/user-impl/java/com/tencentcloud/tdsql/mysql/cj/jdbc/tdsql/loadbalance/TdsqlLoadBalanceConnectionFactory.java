@@ -1,5 +1,7 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode.LOAD_BALANCE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_ERROR_RETRY_INTERVAL_TIME_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_MAX_ERROR_RETRIES;
@@ -17,15 +19,16 @@ import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlBalanceStrategyFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlSedBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -66,7 +69,7 @@ public final class TdsqlLoadBalanceConnectionFactory {
         // 转化为TDSQL自己的HostInfo对象，该对象继承自HostInfo
         List<TdsqlHostInfo> tdsqlHostInfoList = new ArrayList<>(numHosts);
         for (HostInfo hostInfo : hostsList) {
-            tdsqlHostInfoList.add(new TdsqlHostInfo(hostInfo));
+            tdsqlHostInfoList.add(new TdsqlHostInfo(hostInfo, LOAD_BALANCE));
         }
 
         // 解析并校验连接参数
@@ -118,7 +121,7 @@ public final class TdsqlLoadBalanceConnectionFactory {
                             throw SQLError.createSQLException(errMessage,
                                     MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
                         } else {
-                            TdsqlLoggerFactory.logInfo(
+                            logInfo(
                                     "All host in current datasource has finished first heartbeat checked! "
                                             + "Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
                                             .printBlacklist() + "]");
@@ -156,7 +159,7 @@ public final class TdsqlLoadBalanceConnectionFactory {
             // 同时操作全局连接计数器对其进行计数
             JdbcConnection connection = ConnectionImpl.getInstance(choice);
             TdsqlLoadBalanceConnectionCounter.getInstance().incrementCounter(choice);
-            TdsqlLoggerFactory.logInfo("Create connection success [" + choice.getHostPortPair() + "], return it.");
+            logInfo("Create connection success [" + choice.getHostPortPair() + "], return it.");
             return connection;
         } catch (SQLException e) {
             // 如果建立数据库连接失败，记录日志和堆栈、抛出异常，同时将该失败的IP地址加入黑名单
@@ -364,9 +367,11 @@ public final class TdsqlLoadBalanceConnectionFactory {
         return tdsqlLoadBalanceInfo;
     }
 
-    public void closeConnection(TdsqlHostInfo tdsqlHostInfo) {
-        TdsqlLoggerFactory.logInfo("Close method called. [" + tdsqlHostInfo.getHostPortPair() + "]");
-        TdsqlLoadBalanceConnectionCounter.getInstance().decrementCounter(tdsqlHostInfo);
+    public synchronized void closeConnection(TdsqlHostInfo tdsqlHostInfo) {
+        if (Objects.equals(LOAD_BALANCE, tdsqlHostInfo.getConnectionMode())) {
+            logInfo("LoadBalance Mode close method called. [" + tdsqlHostInfo.getHostPortPair() + "]");
+            TdsqlLoadBalanceConnectionCounter.getInstance().decrementCounter(tdsqlHostInfo);
+        }
     }
 
     private static class SingletonInstance {
