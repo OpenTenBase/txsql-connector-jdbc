@@ -66,10 +66,11 @@ public class TdsqlSedBalanceStrategy implements TdsqlLoadBalanceStrategy {
                         }
                     }
                     TdsqlHostInfo choice = counterList.get(i).getKey();
-                    TdsqlLoggerFactory.logDebug(
-                            "SED algorithm choice [" + choice.getHostPortPair() + "], current counter [" + scheduleQueue
-                                    + "], current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
-                                    .printBlacklist() + "]");
+                    TdsqlLoggerFactory.logDebug("SED algorithm choice: " + choice.getHostPortPair());
+                    TdsqlLoggerFactory.logDebug("Current counter: "
+                            + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter());
+                    TdsqlLoggerFactory.logDebug("Current blacklist: "
+                            + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist());
                     return choice;
                 }
             }

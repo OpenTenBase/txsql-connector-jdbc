@@ -3,11 +3,9 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceBlacklistHolder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionCounter;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -44,19 +42,19 @@ public final class TdsqlLcBalanceStrategy implements TdsqlLoadBalanceStrategy {
         }
         ReentrantReadWriteLock counterLock = TdsqlLoadBalanceConnectionCounter.getInstance().getCounterLock();
         counterLock.readLock().lock();
-        try{
+        try {
             List<TdsqlHostInfo> tdsqlHostInfoList = Collections.unmodifiableList(
                     new ArrayList<>(scheduleQueue.asMap().keySet()));
-            List<Long> countList = Collections.unmodifiableList(tdsqlHostInfoList.stream().map(scheduleQueue::get).map(NodeMsg::getCount)
-                    .collect(Collectors.toList()));
+            List<Long> countList = Collections.unmodifiableList(
+                    tdsqlHostInfoList.stream().map(scheduleQueue::get).map(NodeMsg::getCount)
+                            .collect(Collectors.toList()));
             int minIndex = countList.indexOf(Collections.min(countList));
             TdsqlHostInfo choice = tdsqlHostInfoList.get(minIndex);
-            TdsqlLoggerFactory.logDebug(
-                    "Lc algorithm choice [" + choice.getHostPortPair() + "], current counter [" + scheduleQueue
-                            + "], current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
-                            .printBlacklist() + "]");
+            TdsqlLoggerFactory.logDebug("Lc algorithm choice: " + choice.getHostPortPair());
+            TdsqlLoggerFactory.logDebug("Current counter: "
+                    + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter());
             return choice;
-        }finally {
+        } finally {
             counterLock.readLock().unlock();
         }
     }
