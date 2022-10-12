@@ -1,11 +1,13 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlThreadFactoryBuilder;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -45,6 +47,8 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
      */
     private volatile Map<String, CountDownLatch> firstCheckFinishedMap;
 
+    private static final String HEARTBEAT_SQL = "SELECT 1;";
+
     private TdsqlLoadBalanceHeartbeatMonitor() {
     }
 
@@ -53,13 +57,13 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         // 核心线程数设置为10是考虑到，如果存在多个数据源，并且每个数据源都使用负载均衡建立连接的情况
         // 如果只有一个数据源，这种情况比较普遍，大概率配置的IP地址个数达不到核心线程数
         if (!this.heartbeatMonitorInitialized) {
-            TdsqlLoggerFactory.logInfo("Heartbeat monitor initializing.");
+            logInfo("Heartbeat monitor initializing.");
             this.heartbeatMonitor = new ScheduledThreadPoolExecutor(10,
                     new TdsqlThreadFactoryBuilder().setDaemon(true).setNameFormat("Heartbeat-pool-%d").build());
             this.monitoredTdsqlHostInfoSet = new HashSet<>();
             this.firstCheckFinishedMap = new HashMap<>();
             this.heartbeatMonitorInitialized = true;
-            TdsqlLoggerFactory.logInfo("Heartbeat monitor initialized.");
+            logInfo("Heartbeat monitor initialized.");
         }
 
         // 根据生成的DataSourceUuid，初始化第一次心跳检测完成计数器
@@ -72,7 +76,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                 continue;
             }
             this.firstCheckFinishedMap.put(ipPortStr, new CountDownLatch(1));
-            TdsqlLoggerFactory.logInfo("Found new host [" + ipPortStr + "] in [" + datasourceUuid + "]");
+            logInfo("Found new host [" + ipPortStr + "] in [" + datasourceUuid + "]");
         }
 
         // 判断IP地址列表中的IP地址是否已经加入过心跳检测任务，避免相同的IP地址重复加入
@@ -93,9 +97,8 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                             this.firstCheckFinishedMap), 0L,
                     tdsqlLoadBalanceInfo.getTdsqlLoadBalanceHeartbeatIntervalTimeMillis(), TimeUnit.MILLISECONDS);
             this.monitoredTdsqlHostInfoSet.add(tdsqlHostInfo);
-            TdsqlLoggerFactory.logInfo(
-                    "Add new host [" + tdsqlHostInfo.getHostPortPair() + "] to heartbeat monitor. [ds: "
-                            + datasourceUuid + ", host:" + tdsqlHostInfo.getHostPortPair() + "]");
+            logInfo("Add new host [" + tdsqlHostInfo.getHostPortPair() + "] to heartbeat monitor. [ds: "
+                    + datasourceUuid + ", host:" + tdsqlHostInfo.getHostPortPair() + "]");
         }
     }
 
@@ -146,7 +149,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         @Override
         public void run() {
             try {
-                TdsqlLoggerFactory.logInfo("Start heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
+                logInfo("Start heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
                 int attemptCount = 0;
 
                 // 设置建立心跳检测连接的超时时间为1秒，同时需要保留改IP地址设置的其它参数设置
@@ -161,14 +164,13 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                         tdsqlHostInfo.getPort(), tdsqlHostInfo.getUser(), tdsqlHostInfo.getPassword(), map);
 
                 for (int i = 0; i <= retries; i++) {
-                    TdsqlLoggerFactory.logInfo(
-                            "Start heartbeat monitor check, now attempts [" + attemptCount + "]. HostInfo ["
-                                    + tdsqlHostInfo.getHostPortPair() + "]");
+                    logInfo("Start heartbeat monitor check, now attempts [" + attemptCount + "]. HostInfo ["
+                            + tdsqlHostInfo.getHostPortPair() + "]");
                     try (JdbcConnection connection = ConnectionImpl.getInstance(heartbeatHostInfo);
                             Statement stmt = connection.createStatement()) {
                         // 设置执行心跳检测SQL的超时时间为1秒
                         stmt.setQueryTimeout(1);
-                        stmt.executeQuery("select 1");
+                        stmt.executeQuery(HEARTBEAT_SQL);
                         // 程序执行到这里，表示心跳检测成功，尝试将该IP地址从黑名单中移除
                         // 但具体是否真的需要从黑名单移除，或者是否移除成功，取决于全局黑名单记录器
                         TdsqlLoadBalanceBlacklistHolder.getInstance().removeBlacklist(tdsqlHostInfo);
@@ -180,8 +182,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                             this.firstCheckFinishedMap.get(tdsqlHostInfo.getHostPortPair()).countDown();
                         }
                         // 心跳检测成功记录调试级别日志，退出当前循环后，等待下次调度
-                        TdsqlLoggerFactory.logInfo(
-                                "Success heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
+                        logInfo("Success heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
                         break;
                     } catch (SQLException e) {
                         // 计算并比较心跳检测次数是否达到允许的最大次数
@@ -189,7 +190,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                         // 否则，将该IP地址加入黑名单并记录错误级别的日志，同时更新首次检测标识和计数器
                         if (attemptCount + 1 > retries) {
                             // 加入黑名单
-                            TdsqlLoggerFactory.logError("Host heartbeat monitor failed. now attempts [" + attemptCount
+                            logError("Host heartbeat monitor failed. now attempts [" + attemptCount
                                     + "] equals max attempts [" + retries + "], try add to blacklist. HostInfo ["
                                     + tdsqlHostInfo.getHostPortPair() + "]", e);
                             TdsqlLoadBalanceBlacklistHolder.getInstance().addBlacklist(tdsqlHostInfo);
@@ -203,10 +204,9 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                         } else {
                             // 心跳检测失败处理逻辑，程序执行到这里有可能是建立连接失败、超时，或执行心跳检测SQL失败、超时。
                             // 无论是上述哪种情况，都需要记录错误级别日志
-                            TdsqlLoggerFactory.logError(
-                                    "Host heartbeat monitor failed and try again, now attempts [" + attemptCount
-                                            + "], max attempts [" + retries + "]. HostInfo ["
-                                            + tdsqlHostInfo.getHostPortPair() + "]", e);
+                            logError("Host heartbeat monitor failed and try again, now attempts [" + attemptCount
+                                    + "], max attempts [" + retries + "]. HostInfo [" + tdsqlHostInfo.getHostPortPair()
+                                    + "]", e);
                             // 间隔一段时间后再进行下一次尝试
                             if (this.retryIntervalMs > 0) {
                                 TimeUnit.MILLISECONDS.sleep(this.retryIntervalMs);
@@ -216,8 +216,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                     }
                 }
             } catch (Exception e) {
-                TdsqlLoggerFactory.logError(
-                        "Host heartbeat monitor check error [" + tdsqlHostInfo.getHostPortPair() + "]", e);
+                logError("Host heartbeat monitor check error [" + tdsqlHostInfo.getHostPortPair() + "]", e);
             }
         }
     }

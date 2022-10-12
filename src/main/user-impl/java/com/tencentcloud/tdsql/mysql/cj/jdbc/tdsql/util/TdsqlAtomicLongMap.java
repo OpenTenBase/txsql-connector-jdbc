@@ -1,10 +1,6 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util;
 
-import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectLoggerFactory;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
@@ -22,9 +18,11 @@ import java.util.stream.Collectors;
  * @author gyokumeixie@tencent.com
  */
 public final class TdsqlAtomicLongMap<K> implements Serializable {
+
     private final ConcurrentHashMap<K, NodeMsg> map;
+
     private TdsqlAtomicLongMap(ConcurrentHashMap<K, NodeMsg> map) {
-    this.map = checkNotNull(map);
+        this.map = checkNotNull(map);
     }
 
 
@@ -68,29 +66,30 @@ public final class TdsqlAtomicLongMap<K> implements Serializable {
 
     public NodeMsg accumulateAndGet(K key, long x, LongBinaryOperator accumulatorFunction) {
         checkNotNull(accumulatorFunction);
-        return updateAndGet(key, null ,oldValue -> accumulatorFunction.applyAsLong(oldValue, x));
+        return updateAndGet(key, null, oldValue -> accumulatorFunction.applyAsLong(oldValue, x));
     }
 
     public NodeMsg getAndAccumulate(K key, long x, LongBinaryOperator accumulatorFunction) {
         checkNotNull(accumulatorFunction);
-        return getAndUpdate(key,null ,oldValue -> accumulatorFunction.applyAsLong(oldValue, x));
+        return getAndUpdate(key, null, oldValue -> accumulatorFunction.applyAsLong(oldValue, x));
     }
 
     /**
      * 先对map中的内容进行更新，然后返回更新之后的nodeMsg
+     *
      * @param key
      * @param nodeMsg
      * @param updaterFunction
      * @return
      */
-    public NodeMsg updateAndGet(K key, NodeMsg nodeMsg ,LongUnaryOperator updaterFunction) {
+    public NodeMsg updateAndGet(K key, NodeMsg nodeMsg, LongUnaryOperator updaterFunction) {
         checkNotNull(updaterFunction);
         return map.compute(key, (k, value) -> {
             Long newValue = updaterFunction.applyAsLong((value == null) ? 0L : value.getCount().longValue());
             //如果map中key对应的值为空，那么就直接将传入的nodeMsg更新进去，不然就将newCount更新，其他的不变
-            if (value == null){
+            if (value == null) {
                 return nodeMsg;
-            }else{
+            } else {
                 value.setCount(newValue);
                 return value;
             }
@@ -100,17 +99,18 @@ public final class TdsqlAtomicLongMap<K> implements Serializable {
     /**
      * 更新nodeMsg中的count的同时，返回旧值
      * 更新逻辑：如果map中有对应的key value，那么直接将value中的count值进行更新，如果没有对应的key value，那么就将value直接存进去即可
+     *
      * @param key
      * @param nodeMsg
      * @param updaterFunction
      * @return
      */
-    public NodeMsg getAndUpdate(K key, NodeMsg nodeMsg ,LongUnaryOperator updaterFunction) {
+    public NodeMsg getAndUpdate(K key, NodeMsg nodeMsg, LongUnaryOperator updaterFunction) {
         checkNotNull(updaterFunction);
         AtomicLong holder = new AtomicLong();
         NodeMsg temNodeMsg = map.getOrDefault(key, null);
         NodeMsg oldNodeMsg = null;
-        if (temNodeMsg != null){
+        if (temNodeMsg != null) {
             try {
                 oldNodeMsg = (NodeMsg) temNodeMsg.clone();
             } catch (CloneNotSupportedException e) {
@@ -126,21 +126,21 @@ public final class TdsqlAtomicLongMap<K> implements Serializable {
                     holder.set(oldValue);
                     long newValue = updaterFunction.applyAsLong(oldValue);
                     //如果key对应的value为空，那么就将传入的nodeMsg更新进去，不然就只更新count值
-                    if (value ==null){
+                    if (value == null) {
                         value = nodeMsg;
-                    } else{
+                    } else {
                         value.setCount(newValue);
                     }
                     return value;
                 });
-        if (oldNodeMsg != null){
+        if (oldNodeMsg != null) {
             oldNodeMsg.setCount(holder.get());
         }
         return oldNodeMsg;
     }
 
     public NodeMsg put(K key, NodeMsg newValue) {
-        return getAndUpdate(key, newValue ,x -> newValue.getCount());
+        return getAndUpdate(key, newValue, x -> newValue.getCount());
     }
 
     public void putAll(Map<? extends K, ? extends NodeMsg> m) {

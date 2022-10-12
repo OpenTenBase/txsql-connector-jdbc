@@ -1,5 +1,7 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import java.util.Collections;
@@ -14,6 +16,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class TdsqlLoadBalanceBlacklistHolder {
 
+    private boolean blacklistEnabled = true;
     /**
      * 保存加入黑名单的IP地址信息集合
      */
@@ -29,6 +32,11 @@ public class TdsqlLoadBalanceBlacklistHolder {
      * @return 返回一个不可修改的黑名单集合
      */
     public Set<String> printBlacklist() {
+        if (!this.blacklistEnabled) {
+            return new HashSet<String>(1) {{
+                add("Blacklist is not enabled.");
+            }};
+        }
         this.blacklistLock.readLock().lock();
         try {
             Set<String> cloneSet = new HashSet<>(this.blacklist.size());
@@ -47,20 +55,24 @@ public class TdsqlLoadBalanceBlacklistHolder {
      * @param tdsqlHostInfo {@link TdsqlHostInfo} 尝试键入黑名单的IP地址信息
      */
     public void addBlacklist(TdsqlHostInfo tdsqlHostInfo) {
+        if (!this.blacklistEnabled) {
+            return;
+        }
+
         this.blacklistLock.writeLock().lock();
         try {
             // 如果黑名单中还没有该IP地址信息，则加入
             // 同时移除该IP地址在全局连接计数器中的计数器，并记录信息级别的日志
             if (!this.blacklist.contains(tdsqlHostInfo)) {
                 this.blacklist.add(tdsqlHostInfo);
-                TdsqlLoggerFactory.logInfo(
-                        "Add host to blacklist success and try remote it in counter, current blacklist ["
-                                + printBlacklist() + "]");
+                logInfo("Add host [" + tdsqlHostInfo.getHostPortPair()
+                        + "] to blacklist success and try remove it in counter, current blacklist [" + printBlacklist()
+                        + "]");
                 TdsqlLoadBalanceConnectionCounter.getInstance().removeCounter(tdsqlHostInfo);
             } else {
-                TdsqlLoggerFactory.logWarn(
-                        "Add host to blacklist failed, because this host is already in blacklist , current blacklist ["
-                                + printBlacklist() + "]");
+                TdsqlLoggerFactory.logWarn("Add host [" + tdsqlHostInfo.getHostPortPair()
+                        + "] to blacklist failed, because this host is already in blacklist , current blacklist ["
+                        + printBlacklist() + "]");
             }
         } finally {
             this.blacklistLock.writeLock().unlock();
@@ -73,22 +85,34 @@ public class TdsqlLoadBalanceBlacklistHolder {
      * @param tdsqlHostInfo {@link TdsqlHostInfo}
      */
     public void removeBlacklist(TdsqlHostInfo tdsqlHostInfo) {
+        if (!this.blacklistEnabled) {
+            return;
+        }
+
         this.blacklistLock.writeLock().lock();
         try {
             if (this.blacklist.contains(tdsqlHostInfo)) {
                 this.blacklist.remove(tdsqlHostInfo);
-                TdsqlLoggerFactory.logInfo(
-                        "Remove host from blacklist success and try reset it in counter, current blacklist ["
-                                + printBlacklist() + "]");
+                logInfo("Remove host [" + tdsqlHostInfo.getHostPortPair()
+                        + "] from blacklist success and try reset it in counter, current blacklist [" + printBlacklist()
+                        + "]");
                 TdsqlLoadBalanceConnectionCounter.getInstance().resetCounter(tdsqlHostInfo);
             } else {
-                TdsqlLoggerFactory.logInfo(
-                        "Don't need to remove host from blacklist, because its not in blacklist, current blacklist ["
-                                + printBlacklist() + "]");
+                logInfo("Don't need to remove host [" + tdsqlHostInfo.getHostPortPair()
+                        + "] from blacklist, because its not in blacklist, current blacklist [" + printBlacklist()
+                        + "]");
             }
         } finally {
             this.blacklistLock.writeLock().unlock();
         }
+    }
+
+    public boolean isBlacklistEnabled() {
+        return blacklistEnabled;
+    }
+
+    public void setBlacklistEnabled(boolean blacklistEnabled) {
+        this.blacklistEnabled = blacklistEnabled;
     }
 
     public static TdsqlLoadBalanceBlacklistHolder getInstance() {
