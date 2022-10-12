@@ -142,7 +142,6 @@ public final class TdsqlLoadBalanceConnectionFactory {
         // 根据全局连接计数器，执行负载均衡算法策略，选择出一个需要建立数据库连接的IP地址
         TdsqlAtomicLongMap<TdsqlHostInfo> counter = TdsqlLoadBalanceConnectionCounter.getInstance()
                 .getCounter(tdsqlLoadBalanceInfo.getDatasourceUuid());
-        logDebug("DsUuid: [" + tdsqlLoadBalanceInfo.getDatasourceUuid() + "], current counter: [" + counter + "]");
         // 如果全局连接计数器是空的，则记录严重错误级别的日志，并提前抛出异常提醒用户
         if (counter == null || counter.isEmpty()) {
             String errMessage = "Could not create connection to database server. Because all hosts is invalid.";
@@ -173,11 +172,17 @@ public final class TdsqlLoadBalanceConnectionFactory {
             logInfo("Create connection success [" + choice.getHostPortPair() + "], return it.");
             return connection;
         } catch (SQLException e) {
-            // 如果建立数据库连接失败，记录日志和堆栈、抛出异常，同时将该失败的IP地址加入黑名单
-            // 保证这个IP地址在心跳检测成功之前，不再被调度到
-            logError("Could not create connection to database server [" + choice.getHostPortPair()
-                    + "], remove its counter.", e);
-            TdsqlLoadBalanceConnectionCounter.getInstance().removeCounter(choice);
+            // 如果建立数据库连接失败，记录日志和堆栈、抛出异常
+            if (tdsqlLoadBalanceInfo.isTdsqlLoadBalanceHeartbeatMonitorEnable()) {
+                // 如果开启了心跳检测，则黑名单也就开启了，将该失败的IP地址加入黑名单
+                // 保证这个IP地址在心跳检测成功之前，不再被调度到
+                logError("Could not create connection to database server [" + choice.getHostPortPair() + "], try add to blacklist.", e);
+                TdsqlLoadBalanceBlacklistHolder.getInstance().addBlacklist(choice);
+            } else {
+                // 同时将重置该失败的IP地址的连接计数器
+                logError("Could not create connection to database server [" + choice.getHostPortPair() + "], remove its counter.", e);
+                TdsqlLoadBalanceConnectionCounter.getInstance().resetCounter(choice);
+            }
             throw e;
         }
     }
