@@ -144,7 +144,8 @@ public final class TdsqlLoadBalanceConnectionFactory {
                 .getCounter(tdsqlLoadBalanceInfo.getDatasourceUuid());
         // 如果全局连接计数器是空的，则记录严重错误级别的日志，并提前抛出异常提醒用户
         if (counter == null || counter.isEmpty()) {
-            String errMessage = "Could not create connection to database server. Because all hosts is invalid.";
+            String errMessage =
+                    "Could not create connection to database server. Because connection counter is not initialized.";
             logFatal(errMessage);
             throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE,
                     null);
@@ -176,11 +177,13 @@ public final class TdsqlLoadBalanceConnectionFactory {
             if (tdsqlLoadBalanceInfo.isTdsqlLoadBalanceHeartbeatMonitorEnable()) {
                 // 如果开启了心跳检测，则黑名单也就开启了，将该失败的IP地址加入黑名单
                 // 保证这个IP地址在心跳检测成功之前，不再被调度到
-                logError("Could not create connection to database server [" + choice.getHostPortPair() + "], try add to blacklist.", e);
+                logError("Could not create connection to database server [" + choice.getHostPortPair()
+                        + "], try add to blacklist.", e);
                 TdsqlLoadBalanceBlacklistHolder.getInstance().addBlacklist(choice);
             } else {
                 // 同时将重置该失败的IP地址的连接计数器
-                logError("Could not create connection to database server [" + choice.getHostPortPair() + "], remove its counter.", e);
+                logError("Could not create connection to database server [" + choice.getHostPortPair()
+                        + "], remove its counter.", e);
                 TdsqlLoadBalanceConnectionCounter.getInstance().resetCounter(choice);
             }
             throw e;

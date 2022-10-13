@@ -714,21 +714,25 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                 }
             }
 
-            realClose(true, true, false, null);
-
-            // 如果开启了直连模式，且数据库连接是由直连模式逻辑建立的，则执行直连模式逻辑的关闭连接方法
-            if (TdsqlDirectConnectionFactory.tdsqlDirectMode && origHostInfo instanceof TdsqlHostInfo) {
-                TdsqlHostInfo tdsqlHostInfo = (TdsqlHostInfo) origHostInfo;
-                if (Objects.equals(TdsqlConnectionMode.DIRECT, tdsqlHostInfo.getConnectionMode())) {
-                    TdsqlDirectConnectionFactory.getInstance().closeConnection(this, tdsqlHostInfo);
+            try {
+                realClose(true, true, false, null);
+            } catch (SQLException e) {
+                throw e;
+            } finally {
+                // 如果开启了直连模式，且数据库连接是由直连模式逻辑建立的，则执行直连模式逻辑的关闭连接方法
+                if (TdsqlDirectConnectionFactory.tdsqlDirectMode && origHostInfo instanceof TdsqlHostInfo) {
+                    TdsqlHostInfo tdsqlHostInfo = (TdsqlHostInfo) origHostInfo;
+                    if (Objects.equals(TdsqlConnectionMode.DIRECT, tdsqlHostInfo.getConnectionMode())) {
+                        TdsqlDirectConnectionFactory.getInstance().closeConnection(this, tdsqlHostInfo);
+                    }
                 }
-            }
 
-            // 如果开启了负载均衡模式，且数据库连接是由负载均衡模式逻辑建立的，则执行负载均衡模式逻辑的关闭连接方法
-            if (TdsqlLoadBalanceConnectionFactory.tdsqlLoadBalanceMode && origHostInfo instanceof TdsqlHostInfo) {
-                TdsqlHostInfo tdsqlHostInfo = (TdsqlHostInfo) origHostInfo;
-                if (Objects.equals(TdsqlConnectionMode.LOAD_BALANCE, tdsqlHostInfo.getConnectionMode())) {
-                    TdsqlLoadBalanceConnectionFactory.getInstance().closeConnection(tdsqlHostInfo);
+                // 如果开启了负载均衡模式，且数据库连接是由负载均衡模式逻辑建立的，则执行负载均衡模式逻辑的关闭连接方法
+                if (TdsqlLoadBalanceConnectionFactory.tdsqlLoadBalanceMode && origHostInfo instanceof TdsqlHostInfo) {
+                    TdsqlHostInfo tdsqlHostInfo = (TdsqlHostInfo) origHostInfo;
+                    if (Objects.equals(TdsqlConnectionMode.LOAD_BALANCE, tdsqlHostInfo.getConnectionMode())) {
+                        TdsqlLoadBalanceConnectionFactory.getInstance().closeConnection(tdsqlHostInfo);
+                    }
                 }
             }
         }
