@@ -1,6 +1,7 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util;
 
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
+
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
@@ -115,7 +116,7 @@ public final class TdsqlAtomicLongMap<K> implements Serializable {
                 oldNodeMsg = (NodeMsg) temNodeMsg.clone();
             } catch (CloneNotSupportedException e) {
                 String errMessage = "Object NodeMsg copy failed!";
-                TdsqlLoggerFactory.logError(errMessage, e);
+                logError(errMessage, e);
             }
         }
 

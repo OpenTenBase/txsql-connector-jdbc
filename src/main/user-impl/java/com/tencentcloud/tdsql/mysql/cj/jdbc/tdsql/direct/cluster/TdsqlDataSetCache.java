@@ -1,9 +1,11 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logDebug;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logWarn;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RO;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RW;
 
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectTopoServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectDataSourceCounter;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlWaitUtil;
@@ -18,7 +20,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class TdsqlDataSetCache {
 
-    private String ownerUuid;
+    private final String ownerUuid;
     private final PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
     private final List<TdsqlDataSetInfo> masters = new CopyOnWriteArrayList<>();
     private final List<TdsqlDataSetInfo> slaves = new CopyOnWriteArrayList<>();
@@ -43,7 +45,7 @@ public class TdsqlDataSetCache {
         try {
             TdsqlWaitUtil.waitFor(interval, count, this::isCached);
         } catch (InterruptedException e) {
-            TdsqlLoggerFactory.logError("Wait cached timeout, " + e.getMessage(), e);
+            logError("[" + this.ownerUuid + "] Wait cached timeout, " + e.getMessage(), e);
         }
         return isCached();
     }
@@ -59,7 +61,8 @@ public class TdsqlDataSetCache {
     }
 
     public synchronized List<TdsqlDataSetInfo> getMasters() {
-        ReentrantReadWriteLock refreshLock = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer().getRefreshLock();
+        ReentrantReadWriteLock refreshLock = TdsqlDirectDataSourceCounter.getInstance()
+                .getTdsqlDirectInfo(this.ownerUuid).getTopoServer().getRefreshLock();
         refreshLock.readLock().lock();
         try {
             return masters;
@@ -69,7 +72,8 @@ public class TdsqlDataSetCache {
     }
 
     public synchronized void setMasters(List<TdsqlDataSetInfo> newMasters) {
-        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer();
+        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid)
+                .getTopoServer();
         topoServer.getRefreshLock().writeLock().lock();
         try {
             // 当获取到的主库拓扑信息为空的时候，需要分多种情况判断
@@ -77,8 +81,8 @@ public class TdsqlDataSetCache {
             if (newMasters.isEmpty()) {
                 // 只读模式，不再需要执行更新缓存的代码逻辑
                 if (TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(tdsqlDirectReadWriteMode)) {
-                    TdsqlLoggerFactory.logWarn(
-                            "After update, master is empty, but we in RO mode, so to be continue!");
+                    logWarn("[" + this.ownerUuid
+                            + "] After update, master is empty, but we in RO mode, so to be continue!");
                     if (!masterCached) {
                         masterCached = true;
                     }
@@ -86,8 +90,8 @@ public class TdsqlDataSetCache {
                 } else if (TDSQL_DIRECT_READ_WRITE_MODE_RW.equalsIgnoreCase(tdsqlDirectReadWriteMode)
                         && this.masters.isEmpty()) {
                     // 读写模式，且缓存的主库拓扑信息也为空，不再需要执行更新缓存的代码逻辑
-                    TdsqlLoggerFactory.logWarn(
-                            "After update, master is empty, although we in RW mode, cached master also empty, so to be continue!");
+                    logWarn("[" + this.ownerUuid
+                            + "] After update, master is empty, although we in RW mode, cached master also empty, so to be continue!");
                     if (!masterCached) {
                         masterCached = true;
                     }
@@ -96,8 +100,8 @@ public class TdsqlDataSetCache {
             }
 
             if (!newMasters.equals(this.masters)) {
-                TdsqlLoggerFactory.logDebug(
-                        "DataSet master have changed, old: " + this.masters + ", new: " + newMasters);
+                logDebug("[" + this.ownerUuid + "] DataSet master have changed, old: " + this.masters + ", new: "
+                        + newMasters);
                 propertyChangeSupport.firePropertyChange(MASTERS_PROPERTY_NAME,
                         TdsqlDataSetUtil.copyDataSetList(this.masters),
                         TdsqlDataSetUtil.copyDataSetList(newMasters));
@@ -113,7 +117,8 @@ public class TdsqlDataSetCache {
     }
 
     public synchronized List<TdsqlDataSetInfo> getSlaves() {
-        ReentrantReadWriteLock refreshLock = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer().getRefreshLock();
+        ReentrantReadWriteLock refreshLock = TdsqlDirectDataSourceCounter.getInstance()
+                .getTdsqlDirectInfo(this.ownerUuid).getTopoServer().getRefreshLock();
         refreshLock.readLock().lock();
         try {
             return slaves;
@@ -123,7 +128,8 @@ public class TdsqlDataSetCache {
     }
 
     public synchronized void setSlaves(List<TdsqlDataSetInfo> newSlaves) {
-        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer();
+        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid)
+                .getTopoServer();
         topoServer.getRefreshLock().writeLock().lock();
         try {
             // 当获取到的从库拓扑信息为空的时候，需要分多种情况判断
@@ -131,8 +137,8 @@ public class TdsqlDataSetCache {
             if (newSlaves.isEmpty()) {
                 // 读写模式，不再需要执行更新缓存的代码逻辑
                 if (TDSQL_DIRECT_READ_WRITE_MODE_RW.equalsIgnoreCase(tdsqlDirectReadWriteMode)) {
-                    TdsqlLoggerFactory.logWarn(
-                            "After update, slaves is empty, but we in RW mode, so to be continue!");
+                    logWarn("[" + this.ownerUuid
+                            + "] After update, slaves is empty, but we in RW mode, so to be continue!");
                     if (!slaveCached) {
                         slaveCached = true;
                     }
@@ -140,8 +146,8 @@ public class TdsqlDataSetCache {
                 } else if (TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(tdsqlDirectReadWriteMode)
                         && this.slaves.isEmpty()) {
                     // 只读模式，且缓存的从库拓扑信息也为空，不再需要执行更新缓存的代码逻辑
-                    TdsqlLoggerFactory.logWarn(
-                            "After update, slaves is empty, although we in RO mode, cached slaves also empty, so to be continue!");
+                    logWarn("[" + this.ownerUuid
+                            + "] After update, slaves is empty, although we in RO mode, cached slaves also empty, so to be continue!");
                     if (!slaveCached) {
                         slaveCached = true;
                     }
@@ -157,8 +163,8 @@ public class TdsqlDataSetCache {
             }
             newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= 100000);
             if (!newSlaves.equals(this.slaves)) {
-                TdsqlLoggerFactory.logDebug(
-                        "DataSet slave have changed, old: " + this.slaves + ", new: " + newSlaves);
+                logDebug("[" + this.ownerUuid + "] DataSet slave have changed, old: " + this.slaves + ", new: "
+                        + newSlaves);
                 propertyChangeSupport.firePropertyChange(SLAVES_PROPERTY_NAME,
                         TdsqlDataSetUtil.copyDataSetList(this.slaves),
                         TdsqlDataSetUtil.copyDataSetList(newSlaves));
@@ -167,11 +173,11 @@ public class TdsqlDataSetCache {
                 if (!slaveCached) {
                     slaveCached = true;
                 }
-                TdsqlLoggerFactory.logDebug("After update, slaves is: " + this.slaves);
+                logDebug("[" + this.ownerUuid + "] After update, slaves is: " + this.slaves);
             }
-            if (TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(tdsqlDirectReadWriteMode) && newSlaves.isEmpty() && this.slaves.isEmpty()){
-                TdsqlLoggerFactory.logDebug(
-                        "DataSet slave is null! but in ReadOnly mode, So NOOP!" );
+            if (TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(tdsqlDirectReadWriteMode) && newSlaves.isEmpty()
+                    && this.slaves.isEmpty()) {
+                logDebug("[" + this.ownerUuid + "] DataSet slave is null! but in ReadOnly mode, So NOOP!");
                 if (!slaveCached) {
                     slaveCached = true;
                 }
@@ -182,29 +188,19 @@ public class TdsqlDataSetCache {
     }
 
     public boolean isCached() {
-        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer();
+        TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid)
+                .getTopoServer();
         topoServer.getRefreshLock().writeLock().lock();
         try {
-            if (masterCached && slaveCached){
+            if (masterCached && slaveCached) {
                 return true;
-
-            }else if (masterCached && TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).
-                    getTdsqlDirectConnectionManager().isTdsqlDirectMasterCarryOptOfReadOnlyMode()){
-                return true;
+            } else {
+                return masterCached && TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).
+                        getTdsqlDirectConnectionManager().isTdsqlDirectMasterCarryOptOfReadOnlyMode();
             }
-            return false;
-        }finally {
+        } finally {
             topoServer.getRefreshLock().writeLock().unlock();
         }
 
     }
-
-//    private static class SingletonInstance {
-//
-//        public static final TdsqlDataSetCache INSTANCE = new TdsqlDataSetCache();
-//    }
-//
-//    public static TdsqlDataSetCache getInstance() {
-//        return SingletonInstance.INSTANCE;
-//    }
 }

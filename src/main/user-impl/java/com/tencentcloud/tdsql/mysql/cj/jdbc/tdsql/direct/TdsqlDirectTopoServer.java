@@ -1,5 +1,9 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logDebug;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logWarn;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_CLOSE_CONN_TIMEOUT_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RO;
@@ -22,7 +26,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcPropertySetImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetCache;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetCluster;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetUtil;
@@ -142,29 +145,33 @@ public final class TdsqlDirectTopoServer {
             if (topoServerInitialized.compareAndSet(false, true)) {
                 createProxyConnection();
                 initializeScheduler();
-                TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getDataSetCache().addListener(
-                        new TdsqlScheduleTdsqlCacheListener(tdsqlDirectReadWriteMode, scheduleQueue, connectionUrl, this.ownerUuid));
-                TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getDataSetCache().addListener(
-                        new TdsqlFailoverTdsqlCacheListener(tdsqlDirectReadWriteMode, this.ownerUuid));
+                TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getDataSetCache()
+                        .addListener(
+                                new TdsqlScheduleTdsqlCacheListener(tdsqlDirectReadWriteMode, scheduleQueue,
+                                        connectionUrl, this.ownerUuid));
+                TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getDataSetCache()
+                        .addListener(
+                                new TdsqlFailoverTdsqlCacheListener(tdsqlDirectReadWriteMode, this.ownerUuid));
             }
         } finally {
             refreshLock.writeLock().unlock();
         }
-        if (!TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getDataSetCache().waitCached(1, 60)) {
-            String errMsg = "wait tdsql topology timeout";
-            TdsqlLoggerFactory.logError(errMsg);
+        if (!TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getDataSetCache()
+                .waitCached(1, 60)) {
+            String errMsg = "[" + this.ownerUuid + "] Wait tdsql proxy topology info timeout!";
+            logError(errMsg);
             throw new TdsqlSyncBackendTopoException(errMsg);
         }
     }
 
     private void createProxyConnection() throws SQLException {
-        TdsqlLoggerFactory.logDebug( "Start create proxy connection for refresh topology!");
+        logDebug("[" + this.ownerUuid + "] Start create proxy connection for refresh topology!");
         if (this.proxyConnection != null && !this.proxyConnection.isClosed() && this.proxyConnection.isValid(1)) {
-            TdsqlLoggerFactory.logDebug("Proxy connection seems perfect, NOOP!");
+            logDebug("[" + this.ownerUuid + "] Proxy connection seems perfect, NOOP!");
             return;
         }
 
-        String errMsg = "Create proxy connection for refresh topology error!";
+        String errMsg = "[" + this.ownerUuid + "] Create proxy connection for refresh topology error!";
         Map<String, String> config = new HashMap<>(8);
         config.put(PropertyKey.connectTimeout.getKeyName(), "2000");
         config.put(PropertyKey.socketTimeout.getKeyName(), "2000");
@@ -178,20 +185,20 @@ public final class TdsqlDirectTopoServer {
         try {
             this.proxyConnection = LoadBalancedConnectionProxy.createProxyInstance(myConnUrl);
             if (this.proxyConnection.isClosed() || !this.proxyConnection.isValid(3)) {
-                TdsqlLoggerFactory.logError(errMsg);
+                logError(errMsg);
                 throw SQLError.createSQLException(Messages.getString("Connection.UnableToConnect"),
                         MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
             }
         } catch (SQLException e) {
-            TdsqlLoggerFactory.logError("[" + errMsg + "]" + e.getMessage(), e);
+            logError("[" + this.ownerUuid + "] [" + errMsg + "]" + e.getMessage(), e);
             throw e;
         }
-        TdsqlLoggerFactory.logDebug("Finish create proxy connection for refresh topology!");
+        logDebug("[" + this.ownerUuid + "] Finish create proxy connection for refresh topology!");
     }
 
     private void getTopology() throws SQLException {
         if (this.proxyConnection == null || this.proxyConnection.isClosed() || !this.proxyConnection.isValid(3)) {
-            TdsqlLoggerFactory.logWarn("Proxy connection is invalid, reconnection it!");
+            logWarn("[" + this.ownerUuid + "] Proxy connection is invalid, reconnection it!");
             try {
                 this.proxyConnection.close();
             } catch (Throwable e) {
@@ -209,23 +216,26 @@ public final class TdsqlDirectTopoServer {
                 while (rs.next()) {
                     String clusterName = rs.getString(TDSQL_DIRECT_TOPO_COLUMN_CLUSTER_NAME);
                     if (StringUtils.isNullOrEmpty(clusterName)) {
-                        String errMsg = "Invalid topology info: cluster name is empty!";
-                        TdsqlLoggerFactory.logError(errMsg);
+                        String errMsg = "[" + this.ownerUuid + "] Invalid topology info: cluster name is empty!";
+                        logError(errMsg);
                         throw new TdsqlSyncBackendTopoException(errMsg);
                     }
                     String master = rs.getString(TDSQL_DIRECT_TOPO_COLUMN_MASTER_IP);
                     // 在读写模式下，获取到的主库信息为空，抛出异常
                     if (StringUtils.isNullOrEmpty(master) && TDSQL_DIRECT_READ_WRITE_MODE_RW.equalsIgnoreCase(
                             tdsqlDirectReadWriteMode)) {
-                        TdsqlLoggerFactory.logWarn("Topology info maybe has some error: In RW mode, master ip is empty!");
+                        logWarn("[" + this.ownerUuid
+                                + "] Topology info maybe has some error: In RW mode, master ip is empty!");
                     }
                     String slaves = rs.getString(TDSQL_DIRECT_TOPO_COLUMN_SLAVE_IP_LIST);
                     // 在只读模式下，获取到的从库信息为空，抛出异常
                     if (StringUtils.isNullOrEmpty(slaves) && TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(
                             tdsqlDirectReadWriteMode)) {
-                        TdsqlLoggerFactory.logWarn("Topology info maybe has some error: In RO mode, slave ip list is empty!");
+                        logWarn("[" + this.ownerUuid
+                                + "] Topology info maybe has some error: In RO mode, slave ip list is empty!");
                     }
-                    TdsqlLoggerFactory.logInfo("Topo info cluster name: " + clusterName + ", master: " + master + ", slaves: " + slaves);
+                    logInfo("[" + this.ownerUuid + "] Topo info cluster name: " + clusterName + ", master: " + master
+                            + ", slaves: " + slaves);
                     TdsqlDataSetCluster tdsqlDataSetCluster = new TdsqlDataSetCluster(clusterName);
                     tdsqlDataSetCluster.setMaster(TdsqlDataSetUtil.parseMaster(master));
                     tdsqlDataSetCluster.setSlaves(TdsqlDataSetUtil.parseSlaveList(slaves));
@@ -234,12 +244,13 @@ public final class TdsqlDirectTopoServer {
             }
         }
         if (tdsqlDataSetClusters.isEmpty()) {
-            String errMsg = "No backend cluster found with command: /*proxy*/ show routes";
-            TdsqlLoggerFactory.logError(errMsg);
+            String errMsg = "[" + this.ownerUuid + "] No backend cluster found with command: /*proxy*/ show routes";
+            logError(errMsg);
             throw new TdsqlSyncBackendTopoException(errMsg);
         }
 
-        TdsqlDataSetCache cache = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getDataSetCache();
+        TdsqlDataSetCache cache = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid)
+                .getDataSetCache();
         if (tdsqlDataSetClusters.get(0).getMaster() != null) {
             cache.setMasters(Collections.singletonList(tdsqlDataSetClusters.get(0).getMaster()));
         } else {
@@ -251,11 +262,12 @@ public final class TdsqlDirectTopoServer {
     private void initializeScheduler() {
         topoServerScheduler = new ScheduledThreadPoolExecutor(1,
                 new TdsqlThreadFactoryBuilder().setDaemon(true).setNameFormat("TopoServer-pool-%d").build());
-        topoServerScheduler.scheduleWithFixedDelay(new TopoRefreshTask(this.ownerUuid), 0L, tdsqlDirectTopoRefreshIntervalMillis,
+        topoServerScheduler.scheduleWithFixedDelay(new TopoRefreshTask(this.ownerUuid), 0L,
+                tdsqlDirectTopoRefreshIntervalMillis,
                 TimeUnit.MILLISECONDS);
     }
 
-    public ConnectionUrl getConnectionUrl(){
+    public ConnectionUrl getConnectionUrl() {
         return this.connectionUrl;
     }
 
@@ -284,22 +296,25 @@ public final class TdsqlDirectTopoServer {
     }
 
     private static class TopoRefreshTask extends AbstractTdsqlCaughtRunnable {
+
         private final String ownerUuid;
-        public TopoRefreshTask(String ownerUuid){
+
+        public TopoRefreshTask(String ownerUuid) {
             this.ownerUuid = ownerUuid;
         }
 
         @Override
         public void caughtAndRun() {
-            String proxyHost = ((JdbcConnection)TdsqlDirectDataSourceCounter.getInstance().
+            String proxyHost = ((JdbcConnection) TdsqlDirectDataSourceCounter.getInstance().
                     getTdsqlDirectInfo(this.ownerUuid).getTopoServer().proxyConnection).getHostPortPair();
-            TdsqlLoggerFactory.logDebug("Start topology refresh task. Request proxy: [" + proxyHost + "]");
+            logDebug("[" + this.ownerUuid + "] Start topology refresh task. Request proxy: [" + proxyHost + "]");
             try {
-                TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer().getTopology();
+                TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer()
+                        .getTopology();
             } catch (Exception e) {
-                TdsqlLoggerFactory.logError(e.getMessage(), e);
+                logError(e.getMessage(), e);
             }
-            TdsqlLoggerFactory.logDebug("Finish topology refresh task. Request proxy: [" + proxyHost + "]");
+            logDebug("Finish topology refresh task. Request proxy: [" + proxyHost + "]");
         }
     }
 

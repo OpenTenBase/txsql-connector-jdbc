@@ -1,5 +1,10 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RO;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RW;
+
 import com.tencentcloud.tdsql.mysql.cj.conf.DatabaseUrlContainer;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
@@ -9,23 +14,22 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlBalanceStrategyFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadPoolExecutor;
-
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 
 class TdsqlDirectConnectionManagerTest {
+
     private TdsqlHostInfo currentTdsqlHostInfo;
     private boolean tdsqlDirectMasterCarryOptOfReadOnlyMode = false;
     private final int retriesAllDown = 2;
@@ -45,11 +49,12 @@ class TdsqlDirectConnectionManagerTest {
     protected static final String USER_S = "tdsqlsys_normal";
     protected static final String PASS_S = "gl%LDY^1&OKWkLWQP^7&";
     static TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = TdsqlAtomicLongMap.create();
+
     @Test
     public void TestFailOver() throws SQLException {
         TdsqlBalanceStrategyFactory instance = TdsqlBalanceStrategyFactory.getInstance();
         TdsqlLoadBalanceStrategy lc = instance.getStrategyInstance("Lc");
-        JdbcConnection newConnection = createNewConnection(lc , true);
+        JdbcConnection newConnection = createNewConnection(lc, true);
         System.out.println(newConnection);
         System.out.println(currentTdsqlHostInfo.getHostPortPair());
         System.out.println(newConnection.getHostPortPair());
@@ -57,7 +62,7 @@ class TdsqlDirectConnectionManagerTest {
 
     @Test
     @BeforeEach
-    public void creatQueue(){
+    public void creatQueue() {
         DatabaseUrlContainer originUrl_M = new DatabaseUrlContainer() {
             @Override
             public String getDatabaseUrl() {
@@ -88,7 +93,8 @@ class TdsqlDirectConnectionManagerTest {
         scheduleQueue.put(tdsqlHostInfo_S2, new NodeMsg(3L, false));
     }
 
-    public synchronized JdbcConnection createNewConnection(TdsqlLoadBalanceStrategy balancer, boolean tdsqlDirectMasterCarryOptOfReadOnlyMode) throws SQLException {
+    public synchronized JdbcConnection createNewConnection(TdsqlLoadBalanceStrategy balancer,
+            boolean tdsqlDirectMasterCarryOptOfReadOnlyMode) throws SQLException {
         this.tdsqlDirectMasterCarryOptOfReadOnlyMode = tdsqlDirectMasterCarryOptOfReadOnlyMode;
         //此时scheduleQueue中不仅有主库还有从库,此时将主从库分开
         TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueueSlave = TdsqlAtomicLongMap.create();
@@ -96,30 +102,30 @@ class TdsqlDirectConnectionManagerTest {
         List<TdsqlHostInfo> tdsqlHostInfoList = Collections.unmodifiableList(
                 new ArrayList<>(scheduleQueue.asMap().keySet()));
         //根据调度队列中节点的isMaster字段进行主从区分
-        for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfoList){
-            if (scheduleQueue.get(tdsqlHostInfo).getIsMaster()){
+        for (TdsqlHostInfo tdsqlHostInfo : tdsqlHostInfoList) {
+            if (scheduleQueue.get(tdsqlHostInfo).getIsMaster()) {
                 scheduleQueueMaster.put(tdsqlHostInfo, scheduleQueue.get(tdsqlHostInfo));
-            }else{
+            } else {
                 scheduleQueueSlave.put(tdsqlHostInfo, scheduleQueue.get(tdsqlHostInfo));
             }
         }
         TdsqlDirectReadWriteMode readWriteMode = RO;
 
         JdbcConnection connection;
-        if (RW.equals(readWriteMode)){
+        if (RW.equals(readWriteMode)) {
             connection = pickConnection(scheduleQueueMaster, balancer);
-        }else{
+        } else {
             //先进行从库的故障转移
             connection = failover(scheduleQueue, scheduleQueueSlave, balancer, tdsqlHostInfoList);
             //是否有必要将scheduleQueue中调度不了的从库移除,又因为该库宕机，那么之前的连接实例也有必要删除！
-            for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfoList){
-                if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo)){
+            for (TdsqlHostInfo tdsqlHostInfo : tdsqlHostInfoList) {
+                if (!scheduleQueueSlave.containsKey(tdsqlHostInfo) && !scheduleQueueMaster.containsKey(tdsqlHostInfo)) {
                     scheduleQueue.remove(tdsqlHostInfo);
                     connectionHolder.remove(tdsqlHostInfo);
                 }
             }
             //此时connection为空，说明从库连接建立失败，并且如果允许主库承接只读流量，那么建立主库连接
-            if (connection == null && tdsqlDirectMasterCarryOptOfReadOnlyMode){
+            if (connection == null && tdsqlDirectMasterCarryOptOfReadOnlyMode) {
                 connection = pickConnection(scheduleQueueMaster, balancer);
             }
         }
@@ -134,16 +140,16 @@ class TdsqlDirectConnectionManagerTest {
 
 
     public JdbcConnection failover(TdsqlAtomicLongMap scheduleQueue, TdsqlAtomicLongMap scheduleQueueSlave,
-                                   TdsqlLoadBalanceStrategy balancer, List<TdsqlHostInfo> tdsqlHostInfoList){
+            TdsqlLoadBalanceStrategy balancer, List<TdsqlHostInfo> tdsqlHostInfoList) {
         JdbcConnection connection = null;
         boolean getConnection = false;
         //进行failover操作
         int attemps = 0;
         do {
             //因为在调度失败之后，会将节点从调度队列中删除，所以在每一次列表调度全部失败之后、下一次列表调度之前，要将列表中的节点恢复
-            if (scheduleQueueSlave.isEmpty()){
-                for (TdsqlHostInfo tdsqlHostInfo: tdsqlHostInfoList){
-                    if (!scheduleQueue.get(tdsqlHostInfo).getIsMaster()){
+            if (scheduleQueueSlave.isEmpty()) {
+                for (TdsqlHostInfo tdsqlHostInfo : tdsqlHostInfoList) {
+                    if (!scheduleQueue.get(tdsqlHostInfo).getIsMaster()) {
                         scheduleQueueSlave.put(tdsqlHostInfo, scheduleQueue.get(tdsqlHostInfo));
                     }
                 }
@@ -151,27 +157,26 @@ class TdsqlDirectConnectionManagerTest {
             //此步骤将从库尝试一遍，
             try {
                 connection = pickConnection(scheduleQueueSlave, balancer);
-                TdsqlLoggerFactory.logInfo("Create connection success [" + currentTdsqlHostInfo.getHostPortPair() + "], return it.");
+                logInfo("Create connection success [" + currentTdsqlHostInfo.getHostPortPair() + "], return it.");
                 getConnection = true;
-            }catch (SQLException e){
-                if (shouldExceptionTriggerConnectionSwitch(e)){
+            } catch (SQLException e) {
+                if (shouldExceptionTriggerConnectionSwitch(e)) {
                     //此步骤需要进行异常处理，即从库连接建立失败之后，需要将该从库从调度队列中移除,从库全部失败调度主库
-                    TdsqlLoggerFactory.logError(
-                            "Could not create connection to database server [" + currentTdsqlHostInfo.getHostPortPair()
-                                    + "], starting to schedule other nodes.", e);
+                    logError("Could not create connection to database server [" + currentTdsqlHostInfo.getHostPortPair()
+                            + "], starting to schedule other nodes.", e);
                     refreshScheduleQueue(null, null, scheduleQueueSlave, currentTdsqlHostInfo);
                     //当从库为空的时候，表明从库已经调度了一遍并且全部失败，那么此时将attemps+1，
-                    if (scheduleQueueSlave.isEmpty()){
-                        attemps ++;
+                    if (scheduleQueueSlave.isEmpty()) {
+                        attemps++;
                     }
                     //在尝试attemps-1次之前，都认为从库并不是因为宕机导致无法建立连接，可能是因为网络等，当最后一次遍历调度队列还是无法建立连接的时候，
                     // 就认为从库确实宕机了，此时将该节点从原始调度队列删除！
-//                    if (attemps == retriesAllDown){
-//                        scheduleQueue.remove(currentTdsqlHostInfo);
-//                    }
+                    //                    if (attemps == retriesAllDown){
+                    //                        scheduleQueue.remove(currentTdsqlHostInfo);
+                    //                    }
                 }
             }
-        }while (attemps < retriesAllDown && !getConnection);
+        } while (attemps < retriesAllDown && !getConnection);
         return connection;
     }
 
@@ -195,21 +200,23 @@ class TdsqlDirectConnectionManagerTest {
         return false;
     }
 
-    JdbcConnection pickConnection(TdsqlAtomicLongMap scheduleQueue, TdsqlLoadBalanceStrategy balancer) throws SQLException {
+    JdbcConnection pickConnection(TdsqlAtomicLongMap scheduleQueue, TdsqlLoadBalanceStrategy balancer)
+            throws SQLException {
         TdsqlHostInfo tdsqlHostInfo = balancer.choice(scheduleQueue);
         currentTdsqlHostInfo = tdsqlHostInfo;
         JdbcConnection connection = ConnectionImpl.getInstance(tdsqlHostInfo);
         return connection;
     }
 
-    void refreshScheduleQueue(TdsqlAtomicLongMap scheduleQueue, TdsqlAtomicLongMap scheduleQueueMaster, TdsqlAtomicLongMap scheduleQueueSlave, TdsqlHostInfo tdsqlHostInfo) {
-        if (scheduleQueue != null && scheduleQueue.containsKey(tdsqlHostInfo)){
+    void refreshScheduleQueue(TdsqlAtomicLongMap scheduleQueue, TdsqlAtomicLongMap scheduleQueueMaster,
+            TdsqlAtomicLongMap scheduleQueueSlave, TdsqlHostInfo tdsqlHostInfo) {
+        if (scheduleQueue != null && scheduleQueue.containsKey(tdsqlHostInfo)) {
             scheduleQueue.remove(tdsqlHostInfo);
         }
-        if (scheduleQueueSlave != null && scheduleQueueSlave.containsKey(tdsqlHostInfo)){
+        if (scheduleQueueSlave != null && scheduleQueueSlave.containsKey(tdsqlHostInfo)) {
             scheduleQueueSlave.remove(tdsqlHostInfo);
         }
-        if (scheduleQueueMaster != null && scheduleQueueMaster.containsKey(tdsqlHostInfo)){
+        if (scheduleQueueMaster != null && scheduleQueueMaster.containsKey(tdsqlHostInfo)) {
             scheduleQueue.remove(tdsqlHostInfo);
         }
     }

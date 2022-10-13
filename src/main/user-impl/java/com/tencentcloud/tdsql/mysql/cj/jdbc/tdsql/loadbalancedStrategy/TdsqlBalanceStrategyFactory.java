@@ -1,10 +1,11 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
+
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import java.sql.SQLException;
 
 /**
@@ -45,7 +46,7 @@ public class TdsqlBalanceStrategyFactory {
             }
         } catch (Throwable t) {
             String errMessage = Messages.getString("InvalidLoadBalanceStrategy", new Object[]{strategy});
-            TdsqlLoggerFactory.logError(errMessage, t);
+            logError(errMessage, t);
             throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_ILLEGAL_ARGUMENT, null);
         }
         return balancer;

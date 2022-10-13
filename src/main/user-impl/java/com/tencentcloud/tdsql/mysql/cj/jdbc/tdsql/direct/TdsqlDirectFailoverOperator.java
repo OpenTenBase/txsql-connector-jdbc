@@ -1,8 +1,9 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct;
 
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectDataSourceCounter;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logDebug;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
 
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectDataSourceCounter;
 import java.util.List;
 
 /**
@@ -15,9 +16,10 @@ public class TdsqlDirectFailoverOperator {
     private TdsqlDirectFailoverOperator() {
     }
 
-    public static synchronized void subsequentOperation(TdsqlDirectReadWriteMode rwMode, TdsqlDirectMasterSlaveSwitchMode switchMode,
+    public static synchronized void subsequentOperation(TdsqlDirectReadWriteMode rwMode,
+            TdsqlDirectMasterSlaveSwitchMode switchMode,
             List<String> toCloseList, String ownerUuid) {
-        TdsqlLoggerFactory.logDebug("Because current direct read write mode is: " + rwMode);
+        logDebug("Because current direct read write mode is: " + rwMode);
         switch (rwMode) {
             case RW:
                 optOfReadWriteMode(switchMode, toCloseList, ownerUuid);
@@ -26,13 +28,14 @@ public class TdsqlDirectFailoverOperator {
                 optOfReadOnlyMode(switchMode, toCloseList, ownerUuid);
                 break;
             default:
-                TdsqlLoggerFactory.logError("Unknown direct read write mode: " + rwMode + "! NOOP!");
+                logError("Unknown direct read write mode: " + rwMode + "! NOOP!");
                 break;
         }
     }
 
-    private static void optOfReadWriteMode(TdsqlDirectMasterSlaveSwitchMode switchMode, List<String> toCloseList, String ownerUuid) {
-        TdsqlLoggerFactory.logDebug("Because current switch mode is: " + switchMode);
+    private static void optOfReadWriteMode(TdsqlDirectMasterSlaveSwitchMode switchMode, List<String> toCloseList,
+            String ownerUuid) {
+        logDebug("Because current switch mode is: " + switchMode);
         switch (switchMode) {
             case MASTER_SLAVE_SWITCH:
                 optOfReadWriteModeInMasterSlaveSwitch(toCloseList, ownerUuid);
@@ -44,13 +47,14 @@ public class TdsqlDirectFailoverOperator {
                 optOfReadWriteModeInSlaveOffline();
                 break;
             default:
-                TdsqlLoggerFactory.logError("Unknown switch mode: " + switchMode + "! NOOP!");
+                logError("Unknown switch mode: " + switchMode + "! NOOP!");
                 break;
         }
     }
 
-    private static void optOfReadOnlyMode(TdsqlDirectMasterSlaveSwitchMode switchMode, List<String> toCloseList, String ownerUuid) {
-        TdsqlLoggerFactory.logDebug("Because current switch mode is: " + switchMode);
+    private static void optOfReadOnlyMode(TdsqlDirectMasterSlaveSwitchMode switchMode, List<String> toCloseList,
+            String ownerUuid) {
+        logDebug("Because current switch mode is: " + switchMode);
         switch (switchMode) {
             case MASTER_SLAVE_SWITCH:
                 optOfReadOnlyModeInMasterSlaveSwitch(toCloseList, ownerUuid);
@@ -62,38 +66,41 @@ public class TdsqlDirectFailoverOperator {
                 optOfReadOnlyModeInSlaveOffline(toCloseList, ownerUuid);
                 break;
             default:
-                TdsqlLoggerFactory.logError( "Unknown switch mode: " + switchMode + "! NOOP!");
+                logError("Unknown switch mode: " + switchMode + "! NOOP!");
                 break;
         }
     }
 
     private static void optOfReadWriteModeInMasterSlaveSwitch(List<String> toCloseList, String ownerUuid) {
-        TdsqlLoggerFactory.logDebug("So we will close [" + toCloseList + "]'s connections!");
-        TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(ownerUuid).getTdsqlDirectConnectionManager().close(toCloseList);
+        logDebug("So we will close [" + toCloseList + "]'s connections!");
+        TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(ownerUuid).getTdsqlDirectConnectionManager()
+                .close(toCloseList);
     }
 
     private static void optOfReadWriteModeInSlaveOnline() {
         // no-op
-        TdsqlLoggerFactory.logDebug("So NOOP!");
+        logDebug("So NOOP!");
     }
 
     private static void optOfReadWriteModeInSlaveOffline() {
         // no-op
-        TdsqlLoggerFactory.logDebug("So NOOP!");
+        logDebug("So NOOP!");
     }
 
     private static void optOfReadOnlyModeInMasterSlaveSwitch(List<String> toCloseList, String ownerUuid) {
-        TdsqlLoggerFactory.logDebug("So we will close [" + toCloseList + "]'s connections!");
-        TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(ownerUuid).getTdsqlDirectConnectionManager().close(toCloseList);
+        logDebug("So we will close [" + toCloseList + "]'s connections!");
+        TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(ownerUuid).getTdsqlDirectConnectionManager()
+                .close(toCloseList);
     }
 
     private static void optOfReadOnlyModeInSlaveOnline() {
         // no-op
-        TdsqlLoggerFactory.logDebug("So NOOP!");
+        logDebug("So NOOP!");
     }
 
     private static void optOfReadOnlyModeInSlaveOffline(List<String> toCloseList, String ownerUuid) {
-        TdsqlLoggerFactory.logDebug("So we will close [" + toCloseList + "]'s connections!");
-        TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(ownerUuid).getTdsqlDirectConnectionManager().close(toCloseList);
+        logDebug("So we will close [" + toCloseList + "]'s connections!");
+        TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(ownerUuid).getTdsqlDirectConnectionManager()
+                .close(toCloseList);
     }
 }

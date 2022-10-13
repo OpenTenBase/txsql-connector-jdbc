@@ -1,9 +1,9 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance;
 
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logWarn;
 
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -70,7 +70,7 @@ public class TdsqlLoadBalanceBlacklistHolder {
                         + "]");
                 TdsqlLoadBalanceConnectionCounter.getInstance().removeCounter(tdsqlHostInfo);
             } else {
-                TdsqlLoggerFactory.logWarn("Add host [" + tdsqlHostInfo.getHostPortPair()
+                logWarn("Add host [" + tdsqlHostInfo.getHostPortPair()
                         + "] to blacklist failed, because this host is already in blacklist , current blacklist ["
                         + printBlacklist() + "]");
             }

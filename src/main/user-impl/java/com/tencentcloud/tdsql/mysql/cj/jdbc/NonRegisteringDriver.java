@@ -31,6 +31,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode.DIRECT;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode.LOAD_BALANCE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_LC;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
 import static com.tencentcloud.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
@@ -232,7 +233,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
                                     Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceStrategy",
                                             new Object[]{strategy}) + Messages.getString(
                                             "ConnectionProperties.tdsqlLoadBalanceStrategy");
-                            TdsqlLoggerFactory.logError(errMessage);
+                            logError(errMessage);
                             throw SQLError.createSQLException(errMessage,
                                     MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
                         }

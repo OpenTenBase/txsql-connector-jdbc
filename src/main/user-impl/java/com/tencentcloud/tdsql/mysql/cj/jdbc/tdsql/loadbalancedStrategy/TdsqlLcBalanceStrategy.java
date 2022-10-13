@@ -1,8 +1,9 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logDebug;
+
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionCounter;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
@@ -50,9 +51,8 @@ public final class TdsqlLcBalanceStrategy implements TdsqlLoadBalanceStrategy {
                             .collect(Collectors.toList()));
             int minIndex = countList.indexOf(Collections.min(countList));
             TdsqlHostInfo choice = tdsqlHostInfoList.get(minIndex);
-            TdsqlLoggerFactory.logDebug("Lc algorithm choice: " + choice.getHostPortPair());
-            TdsqlLoggerFactory.logDebug("Current counter: "
-                    + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter());
+            logDebug("Lc algorithm choice: " + choice.getHostPortPair());
+            logDebug("Current counter: " + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter());
             return choice;
         } finally {
             counterLock.readLock().unlock();
