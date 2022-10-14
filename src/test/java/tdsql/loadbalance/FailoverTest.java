@@ -5,6 +5,7 @@ import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_INITIALSIZE;
 import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_MAXACTIVE;
 import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_MINIDLE;
 import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_PASSWORD;
+import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_PHY_TIMEOUT_MILLIS;
 import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_TESTONBORROW;
 import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_TESTONRETURN;
 import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_TESTWHILEIDLE;
@@ -14,7 +15,6 @@ import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_VALIDATIONQUERY
 
 import com.alibaba.druid.pool.DruidDataSource;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
-import com.zaxxer.hikari.HikariConfig;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -25,7 +25,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import javax.sql.DataSource;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import tdsql.loadbalance.base.BaseTest;
 
@@ -36,15 +35,15 @@ import tdsql.loadbalance.base.BaseTest;
  */
 public class FailoverTest extends BaseTest {
 
-    private String jdbcUrl = "jdbc:tdsql-mysql:loadbalance:" +
+    private final String jdbcUrl = "jdbc:tdsql-mysql:loadbalance:" +
             "//9.30.0.250:15023,9.30.2.116:15023/test" +
             "?tdsqlLoadBalanceStrategy=sed" +
             "&logger=Slf4JLogger" +
-            "&tdsqlLoadBalanceWeightFactor=1,1" +
-            "&tdsqlLoadBalanceHeartbeatMonitorEnable=false" +
-            "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000" +
+            "&tdsqlLoadBalanceWeightFactor=2,1" +
+            "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
+            "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1500" +
             "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
-            "&autoReconnect=true";
+            "&autoReconnect=true&socketTimeout=5000";
 
     @Test
     public void case01() {
@@ -54,13 +53,13 @@ public class FailoverTest extends BaseTest {
         prop.setProperty(PROP_USERNAME, "qt4s");
         prop.setProperty(PROP_PASSWORD, "g<m:7KNDF.L1<^1C");
         prop.setProperty(PROP_INITIALSIZE, "20");
-        prop.setProperty(PROP_MINIDLE, "20");
+        prop.setProperty(PROP_MINIDLE, "10");
         prop.setProperty(PROP_MAXACTIVE, "20");
         prop.setProperty(PROP_TESTONBORROW, "false");
         prop.setProperty(PROP_TESTONRETURN, "false");
         prop.setProperty(PROP_TESTWHILEIDLE, "true");
         prop.setProperty(PROP_VALIDATIONQUERY, "select 1");
-        //        prop.setProperty(PROP_PHY_TIMEOUT_MILLIS, "30000");
+        prop.setProperty(PROP_PHY_TIMEOUT_MILLIS, "10000");
         final DruidDataSource ds;
         try {
             ds = (DruidDataSource) createDruidDataSource(prop);
@@ -68,13 +67,13 @@ public class FailoverTest extends BaseTest {
             throw new RuntimeException(e);
         }
 
-        HikariConfig config = new HikariConfig();
-        config.setDriverClassName(DRIVER_CLASS_NAME);
-        config.setJdbcUrl(jdbcUrl);
-        config.setUsername("qt4s");
-        config.setPassword("g<m:7KNDF.L1<^1C");
-        config.setMinimumIdle(20);
-        config.setMaximumPoolSize(20);
+        //        HikariConfig config = new HikariConfig();
+        //        config.setDriverClassName(DRIVER_CLASS_NAME);
+        //        config.setJdbcUrl(jdbcUrl);
+        //        config.setUsername("qt4s");
+        //        config.setPassword("g<m:7KNDF.L1<^1C");
+        //        config.setMinimumIdle(20);
+        //        config.setMaximumPoolSize(20);
         //        config.setMaxLifetime(30000);
         //        HikariDataSource ds = new HikariDataSource(config);
         //        HikariPoolMXBean bean = ds.getHikariPoolMXBean();

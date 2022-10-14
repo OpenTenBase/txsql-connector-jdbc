@@ -107,6 +107,25 @@ public class TdsqlLoadBalanceBlacklistHolder {
         }
     }
 
+    /**
+     * <p>判断指定IP地址，是否已加入黑名单</p>
+     *
+     * @param tdsqlHostInfo {@link TdsqlHostInfo}
+     * @return 已加入返回true，否则返回false
+     */
+    public boolean inBlacklist(TdsqlHostInfo tdsqlHostInfo) {
+        if (!this.blacklistEnabled) {
+            return false;
+        }
+
+        this.blacklistLock.readLock().lock();
+        try {
+            return this.blacklist.contains(tdsqlHostInfo);
+        } finally {
+            this.blacklistLock.readLock().unlock();
+        }
+    }
+
     public boolean isBlacklistEnabled() {
         return blacklistEnabled;
     }
