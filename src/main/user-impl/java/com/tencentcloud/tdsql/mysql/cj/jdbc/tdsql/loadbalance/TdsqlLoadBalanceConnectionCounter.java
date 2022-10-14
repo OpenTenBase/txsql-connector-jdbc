@@ -232,8 +232,7 @@ public class TdsqlLoadBalanceConnectionCounter {
                         Long count = nodeMsg.getCount();
                         hostCount.add(hostPortPair + "=" + count);
                     } else {
-                        logInfo("the scheduleQueue doesn't have tdsqlHostInfo, current counter ["
-                                + this.printCounter() + "]");
+                        logInfo("the scheduleQueue doesn't have tdsqlHostInfo.");
                     }
 
                 }

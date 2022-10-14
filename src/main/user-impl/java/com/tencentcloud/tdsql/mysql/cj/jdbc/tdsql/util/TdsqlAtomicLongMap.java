@@ -5,6 +5,7 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logE
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -13,8 +14,6 @@ import java.util.function.LongUnaryOperator;
 import java.util.stream.Collectors;
 
 /**
- * <p></p>
- *
  * @author dorianzhang@tencent.com
  * @author gyokumeixie@tencent.com
  */

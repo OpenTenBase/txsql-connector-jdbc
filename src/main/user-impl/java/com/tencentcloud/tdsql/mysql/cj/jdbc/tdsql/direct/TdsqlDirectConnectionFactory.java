@@ -33,9 +33,9 @@ public final class TdsqlDirectConnectionFactory {
 
     public synchronized JdbcConnection createConnection(ConnectionUrl connectionUrl) throws SQLException {
         tdsqlDirectMode = true;
-        //针对每一个ConnectionUrl，新建一个直连信息类TdsqlDirectInfo
+        // 针对每一个ConnectionUrl，新建一个直连信息类TdsqlDirectInfo
         TdsqlDirectInfo tdsqlDirectInfo = this.validateConnectionAttributes(connectionUrl);
-        //根据TdsqlDirectInfo初始化直连多数据源信息记录类
+        // 根据TdsqlDirectInfo初始化直连多数据源信息记录类
         TdsqlDirectDataSourceCounter.getInstance().initialize(tdsqlDirectInfo);
 
         TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().

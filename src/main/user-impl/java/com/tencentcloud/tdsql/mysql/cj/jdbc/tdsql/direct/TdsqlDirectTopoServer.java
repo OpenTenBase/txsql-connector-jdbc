@@ -165,9 +165,9 @@ public final class TdsqlDirectTopoServer {
     }
 
     private void createProxyConnection() throws SQLException {
-        logDebug("[" + this.ownerUuid + "] Start create proxy connection for refresh topology!");
+        logInfo("[" + this.ownerUuid + "] Start create proxy connection for refresh topology!");
         if (this.proxyConnection != null && !this.proxyConnection.isClosed() && this.proxyConnection.isValid(1)) {
-            logDebug("[" + this.ownerUuid + "] Proxy connection seems perfect, NOOP!");
+            logInfo("[" + this.ownerUuid + "] Proxy connection seems perfect, NOOP!");
             return;
         }
 
@@ -190,14 +190,14 @@ public final class TdsqlDirectTopoServer {
                         MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
             }
         } catch (SQLException e) {
-            logError("[" + this.ownerUuid + "] [" + errMsg + "]" + e.getMessage(), e);
+            logError("[" + this.ownerUuid + "] [" + errMsg + "] " + e.getMessage(), e);
             throw e;
         }
-        logDebug("[" + this.ownerUuid + "] Finish create proxy connection for refresh topology!");
+        logInfo("[" + this.ownerUuid + "] Finish create proxy connection for refresh topology!");
     }
 
     private void getTopology() throws SQLException {
-        if (this.proxyConnection == null || this.proxyConnection.isClosed() || !this.proxyConnection.isValid(3)) {
+        if (this.proxyConnection == null || this.proxyConnection.isClosed() || !this.proxyConnection.isValid(1)) {
             logWarn("[" + this.ownerUuid + "] Proxy connection is invalid, reconnection it!");
             try {
                 this.proxyConnection.close();
@@ -307,14 +307,14 @@ public final class TdsqlDirectTopoServer {
         public void caughtAndRun() {
             String proxyHost = ((JdbcConnection) TdsqlDirectDataSourceCounter.getInstance().
                     getTdsqlDirectInfo(this.ownerUuid).getTopoServer().proxyConnection).getHostPortPair();
-            logDebug("[" + this.ownerUuid + "] Start topology refresh task. Request proxy: [" + proxyHost + "]");
+            logInfo("[" + this.ownerUuid + "] Start topology refresh task. Request proxy: [" + proxyHost + "]");
             try {
                 TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid).getTopoServer()
                         .getTopology();
             } catch (Exception e) {
                 logError(e.getMessage(), e);
             }
-            logDebug("Finish topology refresh task. Request proxy: [" + proxyHost + "]");
+            logInfo("[" + this.ownerUuid + "] Finish topology refresh task. Request proxy: [" + proxyHost + "]");
         }
     }
 

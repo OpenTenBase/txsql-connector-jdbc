@@ -50,25 +50,22 @@ public final class TdsqlThreadFactoryBuilder {
                         ? builder.backingThreadFactory
                         : Executors.defaultThreadFactory();
         AtomicLong count = (nameFormat != null) ? new AtomicLong(0) : null;
-        return new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable runnable) {
-                Thread thread = backingThreadFactory.newThread(runnable);
-                if (nameFormat != null) {
-                    // requireNonNull is safe because we create `count` if (and only if) we have a nameFormat.
-                    thread.setName(format(nameFormat, requireNonNull(count).getAndIncrement()));
-                }
-                if (daemon != null) {
-                    thread.setDaemon(daemon);
-                }
-                if (priority != null) {
-                    thread.setPriority(priority);
-                }
-                if (uncaughtExceptionHandler != null) {
-                    thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
-                }
-                return thread;
+        return runnable -> {
+            Thread thread = backingThreadFactory.newThread(runnable);
+            if (nameFormat != null) {
+                // requireNonNull is safe because we create `count` if (and only if) we have a nameFormat.
+                thread.setName(format(nameFormat, requireNonNull(count).getAndIncrement()));
             }
+            if (daemon != null) {
+                thread.setDaemon(daemon);
+            }
+            if (priority != null) {
+                thread.setPriority(priority);
+            }
+            if (uncaughtExceptionHandler != null) {
+                thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
+            }
+            return thread;
         };
     }
 

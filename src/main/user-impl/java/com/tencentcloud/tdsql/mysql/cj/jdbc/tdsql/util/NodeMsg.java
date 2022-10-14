@@ -11,29 +11,34 @@ import java.util.Objects;
  *
  * @author gyokumeixie@tencent.com
  */
-public class NodeMsg implements Cloneable{
+public class NodeMsg implements Cloneable {
+
     private Long count;
     private Boolean isMaster;
-    public NodeMsg(){
+
+    public NodeMsg() {
     }
-    public NodeMsg(Long count, Boolean isMaster){
+
+    public NodeMsg(Long count, Boolean isMaster) {
         this.count = count;
         this.isMaster = isMaster;
     }
+
     public synchronized Long getCount() {
         return count;
     }
+
     public synchronized void setCount(Long count) {
         this.count = count;
     }
-    public Boolean getIsMaster(){
+
+    public Boolean getIsMaster() {
         return isMaster;
     }
 
     @Override
-    protected Object clone() throws CloneNotSupportedException {
-        NodeMsg nodeMsg = new NodeMsg(count, isMaster);
-        return nodeMsg;
+    public NodeMsg clone() throws CloneNotSupportedException {
+        return (NodeMsg) super.clone();
     }
 
     @Override
@@ -43,10 +48,22 @@ public class NodeMsg implements Cloneable{
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (! (obj instanceof NodeMsg)) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof NodeMsg)) {
+            return false;
+        }
         NodeMsg nodeMsg = (NodeMsg) obj;
         return Objects.equals(getCount(), nodeMsg.getCount()) &&
                 Objects.equals(getIsMaster(), nodeMsg.getIsMaster());
+    }
+
+    @Override
+    public String toString() {
+        return "NodeMsg{" +
+                "count=" + count +
+                ", isMaster=" + isMaster +
+                '}';
     }
 }

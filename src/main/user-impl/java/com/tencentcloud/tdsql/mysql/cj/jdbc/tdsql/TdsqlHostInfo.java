@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * <p></p>
+ * <p>TDSQL连接信息类</p>
  *
  * @author dorianzhang@tencent.com
  */

@@ -144,9 +144,10 @@ public final class TdsqlLoadBalanceConnectionFactory {
                 .getCounter(tdsqlLoadBalanceInfo.getDatasourceUuid());
         // 如果全局连接计数器是空的，则记录严重错误级别的日志，并提前抛出异常提醒用户
         if (counter == null || counter.isEmpty()) {
-            String errMessage =
-                    "Could not create connection to database server. Because connection counter is not initialized.";
+            String errMessage = "Could not create connection to database server.";
             logFatal(errMessage);
+            logFatal("Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
+                    .printBlacklist() + "]");
             throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE,
                     null);
         }
