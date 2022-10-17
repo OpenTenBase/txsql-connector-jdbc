@@ -2,8 +2,6 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlDirectLoadBalanceStrategyFactory;
 import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;

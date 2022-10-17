@@ -3,9 +3,11 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
 
 /**
- * <p></p>
+ * <p>负载均衡策略算法接口定义</p>
  *
  * @author dorianzhang@tencent.com
+ * @see com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlLcBalanceStrategy
+ * @see com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlSedBalanceStrategy
  */
 public interface TdsqlLoadBalanceStrategy {
 

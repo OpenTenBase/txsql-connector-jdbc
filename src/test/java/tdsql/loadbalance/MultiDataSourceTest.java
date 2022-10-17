@@ -11,6 +11,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -25,50 +26,83 @@ public class MultiDataSourceTest extends BaseTest {
 
     @Test
     @Order(1)
-    public void testMultiHikariWithSameUrl() {
-        this.testMultiHikari(new String[]{});
+    public void testMultiHikari() {
+        this.testMultiHikari(new String[]{
+                "jdbc:tdsql-mysql:loadbalance:" +
+                        "//9.30.0.250:15023,9.30.2.116:15023/test" +
+                        "?tdsqlLoadBalanceStrategy=sed" +
+                        "&logger=Slf4JLogger" +
+                        "&tdsqlLoadBalanceWeightFactor=1,1" +
+                        "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
+                        "&tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis=100" +
+                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=3000" +
+                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
+                        "&autoReconnect=true",
+                "jdbc:tdsql-mysql:loadbalance:" +
+                        "//9.30.2.89:15023,9.30.2.94:15023/qt4s" +
+                        "?tdsqlLoadBalanceStrategy=sed" +
+                        "&logger=Slf4JLogger" +
+                        "&tdsqlLoadBalanceWeightFactor=2,1" +
+                        "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
+                        "&tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis=100" +
+                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=3000" +
+                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
+                        "&autoReconnect=true"
+        });
     }
 
     @Test
     @Order(2)
-    public void testMultiHikariWithDiffUrl() {
-        String one = String.format("jdbc:tdsql-mysql:loadbalance://%s,%s/%s%s", PROXY_16, PROXY_44, DB_MYSQL,
-                LB_URL_PROPS);
-        String two = String.format("jdbc:tdsql-mysql:loadbalance://%s,%s/%s%s", PROXY_46, PROXY_48, DB_MYSQL,
-                LB_URL_PROPS);
-        this.testMultiHikari(new String[]{one, two});
-    }
-
-    @Test
-    @Order(3)
-    public void testMultiDruidWithSameUrl() throws Exception {
-        this.testMultiDruid(new String[]{});
-    }
-
-    @Test
-    @Order(4)
-    public void testMultiDruidWithDiffUrl() throws Exception {
-        String one = String.format("jdbc:tdsql-mysql:loadbalance://%s,%s/%s%s", PROXY_16, PROXY_44, DB_MYSQL,
-                LB_URL_PROPS);
-        String two = String.format("jdbc:tdsql-mysql:loadbalance://%s,%s/%s%s", PROXY_46, PROXY_48, DB_MYSQL,
-                LB_URL_PROPS);
-        this.testMultiDruid(new String[]{one, two});
+    public void testMultiDruid() throws Exception {
+        this.testMultiDruid(new String[]{
+                "jdbc:tdsql-mysql:loadbalance:" +
+                        "//9.30.0.250:15023,9.30.2.116:15023/test" +
+                        "?tdsqlLoadBalanceStrategy=sed" +
+                        "&logger=Slf4JLogger" +
+                        "&tdsqlLoadBalanceWeightFactor=1,1" +
+                        "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
+                        "&tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis=100" +
+                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=3000" +
+                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
+                        "&autoReconnect=true",
+                "jdbc:tdsql-mysql:loadbalance:" +
+                        "//9.30.0.250:15023,9.30.2.116:15023/qt4s" +
+                        "?tdsqlLoadBalanceStrategy=sed" +
+                        "&logger=Slf4JLogger" +
+                        "&tdsqlLoadBalanceWeightFactor=2,1" +
+                        "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
+                        "&tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis=100" +
+                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=3000" +
+                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
+                        "&autoReconnect=true"
+        });
     }
 
     @Test
     @Order(5)
-    public void testMultiAtomikosWithSameUrl() throws SQLException {
-        this.testMultiAtomikos(new String[]{});
-    }
-
-    @Test
-    @Order(6)
-    public void testMultiAtomikosWithDiffUrl() throws SQLException {
-        String one = String.format("jdbc:tdsql-mysql:loadbalance://%s,%s/%s%s", PROXY_16, PROXY_44, DB_MYSQL,
-                LB_URL_PROPS);
-        String two = String.format("jdbc:tdsql-mysql:loadbalance://%s,%s/%s%s", PROXY_46, PROXY_48, DB_MYSQL,
-                LB_URL_PROPS);
-        this.testMultiAtomikos(new String[]{one, two});
+    public void testMultiAtomikos() throws SQLException, InterruptedException {
+        this.testMultiAtomikos(new String[]{
+                "jdbc:tdsql-mysql:loadbalance:" +
+                        "//9.30.0.250:15023,9.30.2.116:15023/test" +
+                        "?tdsqlLoadBalanceStrategy=sed" +
+                        "&logger=Slf4JLogger" +
+                        "&tdsqlLoadBalanceWeightFactor=1,1" +
+                        "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
+                        "&tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis=100" +
+                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=3000" +
+                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
+                        "&autoReconnect=true",
+                "jdbc:tdsql-mysql:loadbalance:" +
+                        "//9.30.0.250:15023,9.30.2.116:15023/qt4s" +
+                        "?tdsqlLoadBalanceStrategy=sed" +
+                        "&logger=Slf4JLogger" +
+                        "&tdsqlLoadBalanceWeightFactor=2,1" +
+                        "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
+                        "&tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis=100" +
+                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=3000" +
+                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
+                        "&autoReconnect=true"
+        });
     }
 
     private void testMultiHikari(String[] jdbcUrl) {
@@ -78,8 +112,8 @@ public class MultiDataSourceTest extends BaseTest {
             ds1 = (HikariDataSource) super.createHikariDataSource();
             ds2 = (HikariDataSource) super.createHikariDataSource();
         } else if (jdbcUrl.length == 2) {
-            ds1 = (HikariDataSource) super.createHikariDataSource(jdbcUrl[0]);
-            ds2 = (HikariDataSource) super.createHikariDataSource(jdbcUrl[1]);
+            ds1 = (HikariDataSource) super.createHikariDataSource(jdbcUrl[0], "qt4s", "g<m:7KNDF.L1<^1C");
+            ds2 = (HikariDataSource) super.createHikariDataSource(jdbcUrl[1], "qt4s", "g<m:7KNDF.L1<^1C");
         }
 
         try {
@@ -99,6 +133,10 @@ public class MultiDataSourceTest extends BaseTest {
             assertEquals(max, mxBean.getTotalConnections());
             assertEquals(0, mxBean.getActiveConnections());
             assertEquals(max, mxBean.getIdleConnections());
+
+            TimeUnit.HOURS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         } finally {
             if (ds1 != null) {
                 ds1.close();
@@ -116,8 +154,8 @@ public class MultiDataSourceTest extends BaseTest {
             ds1 = (DruidDataSource) super.createDruidDataSource();
             ds2 = (DruidDataSource) super.createDruidDataSource();
         } else if (jdbcUrl.length == 2) {
-            ds1 = (DruidDataSource) super.createDruidDataSource(jdbcUrl[0]);
-            ds2 = (DruidDataSource) super.createDruidDataSource(jdbcUrl[1]);
+            ds1 = (DruidDataSource) super.createDruidDataSource(jdbcUrl[0], "qt4s", "g<m:7KNDF.L1<^1C");
+            ds2 = (DruidDataSource) super.createDruidDataSource(jdbcUrl[1], "qt4s", "g<m:7KNDF.L1<^1C");
         }
 
         try {
@@ -135,6 +173,8 @@ public class MultiDataSourceTest extends BaseTest {
             assertEquals(max, ds2.getCreateCount());
             assertEquals(0, ds2.getActiveCount());
             assertEquals(max, ds2.getPoolingCount());
+
+            TimeUnit.HOURS.sleep(1);
         } finally {
             if (ds1 != null) {
                 ds1.close();
@@ -145,15 +185,15 @@ public class MultiDataSourceTest extends BaseTest {
         }
     }
 
-    private void testMultiAtomikos(String[] jdbcUrl) throws SQLException {
+    private void testMultiAtomikos(String[] jdbcUrl) throws SQLException, InterruptedException {
         AtomikosDataSourceBean ds1 = null;
         AtomikosDataSourceBean ds2 = null;
         if (jdbcUrl.length == 0) {
             ds1 = (AtomikosDataSourceBean) super.createAtomikosDataSource("ds1");
             ds2 = (AtomikosDataSourceBean) super.createAtomikosDataSource("ds2");
         } else if (jdbcUrl.length == 2) {
-            ds1 = (AtomikosDataSourceBean) super.createAtomikosDataSource("ds1", jdbcUrl[0]);
-            ds2 = (AtomikosDataSourceBean) super.createAtomikosDataSource("ds2", jdbcUrl[1]);
+            ds1 = (AtomikosDataSourceBean) super.createAtomikosDataSource("ds1", jdbcUrl[0], "qt4s", "g<m:7KNDF.L1<^1C");
+            ds2 = (AtomikosDataSourceBean) super.createAtomikosDataSource("ds2", jdbcUrl[1], "qt4s", "g<m:7KNDF.L1<^1C");
         }
 
         assertNotNull(ds1);
@@ -175,6 +215,8 @@ public class MultiDataSourceTest extends BaseTest {
         assertFalse(conn.isClosed());
         assertTrue(conn.isValid(1));
         conn.close();
+
+        TimeUnit.HOURS.sleep(1);
 
         ds1.close();
         ds2.close();

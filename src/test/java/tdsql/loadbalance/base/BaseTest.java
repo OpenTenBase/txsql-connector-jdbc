@@ -80,35 +80,43 @@ public class BaseTest {
         return ds;
     }
 
-    protected DataSource createHikariDataSource(String jdbcUrl) {
+    protected DataSource createHikariDataSource(String jdbcUrl, String username, String password) {
         HikariConfig config = new HikariConfig();
         config.setDriverClassName(DRIVER_CLASS_NAME);
         config.setJdbcUrl(jdbcUrl);
-        config.setUsername(USER);
-        config.setPassword(PASS);
-        config.setMinimumIdle(20);
-        config.setMaximumPoolSize(20);
+        config.setUsername(username);
+        config.setPassword(password);
+        config.setMinimumIdle(10);
+        config.setMaximumPoolSize(10);
         return new HikariDataSource(config);
+    }
+
+    protected DataSource createHikariDataSource(String jdbcUrl) {
+        return this.createHikariDataSource(jdbcUrl, USER, PASS);
     }
 
     protected DataSource createHikariDataSource() {
         return this.createHikariDataSource(LB_URL);
     }
 
-    protected DataSource createDruidDataSource(String jdbcUrl) throws Exception {
+    protected DataSource createDruidDataSource(String jdbcUrl, String username, String password) throws Exception {
         Properties prop = new Properties();
         prop.setProperty(PROP_DRIVERCLASSNAME, DRIVER_CLASS_NAME);
         prop.setProperty(PROP_URL, jdbcUrl);
-        prop.setProperty(PROP_USERNAME, USER);
-        prop.setProperty(PROP_PASSWORD, PASS);
-        prop.setProperty(PROP_INITIALSIZE, "20");
-        prop.setProperty(PROP_MINIDLE, "20");
-        prop.setProperty(PROP_MAXACTIVE, "20");
+        prop.setProperty(PROP_USERNAME, username);
+        prop.setProperty(PROP_PASSWORD, password);
+        prop.setProperty(PROP_INITIALSIZE, "10");
+        prop.setProperty(PROP_MINIDLE, "10");
+        prop.setProperty(PROP_MAXACTIVE, "10");
         prop.setProperty(PROP_TESTONBORROW, "false");
         prop.setProperty(PROP_TESTONRETURN, "false");
         prop.setProperty(PROP_TESTWHILEIDLE, "true");
         prop.setProperty(PROP_VALIDATIONQUERY, "select 1");
         return createDataSource(prop);
+    }
+
+    protected DataSource createDruidDataSource(String jdbcUrl) throws Exception {
+        return this.createDruidDataSource(jdbcUrl, USER ,PASS);
     }
 
     protected DataSource createDruidDataSource(Properties prop) throws Exception {
@@ -119,19 +127,20 @@ public class BaseTest {
         return this.createDruidDataSource(LB_URL);
     }
 
-    protected DataSource createAtomikosDataSource(String uniqueResourceName, String jdbcUrl) throws SQLException {
+    protected DataSource createAtomikosDataSource(String uniqueResourceName, String jdbcUrl, String username,
+            String password) throws SQLException {
         MysqlXADataSource mysqlXADataSource = new MysqlXADataSource();
         mysqlXADataSource.setUrl(jdbcUrl);
-        mysqlXADataSource.setUser(USER);
-        mysqlXADataSource.setPassword(PASS);
+        mysqlXADataSource.setUser(username);
+        mysqlXADataSource.setPassword(password);
 
         AtomikosDataSourceBean ds = new AtomikosDataSourceBean();
         ds.setXaProperties(new Properties());
         ds.setXaDataSource(mysqlXADataSource);
         ds.setUniqueResourceName(uniqueResourceName);
         ds.setXaDataSourceClassName("com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXADataSource");
-        ds.setMinPoolSize(20);
-        ds.setMaxPoolSize(20);
+        ds.setMinPoolSize(10);
+        ds.setMaxPoolSize(10);
         ds.setMaxLifetime(20000);
         ds.setBorrowConnectionTimeout(10000);
         ds.setLoginTimeout(3);
@@ -139,6 +148,10 @@ public class BaseTest {
         ds.setMaxIdleTime(300);
         ds.setTestQuery("select 1");
         return ds;
+    }
+
+    protected DataSource createAtomikosDataSource(String uniqueResourceName, String jdbcUrl) throws SQLException {
+        return this.createAtomikosDataSource(uniqueResourceName, jdbcUrl, USER, PASS);
     }
 
     protected DataSource createAtomikosDataSource(String uniqueResourceName) throws SQLException {

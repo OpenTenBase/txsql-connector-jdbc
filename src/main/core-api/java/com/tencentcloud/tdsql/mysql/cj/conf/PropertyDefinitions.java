@@ -38,7 +38,7 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_MAX_ERROR_RETRIES;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_ERROR_RETRY_INTERVAL_TIME_MILLIS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_STRATEGY;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
 
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.PerConnectionLRUFactory;
@@ -885,7 +885,7 @@ public class PropertyDefinitions {
 
                 // Load Balance
                 new StringPropertyDefinition(PropertyKey.tdsqlLoadBalanceStrategy,
-                        DEFAULT_TDSQL_LOAD_BALANCE_STRATEGY,
+                        TDSQL_LOAD_BALANCE_STRATEGY_SED,
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlLoadBalanceStrategy"),
                         "1.2.0",

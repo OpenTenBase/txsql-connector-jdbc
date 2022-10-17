@@ -14,11 +14,11 @@ import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_USERNAME;
 import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_VALIDATIONQUERY;
 
 import com.alibaba.druid.pool.DruidDataSource;
-import com.zaxxer.hikari.HikariConfig;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalTime;
 import java.util.Properties;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -35,53 +35,71 @@ import tdsql.loadbalance.base.BaseTest;
  */
 public class FailoverTest extends BaseTest {
 
-    private String jdbcUrl = "jdbc:tdsql-mysql:loadbalance://9.30.1.231:15006,9.30.1.207:15006/db1?";
+    private final String jdbcUrl = "jdbc:tdsql-mysql:loadbalance:" +
+            "//9.30.0.250:15023,9.30.2.116:15023/test" +
+            "?tdsqlLoadBalanceStrategy=sed" +
+            "&logger=Slf4JLogger" +
+            "&tdsqlLoadBalanceWeightFactor=2,1" +
+            "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
+            "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1500" +
+            "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
+            "&autoReconnect=true&socketTimeout=5000";
 
     @Test
-    public void case01() throws Exception {
+    public void case01() {
         Properties prop = new Properties();
         prop.setProperty(PROP_DRIVERCLASSNAME, DRIVER_CLASS_NAME);
         prop.setProperty(PROP_URL, jdbcUrl);
-        prop.setProperty(PROP_USERNAME, "joseph");
-        prop.setProperty(PROP_PASSWORD, "Aaaaaaaa1!");
+        prop.setProperty(PROP_USERNAME, "qt4s");
+        prop.setProperty(PROP_PASSWORD, "g<m:7KNDF.L1<^1C");
         prop.setProperty(PROP_INITIALSIZE, "20");
-        prop.setProperty(PROP_MINIDLE, "20");
+        prop.setProperty(PROP_MINIDLE, "10");
         prop.setProperty(PROP_MAXACTIVE, "20");
         prop.setProperty(PROP_TESTONBORROW, "false");
         prop.setProperty(PROP_TESTONRETURN, "false");
         prop.setProperty(PROP_TESTWHILEIDLE, "true");
         prop.setProperty(PROP_VALIDATIONQUERY, "select 1");
-        prop.setProperty(PROP_PHY_TIMEOUT_MILLIS, "30000");
-        DruidDataSource ds = (DruidDataSource) createDruidDataSource(prop);
+        prop.setProperty(PROP_PHY_TIMEOUT_MILLIS, "10000");
+        final DruidDataSource ds;
+        try {
+            ds = (DruidDataSource) createDruidDataSource(prop);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
-        HikariConfig config = new HikariConfig();
-        config.setDriverClassName(DRIVER_CLASS_NAME);
-        config.setJdbcUrl(jdbcUrl);
-        config.setUsername("joseph");
-        config.setPassword("Aaaaaaaa1!");
-        config.setMinimumIdle(20);
-        config.setMaximumPoolSize(20);
-        config.setMaxLifetime(30000);
+        //        HikariConfig config = new HikariConfig();
+        //        config.setDriverClassName(DRIVER_CLASS_NAME);
+        //        config.setJdbcUrl(jdbcUrl);
+        //        config.setUsername("qt4s");
+        //        config.setPassword("g<m:7KNDF.L1<^1C");
+        //        config.setMinimumIdle(20);
+        //        config.setMaximumPoolSize(20);
+        //        config.setMaxLifetime(30000);
         //        HikariDataSource ds = new HikariDataSource(config);
+        //        HikariPoolMXBean bean = ds.getHikariPoolMXBean();
+
+        ThreadPoolExecutor executorService = new ThreadPoolExecutor(100, 100, 0, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>());
 
         ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
-        scheduledThreadPoolExecutor.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                //                System.out.println("======================== Active: " + ds.getHikariPoolMXBean().getActiveConnections());
-                //                System.out.println("======================== Total:  " + ds.getHikariPoolMXBean().getTotalConnections());
-                //                System.out.println("======================== Idle:   " + ds.getHikariPoolMXBean().getIdleConnections());
-                System.out.println("ds.getCreateCount() = " + ds.getCreateCount());
-                System.out.println("ds.getActiveCount() = " + ds.getActiveCount());
-                System.out.println("ds.getDiscardCount() = " + ds.getDiscardCount());
-            }
-        }, 0, 1, TimeUnit.SECONDS);
+        scheduledThreadPoolExecutor.scheduleAtFixedRate(
+                () -> System.out.println(
+                        "Time: " + LocalTime.now() + ", Active Size: " + executorService.getActiveCount()
+                                + ", Pool size: " + executorService.getPoolSize() + ", Task count: "
+                                + executorService.getTaskCount()
+                                + ", queue Size: " + executorService.getQueue().size() + ", ds Active: "
+                                + ds.getActiveCount() + ", ds create: " + ds.getCreateCount() + ", ds connect: "
+                                + ds.getConnectCount()
+                        //                        + "active: " + bean.getActiveConnections() + ", total: " + bean.getTotalConnections() + ", idle: " + bean.getIdleConnections()
+                ), 0, 1000, TimeUnit.MILLISECONDS);
 
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(100, 100, 0, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>());
         while (true) {
-            executor.submit(new QueryTask(ds));
-            TimeUnit.MILLISECONDS.sleep(2);
+            try {
+                executorService.submit(new QueryTask(ds));
+                TimeUnit.MILLISECONDS.sleep(2);
+            } catch (Throwable e) {
+                System.err.println("1. ===== " + e.getMessage());
+            }
         }
     }
 
@@ -100,12 +118,14 @@ public class FailoverTest extends BaseTest {
                 conn.setAutoCommit(false);
                 ResultSet rs = stmt.executeQuery("select count(*) from t_user;");
                 while (rs.next()) {
-                    TimeUnit.MILLISECONDS.sleep(1);
+                    TimeUnit.MILLISECONDS.sleep(100);
                 }
                 conn.commit();
-                rs.close();
-            } catch (SQLException | InterruptedException e) {
-                e.printStackTrace();
+            } catch (Throwable e) {
+                if (!(e instanceof CJCommunicationsException)) {
+                    System.out.println("2. ===== " + e.getMessage());
+                    e.printStackTrace();
+                }
             }
         }
     }

@@ -29,52 +29,60 @@
 
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_STRATEGY;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode.DIRECT;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode.LOAD_BALANCE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_LC;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
 import static com.tencentcloud.tdsql.mysql.cj.util.StringUtils.isNullOrEmpty;
 
-import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.List;
-import java.util.Properties;
-import java.util.logging.Logger;
 import com.tencentcloud.tdsql.mysql.cj.Constants;
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl.Type;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.UnableToConnectException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.UnsupportedConnectionStringException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.FailoverConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.ReplicationConnectionProxy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
-import com.tencentcloud.tdsql.mysql.cj.log.LogFactory;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
+import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.List;
+import java.util.Properties;
+import java.util.logging.Logger;
 
 /**
- * The Java SQL framework allows for multiple database drivers. Each driver should supply a class that implements the Driver interface
+ * The Java SQL framework allows for multiple database drivers. Each driver should supply a class that implements the
+ * Driver interface
  *
  * <p>
- * The DriverManager will try to load as many drivers as it can find and then for any given connection request, it will ask each driver in turn to try to
+ * The DriverManager will try to load as many drivers as it can find and then for any given connection request, it will
+ * ask each driver in turn to try to
  * connect to the target URL.
  * </p>
  *
  * <p>
- * It is strongly recommended that each Driver class should be small and standalone so that the Driver class can be loaded and queried without bringing in vast
+ * It is strongly recommended that each Driver class should be small and standalone so that the Driver class can be
+ * loaded and queried without bringing in vast
  * quantities of supporting code.
  * </p>
  *
  * <p>
- * When a Driver class is loaded, it should create an instance of itself and register it with the DriverManager. This means that a user can load and register a
+ * When a Driver class is loaded, it should create an instance of itself and register it with the DriverManager. This
+ * means that a user can load and register a
  * driver by doing Class.forName("foo.bah.Driver")
  * </p>
  */
@@ -129,8 +137,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
     /**
      * Construct a new driver and register it with DriverManager
      *
-     * @throws SQLException
-     *             if a database error occurs.
+     * @throws SQLException if a database error occurs.
      */
     public NonRegisteringDriver() throws SQLException {
         // Required for Class.forName().newInstance()
@@ -141,13 +148,9 @@ public class NonRegisteringDriver implements java.sql.Driver {
      * specified in the URL and false if they don't. This driver's protocols
      * start with jdbc:mysql:
      *
-     * @param url
-     *            the URL of the driver
-     *
+     * @param url the URL of the driver
      * @return true if this driver accepts the given URL
-     *
-     * @exception SQLException
-     *                if a database access error occurs or the url is null
+     * @throws SQLException if a database access error occurs or the url is null
      */
     @Override
     public boolean acceptsURL(String url) throws SQLException {
@@ -159,16 +162,20 @@ public class NonRegisteringDriver implements java.sql.Driver {
     //
 
     /**
-     * Try to make a database connection to the given URL. The driver should return "null" if it realizes it is the wrong kind of driver to connect to the given
-     * URL. This will be common, as when the JDBC driverManager is asked to connect to a given URL, it passes the URL to each loaded driver in turn.
+     * Try to make a database connection to the given URL. The driver should return "null" if it realizes it is the
+     * wrong kind of driver to connect to the given
+     * URL. This will be common, as when the JDBC driverManager is asked to connect to a given URL, it passes the URL to
+     * each loaded driver in turn.
      *
      * <p>
-     * The driver should raise an SQLException if the URL is null or if it is the right driver to connect to the given URL, but has trouble connecting to the
+     * The driver should raise an SQLException if the URL is null or if it is the right driver to connect to the given
+     * URL, but has trouble connecting to the
      * database.
      * </p>
      *
      * <p>
-     * The java.util.Properties argument can be used to pass arbitrary string tag/value pairs as connection arguments. These properties take precedence over any
+     * The java.util.Properties argument can be used to pass arbitrary string tag/value pairs as connection arguments.
+     * These properties take precedence over any
      * properties sent in the URL.
      * </p>
      *
@@ -176,15 +183,10 @@ public class NonRegisteringDriver implements java.sql.Driver {
      * MySQL protocol takes the form: jdbc:mysql://host:port/database
      * </p>
      *
-     * @param url
-     *            the URL of the database to connect to
-     * @param info
-     *            a list of arbitrary tag/value pairs as connection arguments
-     *
+     * @param url the URL of the database to connect to
+     * @param info a list of arbitrary tag/value pairs as connection arguments
      * @return a connection to the URL or null if it isn't us
-     *
-     * @exception SQLException
-     *                if a database access error occurs or the url is {@code null}
+     * @throws SQLException if a database access error occurs or the url is {@code null}
      */
     @Override
     public java.sql.Connection connect(String url, Properties info) throws SQLException {
@@ -219,18 +221,19 @@ public class NonRegisteringDriver implements java.sql.Driver {
 
                         // 初始化日志框架，通过URL参数logger指定
                         if (TdsqlLoggerFactory.loggerInitialized.compareAndSet(false, true)) {
-//                            TdsqlLoggerFactory.initLogConstructor(new TdsqlHostInfo(conStr.getMainHost()));
-                            TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost()));
+                            // TdsqlLoggerFactory.initLogConstructor(new TdsqlHostInfo(conStr.getMainHost()));
+                            TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost(), LOAD_BALANCE));
                         }
 
                         // 判断是否使用了正确的负载均衡策略算法
                         String strategy = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(), null);
-                        if (!DEFAULT_TDSQL_LOAD_BALANCE_STRATEGY.equalsIgnoreCase(strategy)) {
+                        if (!TDSQL_LOAD_BALANCE_STRATEGY_SED.equalsIgnoreCase(strategy)
+                                && !TDSQL_LOAD_BALANCE_STRATEGY_LC.equalsIgnoreCase(strategy)) {
                             String errMessage =
                                     Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceStrategy",
                                             new Object[]{strategy}) + Messages.getString(
                                             "ConnectionProperties.tdsqlLoadBalanceStrategy");
-                            TdsqlLoggerFactory.logError(errMessage);
+                            logError(errMessage);
                             throw SQLError.createSQLException(errMessage,
                                     MysqlErrorNumbers.SQL_STATE_INVALID_CONNECTION_ATTRIBUTE, null);
                         }
@@ -246,7 +249,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 case DIRECT_CONNECTION:
                     // 初始化日志框架，通过URL参数logger指定
                     if (TdsqlLoggerFactory.loggerInitialized.compareAndSet(false, true)) {
-                            TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost()));
+                        TdsqlLoggerFactory.setLogger(new TdsqlHostInfo(conStr.getMainHost(), DIRECT));
                     }
                     // 当URL类型为直连时，进入具备读写分离特性的数据库连接直连处理逻辑
                     return TdsqlDirectConnectionFactory.getInstance().createConnection(conStr);
@@ -261,7 +264,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
 
         } catch (CJException ex) {
             throw ExceptionFactory.createException(UnableToConnectException.class,
-                    Messages.getString("NonRegisteringDriver.17", new Object[] { ex.toString() }), ex);
+                    Messages.getString("NonRegisteringDriver.17", new Object[]{ex.toString()}), ex);
         }
     }
 

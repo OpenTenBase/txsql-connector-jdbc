@@ -4,7 +4,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
 import org.junit.jupiter.api.Test;
 import java.sql.SQLException;
 
-class TdsqlDirectLoadBalanceStrategyFactoryTest {
+class TdsqlBalanceStrategyFactoryTest {
 
     @Test
     public void testStrategyFactory() throws SQLException {
@@ -21,7 +21,7 @@ class TdsqlDirectLoadBalanceStrategyFactoryTest {
     class GetInstance implements Runnable{
         @Override
         public void run() {
-            TdsqlDirectLoadBalanceStrategyFactory instance = TdsqlDirectLoadBalanceStrategyFactory.getInstance();
+            TdsqlBalanceStrategyFactory instance = TdsqlBalanceStrategyFactory.getInstance();
             TdsqlLoadBalanceStrategy lc = null;
             try {
                 lc = instance.getStrategyInstance("Lc");
@@ -35,7 +35,7 @@ class TdsqlDirectLoadBalanceStrategyFactoryTest {
     class GetInstanceNew implements Runnable{
         @Override
         public void run() {
-            TdsqlDirectLoadBalanceStrategyFactory instance = TdsqlDirectLoadBalanceStrategyFactory.getInstance();
+            TdsqlBalanceStrategyFactory instance = TdsqlBalanceStrategyFactory.getInstance();
             TdsqlLoadBalanceStrategy lc = null;
             try {
                 lc = instance.getStrategyInstance("Sed");

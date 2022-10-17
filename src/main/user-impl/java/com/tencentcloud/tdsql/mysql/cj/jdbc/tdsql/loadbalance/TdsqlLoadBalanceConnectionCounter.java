@@ -1,10 +1,11 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logWarn;
+
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -18,6 +19,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class TdsqlLoadBalanceConnectionCounter {
 
+    private boolean counterInitialized = false;
     /**
      * 保存了每一个DataSourceUuid与其连接计数器的映射关系
      */
@@ -35,19 +37,23 @@ public class TdsqlLoadBalanceConnectionCounter {
      *
      * @param tdsqlLoadBalanceInfo {@link TdsqlLoadBalanceInfo} 负载均衡信息记录类对象
      */
-    public void initialize(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) {
-        String datasourceUuid = tdsqlLoadBalanceInfo.getDatasourceUuid();
-        if (!this.counterDatasourceMap.containsKey(datasourceUuid)) {
-            TdsqlAtomicLongMap<TdsqlHostInfo> counter = TdsqlAtomicLongMap.create();
-            for (TdsqlHostInfo tdsqlHostInfo : tdsqlLoadBalanceInfo.getTdsqlHostInfoList()) {
-//                counter.put(tdsqlHostInfo, 0L);
-                //在本类中，所有的put方法，都从之前put一个Long类型修改为一个NodeMsg实例，因为isMaster字段在该功能中不重要，所以将其设为null
-                counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
+    public synchronized void initialize(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) {
+        if (!this.counterInitialized) {
+            logInfo("Connection counter initializing.");
+            String datasourceUuid = tdsqlLoadBalanceInfo.getDatasourceUuid();
+            if (!this.counterDatasourceMap.containsKey(datasourceUuid)) {
+                TdsqlAtomicLongMap<TdsqlHostInfo> counter = TdsqlAtomicLongMap.create();
+                for (TdsqlHostInfo tdsqlHostInfo : tdsqlLoadBalanceInfo.getTdsqlHostInfoList()) {
+                    // 在本类中，所有的put方法，都从之前put一个Long类型修改为一个NodeMsg实例，
+                    // 因为isMaster字段在该功能中不重要，所以将其设为null
+                    counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
+                }
+                this.counterDatasourceMap.put(datasourceUuid, counter);
+                logInfo("New datasource add in counter [" + datasourceUuid + "], current counter ["
+                        + this.printCounter() + "]");
             }
-            this.counterDatasourceMap.put(datasourceUuid, counter);
-            TdsqlLoggerFactory.logInfo(
-                    "New datasource add in counter [" + datasourceUuid + "], current counter ["
-                            + this.printCounter() + "]");
+            this.counterInitialized = true;
+            logInfo("Connection counter initialized, current counter [" + this.printCounter() + "]");
         }
     }
 
@@ -60,7 +66,14 @@ public class TdsqlLoadBalanceConnectionCounter {
     public TdsqlAtomicLongMap<TdsqlHostInfo> getCounter(String datasourceUuid) {
         this.counterLock.readLock().lock();
         try {
-            return this.counterDatasourceMap.get(datasourceUuid);
+            if (!this.counterDatasourceMap.containsKey(datasourceUuid)) {
+                return null;
+            }
+            TdsqlAtomicLongMap<TdsqlHostInfo> map = this.counterDatasourceMap.get(datasourceUuid);
+            if (map == null || map.isEmpty()) {
+                return null;
+            }
+            return map;
         } finally {
             this.counterLock.readLock().unlock();
         }
@@ -69,7 +82,7 @@ public class TdsqlLoadBalanceConnectionCounter {
     /**
      * <p>
      * 操作全局连接计数器，对某个IP地址进行增加计数操作
-     * 如果需要增加计数的IP地址在全局连接计数器中不存在，则对其进行赋值，并将计数器的值初始化为1，
+     * 如果需要增加计数的IP地址在全局连接计数器中不存在且不在黑名单中时，则对其进行赋值，并将计数器的值初始化为1，
      * 否则，将计数器的值加1
      * </p>
      *
@@ -80,20 +93,26 @@ public class TdsqlLoadBalanceConnectionCounter {
         try {
             TdsqlAtomicLongMap<TdsqlHostInfo> counter = this.counterDatasourceMap.get(tdsqlHostInfo.getOwnerUuid());
             if (!counter.containsKey(tdsqlHostInfo)) {
-//                counter.put(tdsqlHostInfo, 1L);
-                counter.put(tdsqlHostInfo, new NodeMsg(1L, null));
-                TdsqlLoggerFactory.logInfo(
-                        "Increment counter to 1 success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
-                                + this.printCounter() + "]");
+                // 如果主机已加入黑名单，则不能再对其进行操作
+                TdsqlLoadBalanceBlacklistHolder blacklistHolder = TdsqlLoadBalanceBlacklistHolder.getInstance();
+                if (blacklistHolder.inBlacklist(tdsqlHostInfo)) {
+                    logWarn("Host [" + tdsqlHostInfo.getHostPortPair()
+                            + "] in blacklist, don't need increment, current counter [" + this.printCounter() + "]");
+                } else {
+                    counter.put(tdsqlHostInfo, new NodeMsg(1L, null));
+                    logInfo("Increment counter to 1 success [" + tdsqlHostInfo.getHostPortPair()
+                            + "], current counter [" + this.printCounter() + "]");
+                }
+            } else {
                 NodeMsg nodeMsg = counter.incrementAndGet(tdsqlHostInfo);
-                //新增一个判空逻辑
-                if(nodeMsg != null){
+                // 新增一个判空逻辑
+                if (nodeMsg != null) {
                     long currCount = nodeMsg.getCount();
-                    TdsqlLoggerFactory.logInfo(
-                            "Increment counter to " + currCount + " success [" + tdsqlHostInfo.getHostPortPair()
-                                    + "], current counter [" + this.printCounter() + "]");
-                }else {
-                    TdsqlLoggerFactory.logInfo("the scheduleQueue does't have tdsqlHostInfo!");
+                    logInfo("Increment counter to " + currCount + " success [" + tdsqlHostInfo.getHostPortPair()
+                            + "], current counter [" + this.printCounter() + "]");
+                } else {
+                    logInfo("The scheduleQueue doesn't have tdsqlHostInfo, current counter [" + this.printCounter()
+                            + "]");
                 }
 
             }
@@ -107,7 +126,7 @@ public class TdsqlLoadBalanceConnectionCounter {
      * 操作全局连接计数器，对某个IP地址进行减少计数操作
      * 如果需要减少计数的IP地址在全局连接计数器中不存在，则对其进行赋值，并将计数器的值初始化为0，
      * 否则，将计数器的值减1，
-     * 当计数器的值进行减少计数操作后的值小于零时，重置计数器的值为0
+     * 当计数器的值进行减少计数操作后的值小于零且不在黑名单中时，重置计数器的值为0
      * </p>
      *
      * @param tdsqlHostInfo {@link TdsqlHostInfo} 需要减少计数的IP地址
@@ -117,24 +136,28 @@ public class TdsqlLoadBalanceConnectionCounter {
         try {
             TdsqlAtomicLongMap<TdsqlHostInfo> counter = this.counterDatasourceMap.get(tdsqlHostInfo.getOwnerUuid());
             if (!counter.containsKey(tdsqlHostInfo)) {
-//                counter.put(tdsqlHostInfo, 0L);
-                counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
-                TdsqlLoggerFactory.logInfo(
-                        "Decrement counter to 0 success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
-                                + this.printCounter() + "]");
+                // 如果主机已加入黑名单，则不能再对其进行操作
+                TdsqlLoadBalanceBlacklistHolder blacklistHolder = TdsqlLoadBalanceBlacklistHolder.getInstance();
+                if (blacklistHolder.inBlacklist(tdsqlHostInfo)) {
+                    logWarn("Host [" + tdsqlHostInfo.getHostPortPair()
+                            + "] in blacklist, don't need decrement, current counter [" + this.printCounter() + "]");
+                } else {
+                    counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
+                    logInfo("Decrement counter to 0 success [" + tdsqlHostInfo.getHostPortPair()
+                            + "], current counter [" + this.printCounter() + "]");
+                }
             } else {
                 NodeMsg nodeMsg = counter.decrementAndGet(tdsqlHostInfo);
-                if (nodeMsg != null){
+                if (nodeMsg != null) {
                     long currCount = nodeMsg.getCount();
                     if (currCount < 0) {
-//                        counter.put(tdsqlHostInfo, 0L);
                         counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
                     }
-                    TdsqlLoggerFactory.logInfo(
-                            "Decrement counter to " + currCount + " success [" + tdsqlHostInfo.getHostPortPair()
-                                    + "], current counter [" + this.printCounter() + "]");
-                }else {
-                    TdsqlLoggerFactory.logInfo("the scheduleQueue does't have tdsqlHostInfo!");
+                    logInfo("Decrement counter to " + currCount + " success [" + tdsqlHostInfo.getHostPortPair()
+                            + "], current counter [" + this.printCounter() + "]");
+                } else {
+                    logInfo("The scheduleQueue doesn't have tdsqlHostInfo, current counter [" + this.printCounter()
+                            + "]");
                 }
 
             }
@@ -148,6 +171,7 @@ public class TdsqlLoadBalanceConnectionCounter {
      * 重置某个IP地址的全局连接计数器
      * 无论该IP地址是否已经在全局连接计数器存在，都会进行赋值
      * 也无论当前计数器的值是多少，都会将计数器的值赋值为0
+     * 已在黑名单中的不再进行以上操作
      * </p>
      *
      * @param tdsqlHostInfo {@link TdsqlHostInfo} 需要重置计数的IP地址
@@ -156,11 +180,16 @@ public class TdsqlLoadBalanceConnectionCounter {
         this.counterLock.writeLock().lock();
         try {
             TdsqlAtomicLongMap<TdsqlHostInfo> counter = this.counterDatasourceMap.get(tdsqlHostInfo.getOwnerUuid());
-//            counter.put(tdsqlHostInfo, 0L);
-            counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
-            TdsqlLoggerFactory.logInfo(
-                    "Reset counter to 0 success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
-                            + this.printCounter() + "]");
+            // 如果主机已加入黑名单，则不能再对其进行操作
+            TdsqlLoadBalanceBlacklistHolder blacklistHolder = TdsqlLoadBalanceBlacklistHolder.getInstance();
+            if (blacklistHolder.inBlacklist(tdsqlHostInfo)) {
+                logWarn("Host [" + tdsqlHostInfo.getHostPortPair()
+                        + "] in blacklist, don't need decrement, current counter [" + this.printCounter() + "]");
+            } else {
+                counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
+                logInfo("Reset counter to 0 success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
+                        + this.printCounter() + "]");
+            }
         } finally {
             this.counterLock.writeLock().unlock();
         }
@@ -177,9 +206,11 @@ public class TdsqlLoadBalanceConnectionCounter {
             TdsqlAtomicLongMap<TdsqlHostInfo> counter = this.counterDatasourceMap.get(tdsqlHostInfo.getOwnerUuid());
             if (counter.containsKey(tdsqlHostInfo)) {
                 counter.remove(tdsqlHostInfo);
-                TdsqlLoggerFactory.logInfo(
-                        "Remove counter success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
-                                + this.printCounter() + "]");
+                logInfo("Remove counter success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
+                        + this.printCounter() + "]");
+            } else {
+                logWarn("Host [" + tdsqlHostInfo.getHostPortPair() + "] not in counter, current counter ["
+                        + this.printCounter() + "]");
             }
         } finally {
             this.counterLock.writeLock().unlock();
@@ -197,11 +228,11 @@ public class TdsqlLoadBalanceConnectionCounter {
                 for (Entry<TdsqlHostInfo, NodeMsg> mapEntry : value.asMap().entrySet()) {
                     String hostPortPair = mapEntry.getKey().getHostPortPair();
                     NodeMsg nodeMsg = mapEntry.getValue();
-                    if (nodeMsg != null){
+                    if (nodeMsg != null) {
                         Long count = nodeMsg.getCount();
                         hostCount.add(hostPortPair + "=" + count);
-                    }else{
-                        TdsqlLoggerFactory.logInfo("the scheduleQueue does't have tdsqlHostInfo!");
+                    } else {
+                        logInfo("the scheduleQueue doesn't have tdsqlHostInfo.");
                     }
 
                 }

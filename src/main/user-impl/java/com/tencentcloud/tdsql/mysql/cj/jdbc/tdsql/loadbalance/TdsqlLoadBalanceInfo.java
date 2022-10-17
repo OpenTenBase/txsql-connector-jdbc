@@ -1,10 +1,14 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance;
 
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.StringJoiner;
 
 /**
@@ -19,11 +23,19 @@ public class TdsqlLoadBalanceInfo {
      */
     private String datasourceUuid;
     private List<TdsqlHostInfo> tdsqlHostInfoList;
+    private String tdsqlLoadBalanceStrategy;
     private List<Integer> tdsqlLoadBalanceWeightFactorList;
     private boolean tdsqlLoadBalanceHeartbeatMonitorEnable;
     private int tdsqlLoadBalanceHeartbeatIntervalTimeMillis;
     private int tdsqlLoadBalanceHeartbeatMaxErrorRetries;
     private int tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis;
+
+    private static final String QUESTION_MARK = "?";
+    private static final String PLUS_MARK = "+";
+    private static final String AND_MARK = "&";
+    private static final String EQUAL_MARK = "=";
+    private static final String LEFT_CURLY_BRACES = "{";
+    private static final String RIGHT_CURLY_BRACES = "}";
 
     public String getDatasourceUuid() {
         return datasourceUuid;
@@ -47,17 +59,38 @@ public class TdsqlLoadBalanceInfo {
             hostPortPairList.add(tdsqlHostInfo.getHostPortPair());
         }
         Collections.sort(hostPortPairList);
-        StringJoiner uuidJoiner = new StringJoiner("+");
+        StringJoiner ipPortDbJoiner = new StringJoiner(PLUS_MARK);
         for (String hostPort : hostPortPairList) {
-            uuidJoiner.add(hostPort);
+            ipPortDbJoiner.add(hostPort);
         }
 
+        // 继续拼装数据库名称
+        TdsqlHostInfo info = tdsqlHostInfoList.get(0);
+        ipPortDbJoiner.add(info.getDatabase());
+
+        // 继续拼装URL参数
+        StringJoiner propJoiner = new StringJoiner(AND_MARK, LEFT_CURLY_BRACES, RIGHT_CURLY_BRACES);
+        for (Entry<String, String> entry : info.getHostProperties().entrySet()) {
+            propJoiner.add(entry.getKey() + EQUAL_MARK + entry.getValue());
+        }
+
+        // 最终的UUID
+        String uuid = ipPortDbJoiner + QUESTION_MARK + propJoiner;
+
         this.tdsqlHostInfoList = tdsqlHostInfoList;
-        this.datasourceUuid = uuidJoiner.toString();
+        this.datasourceUuid = uuid;
 
         for (TdsqlHostInfo tdsqlHostInfo : this.tdsqlHostInfoList) {
             tdsqlHostInfo.setOwnerUuid(this.datasourceUuid);
         }
+    }
+
+    public String getTdsqlLoadBalanceStrategy() {
+        return tdsqlLoadBalanceStrategy;
+    }
+
+    public void setTdsqlLoadBalanceStrategy(String tdsqlLoadBalanceStrategy) {
+        this.tdsqlLoadBalanceStrategy = tdsqlLoadBalanceStrategy;
     }
 
     public void setTdsqlLoadBalanceWeightFactorList(List<Integer> tdsqlLoadBalanceWeightFactorList) {
@@ -97,6 +130,27 @@ public class TdsqlLoadBalanceInfo {
         this.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis = tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis;
     }
 
+    /**
+     * <p>
+     * 解析DataSourceUuid的值，获取其中的IP和端口列表
+     * </p>
+     *
+     * @param datasourceUuid DataSourceUuid
+     * @return IP和端口字符串列表
+     */
+    public static Set<String> parseDatasourceUuid(String datasourceUuid) {
+        String ipPortDbStr = datasourceUuid;
+
+        // 去掉URL参数
+        if (datasourceUuid.contains(QUESTION_MARK)) {
+            ipPortDbStr = datasourceUuid.substring(0, datasourceUuid.indexOf(QUESTION_MARK));
+        }
+
+        // 去掉数据库名称
+        String ipPortStr = ipPortDbStr.substring(0, ipPortDbStr.lastIndexOf(PLUS_MARK));
+        return new LinkedHashSet<>(StringUtils.split(ipPortStr, "\\+", true));
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -109,17 +163,20 @@ public class TdsqlLoadBalanceInfo {
         return tdsqlLoadBalanceHeartbeatMonitorEnable == that.tdsqlLoadBalanceHeartbeatMonitorEnable
                 && tdsqlLoadBalanceHeartbeatIntervalTimeMillis == that.tdsqlLoadBalanceHeartbeatIntervalTimeMillis
                 && tdsqlLoadBalanceHeartbeatMaxErrorRetries == that.tdsqlLoadBalanceHeartbeatMaxErrorRetries
-                && tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis == that.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis
+                && tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis
+                == that.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis
                 && datasourceUuid.equals(that.datasourceUuid)
                 && tdsqlHostInfoList.equals(that.tdsqlHostInfoList)
-                && tdsqlLoadBalanceWeightFactorList.equals(that.tdsqlLoadBalanceWeightFactorList);
+                && tdsqlLoadBalanceWeightFactorList.equals(that.tdsqlLoadBalanceWeightFactorList)
+                && tdsqlLoadBalanceStrategy.equalsIgnoreCase(that.tdsqlLoadBalanceStrategy);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(datasourceUuid, tdsqlHostInfoList, tdsqlLoadBalanceWeightFactorList,
-                tdsqlLoadBalanceHeartbeatMonitorEnable, tdsqlLoadBalanceHeartbeatIntervalTimeMillis,
-                tdsqlLoadBalanceHeartbeatMaxErrorRetries, tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis);
+        return Objects.hash(datasourceUuid, tdsqlHostInfoList, tdsqlLoadBalanceStrategy,
+                tdsqlLoadBalanceWeightFactorList, tdsqlLoadBalanceHeartbeatMonitorEnable,
+                tdsqlLoadBalanceHeartbeatIntervalTimeMillis, tdsqlLoadBalanceHeartbeatMaxErrorRetries,
+                tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis);
     }
 
     @Override
@@ -127,6 +184,7 @@ public class TdsqlLoadBalanceInfo {
         return "TdsqlLoadBalanceInfo{" +
                 "datasourceUuid='" + datasourceUuid + '\'' +
                 ", tdsqlHostInfoList=" + tdsqlHostInfoList +
+                ", tdsqlLoadBalanceStrategy='" + tdsqlLoadBalanceStrategy + '\'' +
                 ", tdsqlLoadBalanceWeightFactorList=" + tdsqlLoadBalanceWeightFactorList +
                 ", tdsqlLoadBalanceHeartbeatMonitorEnable=" + tdsqlLoadBalanceHeartbeatMonitorEnable +
                 ", tdsqlLoadBalanceHeartbeatIntervalTimeMillis=" + tdsqlLoadBalanceHeartbeatIntervalTimeMillis +

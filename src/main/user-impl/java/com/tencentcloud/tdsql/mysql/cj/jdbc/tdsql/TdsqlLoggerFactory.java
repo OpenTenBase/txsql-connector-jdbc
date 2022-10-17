@@ -3,16 +3,13 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcPropertySetImpl;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.log.Log;
 import com.tencentcloud.tdsql.mysql.cj.log.LogFactory;
-
-import java.lang.reflect.Constructor;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * <p></p>
+ * <p>TDSQL日志工厂类</p>
  *
  * @author dorianzhang@tencent.com
  */
@@ -36,6 +33,18 @@ public final class TdsqlLoggerFactory {
         properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatIntervalTimeMillis.getKeyName());
         properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatMaxErrorRetries.getKeyName());
         properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectReadWriteMode.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectTopoRefreshConnTimeoutMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectTopoRefreshStmtTimeoutSeconds.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectCloseConnTimeoutMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectHeartbeatMonitorEnable.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectHeartbeatIntervalTimeMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectHeartbeatMaxErrorRetries.getKeyName());
+        properties.remove(PropertyKey.tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis.getKeyName());
+        properties.remove(PropertyKey.tdsqlQueryAttributesEnable.getKeyName());
         PropertySet propertySet = new JdbcPropertySetImpl();
         propertySet.initializeProperties(properties);
         log = LogFactory.getLogger(propertySet.getStringProperty(PropertyKey.logger).getStringValue(),
@@ -56,7 +65,7 @@ public final class TdsqlLoggerFactory {
 
     public static void logWarn(Object msg) {
         if (log != null && log.isWarnEnabled()) {
-            log.logWarn(msg);
+            log.logWarn(printThreadId() + msg);
         }
     }
 

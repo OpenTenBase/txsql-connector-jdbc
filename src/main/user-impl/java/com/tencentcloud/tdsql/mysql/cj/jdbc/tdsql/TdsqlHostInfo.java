@@ -5,13 +5,14 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * <p></p>
+ * <p>TDSQL连接信息类</p>
  *
  * @author dorianzhang@tencent.com
  */
 public final class TdsqlHostInfo extends HostInfo {
 
     private String ownerUuid;
+    private final TdsqlConnectionMode connectionMode;
     private final String host;
     private final int port;
     private final String user;
@@ -25,6 +26,19 @@ public final class TdsqlHostInfo extends HostInfo {
     public TdsqlHostInfo(HostInfo hostInfo) {
         super(hostInfo.getOriginalUrl(), hostInfo.getHost(), hostInfo.getPort(), hostInfo.getUser(),
                 hostInfo.getPassword(), hostInfo.getHostProperties());
+        this.connectionMode = TdsqlConnectionMode.UNKNOWN;
+        this.host = hostInfo.getHost();
+        this.port = hostInfo.getPort();
+        this.user = hostInfo.getUser();
+        this.password = hostInfo.getPassword();
+        this.hostProperties = hostInfo.getHostProperties();
+        this.database = hostInfo.getDatabase();
+    }
+
+    public TdsqlHostInfo(HostInfo hostInfo, TdsqlConnectionMode connectionMode) {
+        super(hostInfo.getOriginalUrl(), hostInfo.getHost(), hostInfo.getPort(), hostInfo.getUser(),
+                hostInfo.getPassword(), hostInfo.getHostProperties());
+        this.connectionMode = connectionMode;
         this.host = hostInfo.getHost();
         this.port = hostInfo.getPort();
         this.user = hostInfo.getUser();
@@ -41,6 +55,10 @@ public final class TdsqlHostInfo extends HostInfo {
         this.ownerUuid = ownerUuid;
     }
 
+    public TdsqlConnectionMode getConnectionMode() {
+        return connectionMode;
+    }
+
     public int getWeightFactor() {
         return weightFactor;
     }
@@ -49,19 +67,19 @@ public final class TdsqlHostInfo extends HostInfo {
         this.weightFactor = weightFactor;
     }
 
-    public void setAlive(boolean alive){
+    public void setAlive(boolean alive) {
         this.alive = alive;
     }
 
-    public void setDelay(Long delay){
+    public void setDelay(Long delay) {
         this.delay = delay;
     }
 
-    public Long getDelay(){
+    public Long getDelay() {
         return this.delay;
     }
 
-    public boolean getAlive(){
+    public boolean getAlive() {
         return this.alive;
     }
 
@@ -76,11 +94,12 @@ public final class TdsqlHostInfo extends HostInfo {
         TdsqlHostInfo that = (TdsqlHostInfo) o;
         return port == that.port && Objects.equals(host, that.host) && Objects.equals(user, that.user)
                 && Objects.equals(password, that.password) && Objects.equals(database, that.database)
-                && Objects.equals(hostProperties, that.hostProperties);
+                && Objects.equals(hostProperties, that.hostProperties) && Objects.equals(connectionMode,
+                that.connectionMode);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(host, port, user, password, database, hostProperties);
+        return Objects.hash(connectionMode, host, port, user, password, database, hostProperties);
     }
 }

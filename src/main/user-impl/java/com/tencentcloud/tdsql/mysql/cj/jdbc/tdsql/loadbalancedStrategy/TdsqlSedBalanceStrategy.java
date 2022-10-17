@@ -1,13 +1,15 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode.DIRECT;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode.LOAD_BALANCE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceBlacklistHolder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionCounter;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +17,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * <p></p>
+ * <p>最短期望延迟算法策略</p>
  *
  * @author dorianzhang@tencent.com
  * @author gyokumeixie@tencent.com
@@ -66,10 +68,16 @@ public class TdsqlSedBalanceStrategy implements TdsqlLoadBalanceStrategy {
                         }
                     }
                     TdsqlHostInfo choice = counterList.get(i).getKey();
-                    TdsqlLoggerFactory.logDebug(
-                            "SED algorithm choice [" + choice.getHostPortPair() + "], current counter [" + scheduleQueue
-                                    + "], current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
-                                    .printBlacklist() + "]");
+                    logInfo("SED algorithm choice: " + choice.getHostPortPair());
+                    if (LOAD_BALANCE.equals(choice.getConnectionMode())) {
+                        logInfo("Current counter: " + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter());
+                        TdsqlLoadBalanceBlacklistHolder blacklistHolder = TdsqlLoadBalanceBlacklistHolder.getInstance();
+                        if (blacklistHolder.isBlacklistEnabled()) {
+                            logInfo("Current blacklist: " + blacklistHolder.printBlacklist());
+                        }
+                    } else if (DIRECT.equals(choice.getConnectionMode())) {
+                        logInfo("Current counter: " + scheduleQueue);
+                    }
                     return choice;
                 }
             }

@@ -29,7 +29,49 @@
 
 package com.tencentcloud.tdsql.mysql.cj.jdbc;
 
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionCounter;
+import com.tencentcloud.tdsql.mysql.cj.CacheAdapter;
+import com.tencentcloud.tdsql.mysql.cj.CacheAdapterFactory;
+import com.tencentcloud.tdsql.mysql.cj.LicenseConfiguration;
+import com.tencentcloud.tdsql.mysql.cj.Messages;
+import com.tencentcloud.tdsql.mysql.cj.NativeSession;
+import com.tencentcloud.tdsql.mysql.cj.NoSubInterceptorWrapper;
+import com.tencentcloud.tdsql.mysql.cj.PreparedQuery;
+import com.tencentcloud.tdsql.mysql.cj.QueryInfo;
+import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
+import com.tencentcloud.tdsql.mysql.cj.Session.SessionEventListener;
+import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
+import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
+import com.tencentcloud.tdsql.mysql.cj.conf.RuntimeProperty;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptorChain;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.PasswordExpiredException;
+import com.tencentcloud.tdsql.mysql.cj.exceptions.UnableToConnectException;
+import com.tencentcloud.tdsql.mysql.cj.interceptors.QueryInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.MultiHostMySQLConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaData;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaDataImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetInternalMethods;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.result.UpdatableResultSet;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionFactory;
+import com.tencentcloud.tdsql.mysql.cj.log.ProfilerEvent;
+import com.tencentcloud.tdsql.mysql.cj.log.StandardLogger;
+import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSessionStateController;
+import com.tencentcloud.tdsql.mysql.cj.protocol.SocksProxySocketFactory;
+import com.tencentcloud.tdsql.mysql.cj.util.LRUCache;
+import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
+import com.tencentcloud.tdsql.mysql.cj.util.Util;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationHandler;
@@ -50,6 +92,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Stack;
@@ -57,52 +100,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
-import com.tencentcloud.tdsql.mysql.cj.CacheAdapter;
-import com.tencentcloud.tdsql.mysql.cj.CacheAdapterFactory;
-import com.tencentcloud.tdsql.mysql.cj.LicenseConfiguration;
-import com.tencentcloud.tdsql.mysql.cj.Messages;
-import com.tencentcloud.tdsql.mysql.cj.NativeSession;
-import com.tencentcloud.tdsql.mysql.cj.NoSubInterceptorWrapper;
-import com.tencentcloud.tdsql.mysql.cj.PreparedQuery;
-import com.tencentcloud.tdsql.mysql.cj.QueryInfo;
-import com.tencentcloud.tdsql.mysql.cj.ServerVersion;
-import com.tencentcloud.tdsql.mysql.cj.Session.SessionEventListener;
-import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
-import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.DatabaseTerm;
-import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencentcloud.tdsql.mysql.cj.conf.RuntimeProperty;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptorChain;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.MysqlErrorNumbers;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.PasswordExpiredException;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.UnableToConnectException;
-import com.tencentcloud.tdsql.mysql.cj.interceptors.QueryInterceptor;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLError;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.SQLExceptionsMapping;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.ha.MultiHostMySQLConnection;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.interceptors.ConnectionLifecycleInterceptor;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaData;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaDataImpl;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetInternalMethods;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.result.UpdatableResultSet;
-import com.tencentcloud.tdsql.mysql.cj.log.ProfilerEvent;
-import com.tencentcloud.tdsql.mysql.cj.log.StandardLogger;
-import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSessionStateController;
-import com.tencentcloud.tdsql.mysql.cj.protocol.SocksProxySocketFactory;
-import com.tencentcloud.tdsql.mysql.cj.util.LRUCache;
-import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
-import com.tencentcloud.tdsql.mysql.cj.util.Util;
-
 /**
  * A Connection represents a session with a specific database. Within the context of a Connection, SQL statements are executed and results are returned.
- * 
+ *
  * <P>
  * A Connection's database is able to provide information describing its tables, its supported SQL grammar, its stored procedures, the capabilities of this
  * connection, etc. This information is obtained with the getMetaData method.
@@ -234,7 +234,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
 
     /**
      * Creates a connection instance.
-     * 
+     *
      * @param hostInfo
      *            {@link HostInfo} instance
      * @return new {@link ConnectionImpl} instance
@@ -369,7 +369,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
 
     /**
      * Creates a connection to a MySQL Server.
-     * 
+     *
      * @param hostInfo
      *            the {@link HostInfo} instance that contains the host, user and connections attributes for this connection
      * @exception SQLException
@@ -714,12 +714,26 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                 }
             }
 
-            realClose(true, true, false, null);
-            if (TdsqlDirectConnectionFactory.directMode && origHostInfo instanceof TdsqlHostInfo) {
-                TdsqlDirectConnectionFactory.getInstance().closeConnection(this, (TdsqlHostInfo)origHostInfo);
-            }
-            if (TdsqlLoadBalanceConnectionFactory.tdsqlLoadBalanceMode && origHostInfo instanceof TdsqlHostInfo) {
-                TdsqlLoadBalanceConnectionFactory.getInstance().closeConnection((TdsqlHostInfo) origHostInfo);
+            try {
+                realClose(true, true, false, null);
+            } catch (SQLException e) {
+                throw e;
+            } finally {
+                // 如果开启了直连模式，且数据库连接是由直连模式逻辑建立的，则执行直连模式逻辑的关闭连接方法
+                if (TdsqlDirectConnectionFactory.tdsqlDirectMode && origHostInfo instanceof TdsqlHostInfo) {
+                    TdsqlHostInfo tdsqlHostInfo = (TdsqlHostInfo) origHostInfo;
+                    if (Objects.equals(TdsqlConnectionMode.DIRECT, tdsqlHostInfo.getConnectionMode())) {
+                        TdsqlDirectConnectionFactory.getInstance().closeConnection(this, tdsqlHostInfo);
+                    }
+                }
+
+                // 如果开启了负载均衡模式，且数据库连接是由负载均衡模式逻辑建立的，则执行负载均衡模式逻辑的关闭连接方法
+                if (TdsqlLoadBalanceConnectionFactory.tdsqlLoadBalanceMode && origHostInfo instanceof TdsqlHostInfo) {
+                    TdsqlHostInfo tdsqlHostInfo = (TdsqlHostInfo) origHostInfo;
+                    if (Objects.equals(TdsqlConnectionMode.LOAD_BALANCE, tdsqlHostInfo.getConnectionMode())) {
+                        TdsqlLoadBalanceConnectionFactory.getInstance().closeConnection(tdsqlHostInfo);
+                    }
+                }
             }
         }
     }
@@ -735,7 +749,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
 
     /**
      * Closes all currently open statements.
-     * 
+     *
      * @throws SQLException
      *             if a database access error occurs
      */
@@ -1155,7 +1169,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
      * NOT JDBC-Compliant, but clients can use this method to determine how long
      * this connection has been idle. This time (reported in milliseconds) is
      * updated once a query has completed.
-     * 
+     *
      * @return number of ms that this connection has been idle, 0 if the driver
      *         is busy retrieving results.
      */
@@ -1281,7 +1295,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     /**
      * Sets varying properties that depend on server information. Called once we
      * have connected to the server.
-     * 
+     *
      * @throws SQLException
      *             if a database access error occurs
      */
@@ -1334,7 +1348,7 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
     /**
      * Resets a default auto-commit value of 0 to 1, as required by JDBC specification.
      * Takes into account that the default auto-commit value of 0 may have been changed on the server via init_connect.
-     * 
+     *
      * @throws SQLException
      *             if a database access error occurs
      */

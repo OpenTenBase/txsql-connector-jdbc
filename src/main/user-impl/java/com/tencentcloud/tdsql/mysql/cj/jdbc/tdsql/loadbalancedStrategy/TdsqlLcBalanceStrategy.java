@@ -1,13 +1,14 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode.DIRECT;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode.LOAD_BALANCE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceBlacklistHolder;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionCounter;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -16,7 +17,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 /**
- * <p></p>
+ * <p>最小连接算法策略</p>
  *
  * @author dorianzhang@tencent.com
  * @author gyokumeixie@tencent.com
@@ -44,19 +45,23 @@ public final class TdsqlLcBalanceStrategy implements TdsqlLoadBalanceStrategy {
         }
         ReentrantReadWriteLock counterLock = TdsqlLoadBalanceConnectionCounter.getInstance().getCounterLock();
         counterLock.readLock().lock();
-        try{
+        try {
             List<TdsqlHostInfo> tdsqlHostInfoList = Collections.unmodifiableList(
                     new ArrayList<>(scheduleQueue.asMap().keySet()));
-            List<Long> countList = Collections.unmodifiableList(tdsqlHostInfoList.stream().map(scheduleQueue::get).map(NodeMsg::getCount)
-                    .collect(Collectors.toList()));
+            List<Long> countList = Collections.unmodifiableList(
+                    tdsqlHostInfoList.stream().map(scheduleQueue::get).map(NodeMsg::getCount)
+                            .collect(Collectors.toList()));
             int minIndex = countList.indexOf(Collections.min(countList));
             TdsqlHostInfo choice = tdsqlHostInfoList.get(minIndex);
-            TdsqlLoggerFactory.logDebug(
-                    "Lc algorithm choice [" + choice.getHostPortPair() + "], current counter [" + scheduleQueue
-                            + "], current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
-                            .printBlacklist() + "]");
+            logInfo("[" + choice.getOwnerUuid() + "] Lc algorithm choice: " + choice.getHostPortPair());
+            if (LOAD_BALANCE.equals(choice.getConnectionMode())) {
+                logInfo("[" + choice.getOwnerUuid() + "] Current counter: "
+                        + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter());
+            } else if (DIRECT.equals(choice.getConnectionMode())) {
+                logInfo("[" + choice.getOwnerUuid() + "] Current counter: " + scheduleQueue);
+            }
             return choice;
-        }finally {
+        } finally {
             counterLock.readLock().unlock();
         }
     }
