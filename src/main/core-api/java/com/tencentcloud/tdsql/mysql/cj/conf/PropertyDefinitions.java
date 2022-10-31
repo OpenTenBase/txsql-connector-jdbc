@@ -993,7 +993,16 @@ public class PropertyDefinitions {
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlQueryAttributesEnable"),
                         "1.4.2",
-                        CATEGORY_HA,
+                        CATEGORY_SECURITY,
+                        Integer.MIN_VALUE),
+
+                // Enable Send Client Info
+                new BooleanPropertyDefinition(PropertyKey.tdsqlSendClientInfoEnable,
+                        DEFAULT_VALUE_FALSE,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlSendClientInfoEnable"),
+                        "1.4.4",
+                        CATEGORY_SECURITY,
                         Integer.MIN_VALUE),
         };
 

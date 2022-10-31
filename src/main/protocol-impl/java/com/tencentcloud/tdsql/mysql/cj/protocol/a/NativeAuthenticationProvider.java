@@ -29,13 +29,6 @@
 
 package com.tencentcloud.tdsql.mysql.cj.protocol.a;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import com.tencentcloud.tdsql.mysql.cj.Constants;
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.callback.MysqlCallbackHandler;
@@ -66,6 +59,13 @@ import com.tencentcloud.tdsql.mysql.cj.protocol.a.authentication.MysqlOldPasswor
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.authentication.Sha256PasswordPlugin;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.result.OkPacket;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 public class NativeAuthenticationProvider implements AuthenticationProvider<NativePacketPayload> {
     private static final int AUTH_411_OVERHEAD = 33;
@@ -656,7 +656,16 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
 
         // connection attributes
         if (((clientParam & NativeServerSession.CLIENT_CONNECT_ATTRS) != 0)) {
-            appendConnectionAttributes(last_sent, this.propertySet.getStringProperty(PropertyKey.connectionAttributes).getValue(), enc);
+            String connAttrs = this.propertySet.getStringProperty(PropertyKey.connectionAttributes).getValue();
+            try {
+                if (this.propertySet.getBooleanProperty(PropertyKey.tdsqlSendClientInfoEnable).getValue()) {
+                    int localPort = this.protocol.getSocketConnection().getMysqlSocket().getLocalPort();
+                    connAttrs = "tdsql_client_addr:10.22.87.7:" + localPort + "," + connAttrs;
+                }
+            } catch (IOException e) {
+                // Ignore
+            }
+            appendConnectionAttributes(last_sent, connAttrs, enc);
         }
         return last_sent;
     }

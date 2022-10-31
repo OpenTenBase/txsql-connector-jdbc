@@ -301,6 +301,7 @@ public enum PropertyKey {
 
     // Enable Query Attributes
     tdsqlQueryAttributesEnable("tdsqlQueryAttributesEnable", true),
+    tdsqlSendClientInfoEnable("tdsqlSendClientInfoEnable", true),
     ;
 
     private String keyName;
