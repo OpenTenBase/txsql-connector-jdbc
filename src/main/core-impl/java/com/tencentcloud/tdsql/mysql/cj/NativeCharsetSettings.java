@@ -29,6 +29,7 @@
 
 package com.tencentcloud.tdsql.mysql.cj;
 
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -268,6 +269,13 @@ public class NativeCharsetSettings extends CharsetMapping implements CharsetSett
         if (this.sessionCollationIndex == MYSQL_COLLATION_INDEX_utf8mb4_0900_ai_ci
                 && !capabilities.getServerVersion().meetsMinimum(new ServerVersion(8, 0, 1))) {
             this.sessionCollationIndex = MYSQL_COLLATION_INDEX_utf8mb4_general_ci; // use utf8mb4_general_ci instead of utf8mb4_0900_ai_ci for old servers
+        }
+
+        // 非直连模式，使用utf8mb4_general_ci，目的是为了兼容TDSQL-MySQL Proxy 内嵌的低版本内核
+        if (!TdsqlDirectConnectionFactory.tdsqlDirectMode) {
+            if (this.sessionCollationIndex == MYSQL_COLLATION_INDEX_utf8mb4_0900_ai_ci) {
+                this.sessionCollationIndex = MYSQL_COLLATION_INDEX_utf8mb4_general_ci;
+            }
         }
 
         // error messages are returned according to character_set_results which, at this point, is set from the response packet
