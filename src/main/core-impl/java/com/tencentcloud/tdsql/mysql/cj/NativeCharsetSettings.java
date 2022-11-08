@@ -285,7 +285,7 @@ public class NativeCharsetSettings extends CharsetMapping implements CharsetSett
         this.serverSession.getServerVariables().put(CHARACTER_SET_RESULTS, csName);
 
         this.serverSession.getServerVariables().put(CHARACTER_SET_CLIENT, csName);
-        this.serverSession.getServerVariables().put(CHARACTER_SET_CONNECTION, csName);
+
         this.serverSession.getServerVariables().put(COLLATION_CONNECTION, getStaticCollationNameForCollationIndex(this.sessionCollationIndex));
 
         return this.sessionCollationIndex;
