@@ -23,7 +23,7 @@ import javax.sql.DataSource;
 public class MultiDataSource3 {
 
     private static final String DRIVER_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
-    private static final String DB_URL_1 = "jdbc:tdsql-mysql:direct://9.30.2.116:15023/QT4S" +
+    private static final String DB_URL_1 = "jdbc:tdsql-mysql:direct://9.30.2.116:15012/test" +
             "?useLocalSessionStates=true" +
             "&useUnicode=true" +
             "&characterEncoding=gbk&serverTimezone=Asia/Shanghai" +
@@ -37,7 +37,7 @@ public class MultiDataSource3 {
             "&tdsqlLoadBalanceStrategy=lc" +
             "&logger=Slf4JLogger" +
             "&autoReconnect=true&socketTimeout=1000";
-    private static final String DB_URL_2 = "jdbc:tdsql-mysql:direct://9.30.2.116:15023/test" +
+    private static final String DB_URL_2 = "jdbc:tdsql-mysql:direct://9.30.2.116:15012/test" +
             "?useLocalSessionStates=true" +
             "&useUnicode=true&characterEncoding=utf-8" +
             "&serverTimezone=Asia/Shanghai" +
@@ -51,7 +51,7 @@ public class MultiDataSource3 {
             "&tdsqlLoadBalanceStrategy=lc" +
             "&logger=Slf4JLogger" +
             "&autoReconnect=true&socketTimeout=1000";
-    private static final String DB_URL_3 = "jdbc:tdsql-mysql:loadbalance://9.30.2.116:15023/qt4s" +
+    private static final String DB_URL_3 = "jdbc:tdsql-mysql:loadbalance://9.30.2.116:15012/test" +
             "?tdsqlLoadBalanceStrategy=sed" +
             "&useLocalSessionStates=true" +
             "&useUnicode=true" +
@@ -89,11 +89,11 @@ public class MultiDataSource3 {
             config.setJdbcUrl(DB_URL_1);
             config.setUsername(USERNAME);
             config.setPassword(PASSWORD);
-            config.setMinimumIdle(10);
-            config.setMaximumPoolSize(10);
+            config.setMinimumIdle(30);
+            config.setMaximumPoolSize(30);
             config.setMaxLifetime(30000);
             ds1 = new HikariDataSource(config);
-            ds2.setName("ds2");
+            /*ds2.setName("ds2");
             ds2.setUrl(DB_URL_2);
             ds2.setUsername(USERNAME);
             ds2.setPassword(PASSWORD);
@@ -118,7 +118,7 @@ public class MultiDataSource3 {
             ds3.setTimeBetweenEvictionRunsMillis(10000);
             ds3.setTestWhileIdle(true);
             ds3.setPhyTimeoutMillis(20000);
-            ds3.init();
+            ds3.init();*/
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -152,10 +152,10 @@ public class MultiDataSource3 {
             try {
                 executorService.execute(new QueryTask(ds1));
                 TimeUnit.MILLISECONDS.sleep(20);
-                executorService.execute(new QueryTask(ds2));
+                /*executorService.execute(new QueryTask(ds2));
                 TimeUnit.MILLISECONDS.sleep(20);
                 executorService.execute(new QueryTask(ds3));
-                TimeUnit.MILLISECONDS.sleep(20);
+                TimeUnit.MILLISECONDS.sleep(20);*/
             } catch (Exception e) {
                 System.err.println(" 1.======================= " + e.getMessage());
             }
@@ -174,14 +174,14 @@ public class MultiDataSource3 {
         public void run() {
             try (Connection conn = ds.getConnection();
                     Statement stmt = conn.createStatement();
-                    ResultSet rs = stmt.executeQuery("select count(*) from t_user;")
+                    ResultSet rs = stmt.executeQuery("select count(*) from t1;")
             ) {
                 while (rs.next()) {
-                    if (ds instanceof DruidDataSource) {
+                    /*if (ds instanceof DruidDataSource) {
                         System.out.println(((DruidDataSource)ds).getName() + " = " + rs.getInt(1));
                     } else if (ds instanceof HikariDataSource) {
                         System.out.println(((HikariDataSource) ds).getPoolName() + " = " + rs.getInt(1));
-                    }
+                    }*/
                     TimeUnit.MILLISECONDS.sleep(100);
                 }
             } catch (Exception e) {

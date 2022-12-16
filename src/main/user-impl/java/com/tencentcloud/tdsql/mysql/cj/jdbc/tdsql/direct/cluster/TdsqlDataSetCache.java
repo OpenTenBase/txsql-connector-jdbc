@@ -60,7 +60,7 @@ public class TdsqlDataSetCache {
         this.propertyChangeSupport.addPropertyChangeListener(listener);
     }
 
-    public synchronized List<TdsqlDataSetInfo> getMasters() {
+    public List<TdsqlDataSetInfo> getMasters() {
         ReentrantReadWriteLock refreshLock = TdsqlDirectDataSourceCounter.getInstance()
                 .getTdsqlDirectInfo(this.ownerUuid).getTopoServer().getRefreshLock();
         refreshLock.readLock().lock();
@@ -71,7 +71,7 @@ public class TdsqlDataSetCache {
         }
     }
 
-    public synchronized void setMasters(List<TdsqlDataSetInfo> newMasters) {
+    public void setMasters(List<TdsqlDataSetInfo> newMasters) {
         TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid)
                 .getTopoServer();
         topoServer.getRefreshLock().writeLock().lock();
@@ -116,7 +116,7 @@ public class TdsqlDataSetCache {
         }
     }
 
-    public synchronized List<TdsqlDataSetInfo> getSlaves() {
+    public List<TdsqlDataSetInfo> getSlaves() {
         ReentrantReadWriteLock refreshLock = TdsqlDirectDataSourceCounter.getInstance()
                 .getTdsqlDirectInfo(this.ownerUuid).getTopoServer().getRefreshLock();
         refreshLock.readLock().lock();
@@ -127,7 +127,7 @@ public class TdsqlDataSetCache {
         }
     }
 
-    public synchronized void setSlaves(List<TdsqlDataSetInfo> newSlaves) {
+    public void setSlaves(List<TdsqlDataSetInfo> newSlaves) {
         TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid)
                 .getTopoServer();
         topoServer.getRefreshLock().writeLock().lock();
