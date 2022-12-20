@@ -16,13 +16,13 @@ import java.util.concurrent.Executors;
 public class MultiCreateConn {
 
     private static final String DRIVER_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
-    private static final String DB_URL = "jdbc:tdsql-mysql:direct://9.30.2.116:15012/test" +
+    private static final String DB_URL = "jdbc:tdsql-mysql:direct://9.30.0.250:15006/qt4s" +
             "?passwordCharacterEncoding=latin1&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useUnicode=true&useSSL=false&connectTimeout=10000&socketTimeout=60000&allowMultiQueries=true&logger=NullLogger"
-            + "&tdsqlDirectTopoRefreshIntervalMillis=60000"
+            + "&tdsqlDirectTopoRefreshIntervalMillis=1000"
             ;
     private static final String USERNAME = "qt4s";
     private static final String PASSWORD = "g<m:7KNDF.L1<^1C";
-    private static final int tNum = 1;
+    private static final int tNum = 500;
 
     static {
         try {
@@ -39,7 +39,7 @@ public class MultiCreateConn {
             executorService.execute(() -> {
                 try (Connection conn = DriverManager.getConnection(DB_URL, USERNAME, PASSWORD);
                         Statement stmt = conn.createStatement();
-                        ResultSet rs = stmt.executeQuery("select count(*) from t1;")
+                        ResultSet rs = stmt.executeQuery("select count(*) from t_user;")
                 ) {
                     System.out.println(
                             "===============================" + Thread.currentThread().getId() + " finished!");
