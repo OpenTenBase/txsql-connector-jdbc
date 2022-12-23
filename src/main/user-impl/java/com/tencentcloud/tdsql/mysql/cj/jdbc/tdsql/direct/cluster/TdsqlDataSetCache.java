@@ -156,12 +156,10 @@ public class TdsqlDataSetCache {
             }
 
             Integer tdsqlMaxSlaveDelay = topoServer.getTdsqlDirectMaxSlaveDelaySeconds();
-            //如果设置了从库最大延迟并且数据库实延迟大于这个设定的延迟 或者 没有设定但是延迟大于10秒，我们都将这个节点认为不可调
+            //如果设置了从库最大延迟并且数据库实延迟大于这个设定的延迟
             if (tdsqlMaxSlaveDelay > 0) {
                 newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= tdsqlMaxSlaveDelay);
-
             }
-            newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= 100000);
             if (!newSlaves.equals(this.slaves)) {
                 logInfo("[" + this.ownerUuid + "] DataSet slave have changed, old: " + this.slaves + ", new: "
                         + newSlaves);
