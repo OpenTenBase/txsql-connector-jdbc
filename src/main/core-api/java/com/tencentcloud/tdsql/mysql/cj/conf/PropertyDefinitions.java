@@ -32,6 +32,7 @@ package com.tencentcloud.tdsql.mysql.cj.conf;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_CLOSE_CONN_TIMEOUT_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RW;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_RECONNECT_PROXY_INTERVAL_TIME_SECONDS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPO_REFRESH_CONN_TIMEOUT_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPO_REFRESH_INTERVAL_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPO_REFRESH_STMT_TIMEOUT_SECONDS;
@@ -982,6 +983,15 @@ public class PropertyDefinitions {
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlDirectCloseConnTimeoutMillis"),
                         "1.3.2",
+                        CATEGORY_HA,
+                        Integer.MIN_VALUE,
+                        0,
+                        Integer.MAX_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlDirectReconnectProxyIntervalTimeSeconds,
+                        TDSQL_DIRECT_RECONNECT_PROXY_INTERVAL_TIME_SECONDS,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlDirectReconnectProxyIntervalTimeSeconds"),
+                        "1.4.6",
                         CATEGORY_HA,
                         Integer.MIN_VALUE,
                         0,

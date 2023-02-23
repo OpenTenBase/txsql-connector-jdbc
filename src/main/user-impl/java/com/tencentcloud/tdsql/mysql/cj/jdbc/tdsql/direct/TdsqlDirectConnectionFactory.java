@@ -6,7 +6,6 @@ import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectDataSourceCounter;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource.TdsqlDirectInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
@@ -63,7 +62,8 @@ public final class TdsqlDirectConnectionFactory {
 
     public synchronized void closeConnection(JdbcConnection jdbcConnection, TdsqlHostInfo tdsqlHostInfo) {
         if (Objects.equals(TdsqlConnectionMode.DIRECT, tdsqlHostInfo.getConnectionMode())) {
-            logInfo("Direct Mode close method called. [" + tdsqlHostInfo.getHostPortPair() + "]");
+            logInfo("[" + tdsqlHostInfo.getOwnerUuid() + "] Direct Mode close method called. ["
+                    + tdsqlHostInfo.getHostPortPair() + "]");
             TdsqlDirectInfo tdsqlDirectInfo = TdsqlDirectDataSourceCounter.getInstance()
                     .getTdsqlDirectInfo(tdsqlHostInfo.getOwnerUuid());
             tdsqlDirectInfo.getTdsqlDirectConnectionManager().getConnectionList(tdsqlHostInfo)

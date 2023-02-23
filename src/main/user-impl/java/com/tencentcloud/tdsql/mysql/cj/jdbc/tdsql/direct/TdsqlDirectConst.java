@@ -14,6 +14,7 @@ public final class TdsqlDirectConst {
     public static final String TDSQL_DIRECT_ROUTE_WATCH_TRUE = "1";
     public static final Integer TDSQL_DIRECT_TOPO_REFRESH_CONN_TIMEOUT_MILLIS = 1000;
     public static final Integer TDSQL_DIRECT_CLOSE_CONN_TIMEOUT_MILLIS = 1000;
+    public static final Integer TDSQL_DIRECT_RECONNECT_PROXY_INTERVAL_TIME_SECONDS = 60 * 10;
     public static final Integer TDSQL_DIRECT_TOPO_REFRESH_STMT_TIMEOUT_SECONDS = 1;
     public static final String TDSQL_DIRECT_TOPO_COLUMN_CLUSTER_NAME = "cluster_name";
     public static final String TDSQL_DIRECT_TOPO_COLUMN_MASTER_IP = "master_ip";
