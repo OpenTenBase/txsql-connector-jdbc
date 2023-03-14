@@ -1,50 +1,37 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.multiDataSource;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
-import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionManager;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectTopoServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.cluster.TdsqlDataSetCache;
-
-import java.util.*;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlDataSourceUuidGenerator;
+import java.util.Objects;
 
 /**
  * <p>
- *     每个DataSource中所共享的信息
+ * 每个DataSource中所共享的信息
  * </p>
  *
  * @author gyokumeixie@tencent.com
  */
 public class TdsqlDirectInfo {
+
     private String datasourceUuid;
     private TdsqlDirectTopoServer topoServer;
     private TdsqlDataSetCache tdsqlDataSetCache;
     private TdsqlDirectConnectionManager tdsqlDirectConnectionManager;
 
 
-
     /**
      * <p>
-     *     根据url中的信息，生成该数据源唯一的uuid
-     *     uuid由proxy ip:port +  database的形式表示以区分不同的数据源
+     * 根据url中的信息，生成该数据源唯一的uuid
+     * uuid由proxy ip:port +  database的形式表示以区分不同的数据源
      * </p>
+     *
      * @param
      */
     public void setDatasourceUuid(ConnectionUrl connectionUrl) {
-        List<HostInfo> hostsList = connectionUrl.getHostsList();
-        List<String> hostPortPairList = new ArrayList<>(hostsList.size());
-        for (HostInfo hostInfo: hostsList){
-            String hostPortPair = hostInfo.getHostPortPair();
-            hostPortPairList.add(hostPortPair);
-        }
-        Collections.sort(hostPortPairList);
-        String database = connectionUrl.getDatabase();
-        StringJoiner uuidJoiner = new StringJoiner("+");
-        for (String hostPort : hostPortPairList) {
-            uuidJoiner.add(hostPort);
-        }
-        uuidJoiner.add(database);
-        this.datasourceUuid = uuidJoiner.toString();
+        this.datasourceUuid = TdsqlDataSourceUuidGenerator.generateUuid(connectionUrl);
     }
 
     public String getDatasourceUuid() {
@@ -53,7 +40,7 @@ public class TdsqlDirectInfo {
 
     /**
      * <p>
-     *     初始化缓存
+     * 初始化缓存
      * </p>
      *
      * @param datasourceUuid
@@ -64,7 +51,7 @@ public class TdsqlDirectInfo {
 
     /**
      * <p>
-     *     初始化topoServer
+     * 初始化topoServer
      * </p>
      *
      * @param datasourceUuid
@@ -75,12 +62,12 @@ public class TdsqlDirectInfo {
 
     /**
      * <p>
-     *     初始化TdsqlDirectConnectionManager
+     * 初始化TdsqlDirectConnectionManager
      * </p>
      *
      * @param datasourceUuid
      */
-    public void initTdsqlDirectConnectionManager(String datasourceUuid){
+    public void initTdsqlDirectConnectionManager(String datasourceUuid) {
         this.tdsqlDirectConnectionManager = new TdsqlDirectConnectionManager(datasourceUuid);
     }
 

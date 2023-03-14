@@ -742,7 +742,7 @@
 
         <!-- JDBC 4+ support of service provider mechanism. -->
         <mkdir dir="${com.tencentcloud.tdsql.mysql.cj.build.dir.driver}/META-INF/services/" />
-        <echo file="${com.tencentcloud.tdsql.mysql.cj.build.dir.driver}/META-INF/services/java.sql.Driver" message="com.tencentcloud.tdsql.mysql.cj.jdbc.Driver" />
+        <echo file="${com.tencentcloud.tdsql.mysql.cj.build.dir.driver}/META-INF/services/java.sql.Driver" message="com.tencentcloud.tdsql.mysql.cj.jdbc.Driver${line.separator}com.mysql.cj.jdbc.Driver" />
 
         <property name="com.tencentcloud.tdsql.mysql.cj.build.meta-inf.osgid-version"
                   value="${com.tencentcloud.tdsql.mysql.cj.build.driver.version.major}.${com.tencentcloud.tdsql.mysql.cj.build.driver.version.minor}.${com.tencentcloud.tdsql.mysql.cj.build.driver.version.subminor}" />
