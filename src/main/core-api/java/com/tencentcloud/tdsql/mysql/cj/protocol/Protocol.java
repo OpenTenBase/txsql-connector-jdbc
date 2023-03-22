@@ -66,6 +66,8 @@ public interface Protocol<M extends Message> {
      */
     void init(Session session, SocketConnection socketConnection, PropertySet propertySet, TransactionEventHandler transactionManager);
 
+    Session getSession();
+
     PropertySet getPropertySet();
 
     void setPropertySet(PropertySet propertySet);

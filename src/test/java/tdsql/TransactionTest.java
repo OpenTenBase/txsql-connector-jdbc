@@ -21,7 +21,7 @@ public class TransactionTest {
         try {
             Class.forName("com.tencentcloud.tdsql.mysql.cj.jdbc.Driver");
 
-            String proxyUrl = "jdbc:tdsql-mysql://9.30.2.89:15011/test";
+            String proxyUrl = "jdbc:tdsql-mysql://9.30.2.89:15012/test";
             if (props != null && !"".equals(props.trim())) {
                 proxyUrl += "?" + props;
             }

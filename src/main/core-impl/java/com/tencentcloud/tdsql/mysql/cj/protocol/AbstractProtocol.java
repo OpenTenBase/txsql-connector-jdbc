@@ -91,6 +91,10 @@ public abstract class AbstractProtocol<M extends Message> implements Protocol<M>
 
     }
 
+    public Session getSession() {
+        return session;
+    }
+
     public SocketConnection getSocketConnection() {
         return this.socketConnection;
     }
