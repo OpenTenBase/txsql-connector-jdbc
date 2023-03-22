@@ -60,7 +60,7 @@ public class TdsqlDataSetCache {
         this.propertyChangeSupport.addPropertyChangeListener(listener);
     }
 
-    public synchronized List<TdsqlDataSetInfo> getMasters() {
+    public List<TdsqlDataSetInfo> getMasters() {
         ReentrantReadWriteLock refreshLock = TdsqlDirectDataSourceCounter.getInstance()
                 .getTdsqlDirectInfo(this.ownerUuid).getTopoServer().getRefreshLock();
         refreshLock.readLock().lock();
@@ -71,7 +71,7 @@ public class TdsqlDataSetCache {
         }
     }
 
-    public synchronized void setMasters(List<TdsqlDataSetInfo> newMasters) {
+    public void setMasters(List<TdsqlDataSetInfo> newMasters) {
         TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid)
                 .getTopoServer();
         topoServer.getRefreshLock().writeLock().lock();
@@ -116,7 +116,7 @@ public class TdsqlDataSetCache {
         }
     }
 
-    public synchronized List<TdsqlDataSetInfo> getSlaves() {
+    public List<TdsqlDataSetInfo> getSlaves() {
         ReentrantReadWriteLock refreshLock = TdsqlDirectDataSourceCounter.getInstance()
                 .getTdsqlDirectInfo(this.ownerUuid).getTopoServer().getRefreshLock();
         refreshLock.readLock().lock();
@@ -127,7 +127,7 @@ public class TdsqlDataSetCache {
         }
     }
 
-    public synchronized void setSlaves(List<TdsqlDataSetInfo> newSlaves) {
+    public void setSlaves(List<TdsqlDataSetInfo> newSlaves) {
         TdsqlDirectTopoServer topoServer = TdsqlDirectDataSourceCounter.getInstance().getTdsqlDirectInfo(this.ownerUuid)
                 .getTopoServer();
         topoServer.getRefreshLock().writeLock().lock();
@@ -156,11 +156,11 @@ public class TdsqlDataSetCache {
             }
 
             Integer tdsqlMaxSlaveDelay = topoServer.getTdsqlDirectMaxSlaveDelaySeconds();
-            //如果设置了从库最大延迟并且数据库实延迟大于这个设定的延迟 或者 没有设定但是延迟大于10秒，我们都将这个节点认为不可调
+            // 如果设置了从库最大延迟并且数据库实延迟大于这个设定的延迟
             if (tdsqlMaxSlaveDelay > 0) {
                 newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= tdsqlMaxSlaveDelay);
-
             }
+            // 主从复制断开时，防止连接到异常从库上
             newSlaves.removeIf(dsInfo -> dsInfo.getDelay() >= 100000);
             if (!newSlaves.equals(this.slaves)) {
                 logInfo("[" + this.ownerUuid + "] DataSet slave have changed, old: " + this.slaves + ", new: "

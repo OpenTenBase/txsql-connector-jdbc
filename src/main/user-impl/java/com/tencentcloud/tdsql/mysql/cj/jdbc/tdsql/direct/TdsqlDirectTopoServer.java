@@ -1,6 +1,5 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logDebug;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logWarn;
@@ -8,6 +7,7 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RO;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RW;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_RECONNECT_PROXY_INTERVAL_TIME_SECONDS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_SHOW_ROUTES_SQL;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPO_COLUMN_CLUSTER_NAME;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPO_COLUMN_MASTER_IP;
@@ -68,15 +68,18 @@ public final class TdsqlDirectTopoServer {
     private Integer tdsqlDirectTopoRefreshConnTimeoutMillis = TDSQL_DIRECT_TOPO_REFRESH_CONN_TIMEOUT_MILLIS;
     private Integer tdsqlDirectTopoRefreshStmtTimeoutSeconds = TDSQL_DIRECT_TOPO_REFRESH_STMT_TIMEOUT_SECONDS;
     private Integer tdsqlDirectCloseConnTimeoutMillis = TDSQL_DIRECT_CLOSE_CONN_TIMEOUT_MILLIS;
+    private Integer tdsqlDirectReconnectProxyIntervalTimeSeconds = TDSQL_DIRECT_RECONNECT_PROXY_INTERVAL_TIME_SECONDS;
     private Connection proxyConnection;
     private ConnectionUrl connectionUrl = null;
     private final TdsqlAtomicLongMap<TdsqlHostInfo> scheduleQueue = TdsqlAtomicLongMap.create();
     private final ReentrantReadWriteLock refreshLock = new ReentrantReadWriteLock();
     private final AtomicBoolean topoServerInitialized = new AtomicBoolean(false);
     private final Executor netTimeoutExecutor = new TdsqlSynchronousExecutor();
+    private long lastConnectProxyTime;
 
     public TdsqlDirectTopoServer(String ownerUuid) {
         this.ownerUuid = ownerUuid;
+        this.lastConnectProxyTime = System.currentTimeMillis();
     }
 
     public void initialize(ConnectionUrl connectionUrl) throws SQLException {
@@ -130,6 +133,16 @@ public final class TdsqlDirectTopoServer {
                 if (newTdsqlDirectTopoRefreshStmtTimeoutSeconds > 0
                         && newTdsqlDirectTopoRefreshStmtTimeoutSeconds < Integer.MAX_VALUE) {
                     tdsqlDirectTopoRefreshStmtTimeoutSeconds = newTdsqlDirectTopoRefreshStmtTimeoutSeconds;
+                }
+            }
+
+            Integer newTdsqlDirectReconnectProxyIntervalTimeSeconds = connProps.getIntegerProperty(
+                    PropertyKey.tdsqlDirectReconnectProxyIntervalTimeSeconds).getValue();
+            if (!tdsqlDirectReconnectProxyIntervalTimeSeconds.equals(newTdsqlDirectReconnectProxyIntervalTimeSeconds)) {
+                if (newTdsqlDirectReconnectProxyIntervalTimeSeconds >= 30
+                        && newTdsqlDirectReconnectProxyIntervalTimeSeconds
+                        < TDSQL_DIRECT_RECONNECT_PROXY_INTERVAL_TIME_SECONDS) {
+                    tdsqlDirectReconnectProxyIntervalTimeSeconds = newTdsqlDirectReconnectProxyIntervalTimeSeconds;
                 }
             }
 
@@ -196,16 +209,21 @@ public final class TdsqlDirectTopoServer {
         logInfo("[" + this.ownerUuid + "] Finish create proxy connection for refresh topology!");
     }
 
+    private void recreateProxyConnection() throws SQLException {
+        this.proxyConnection.close();
+        this.proxyConnection = null;
+        createProxyConnection();
+        this.lastConnectProxyTime = System.currentTimeMillis();
+    }
+
     private void getTopology() throws SQLException {
         if (this.proxyConnection == null || this.proxyConnection.isClosed() || !this.proxyConnection.isValid(1)) {
-            logWarn("[" + this.ownerUuid + "] Proxy connection is invalid, reconnection it!");
-            try {
-                this.proxyConnection.close();
-            } catch (Throwable e) {
-                // ignore
-            } finally {
-                createProxyConnection();
-            }
+            logWarn("[" + this.ownerUuid + "] Proxy connection is invalid, reconnect proxy!");
+            recreateProxyConnection();
+        } else if (System.currentTimeMillis() - this.lastConnectProxyTime
+                >= this.tdsqlDirectReconnectProxyIntervalTimeSeconds * 1000) {
+            logInfo("[" + this.ownerUuid + "] Interval time of reconnect proxy reached, reconnect proxy!");
+            recreateProxyConnection();
         }
 
         List<TdsqlDataSetCluster> tdsqlDataSetClusters = new ArrayList<>();
@@ -221,14 +239,14 @@ public final class TdsqlDirectTopoServer {
                         throw new TdsqlSyncBackendTopoException(errMsg);
                     }
                     String master = rs.getString(TDSQL_DIRECT_TOPO_COLUMN_MASTER_IP);
-                    // 在读写模式下，获取到的主库信息为空，抛出异常
+                    // 在读写模式下，获取到的主库信息为空
                     if (StringUtils.isNullOrEmpty(master) && TDSQL_DIRECT_READ_WRITE_MODE_RW.equalsIgnoreCase(
                             tdsqlDirectReadWriteMode)) {
                         logWarn("[" + this.ownerUuid
                                 + "] Topology info maybe has some error: In RW mode, master ip is empty!");
                     }
                     String slaves = rs.getString(TDSQL_DIRECT_TOPO_COLUMN_SLAVE_IP_LIST);
-                    // 在只读模式下，获取到的从库信息为空，抛出异常
+                    // 在只读模式下，获取到的从库信息为空
                     if (StringUtils.isNullOrEmpty(slaves) && TDSQL_DIRECT_READ_WRITE_MODE_RO.equalsIgnoreCase(
                             tdsqlDirectReadWriteMode)) {
                         logWarn("[" + this.ownerUuid

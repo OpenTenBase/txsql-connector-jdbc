@@ -99,6 +99,13 @@ public class ConnectionUrlParser implements DatabaseUrlContainer {
     private static final Pattern ADDRESS_EQUALS_HOST_PTRN = Pattern.compile("\\s*\\(\\s*(?<key>[\\w\\.\\-%]+)?\\s*(?:=(?<value>[^)]*))?\\)\\s*");
     private static final Pattern PROPERTIES_PTRN = Pattern.compile("[&\\s]*(?<key>[\\w\\.\\-\\s%]*)(?:=(?<value>[^&]*))?");
 
+    private static final Pattern ORI_CONNECTION_STRING_PTRN = Pattern.compile("(?<scheme>[\\w\\+:%]+)\\s*" // scheme: required; alphanumeric, plus, colon or percent
+            + "(?://(?<authority>[^/?#]*))?\\s*" // authority: optional; starts with "//" followed by any char except "/", "?" and "#"
+            + "(?:/(?!\\s*/)(?<path>[^?#]*))?" // path: optional; starts with "/" but not followed by "/", and then followed by by any char except "?" and "#"
+            + "(?:\\?(?!\\s*\\?)(?<query>[^#]*))?" // query: optional; starts with "?" but not followed by "?", and then followed by by any char except "#"
+            + "(?:\\s*#(?<fragment>.*))?"); // fragment: optional; starts with "#", and then followed by anything
+    private static final Pattern ORI_SCHEME_PTRN = Pattern.compile("(?<scheme>[\\w\\+:%]+).*");
+
     private final String baseConnectionString;
     private String scheme;
     private String authority;
@@ -150,6 +157,9 @@ public class ConnectionUrlParser implements DatabaseUrlContainer {
             throw ExceptionFactory.createException(WrongArgumentException.class, Messages.getString("ConnectionString.0"));
         }
         Matcher matcher = SCHEME_PTRN.matcher(connString);
+        if (!matcher.matches()) {
+            matcher = ORI_SCHEME_PTRN.matcher(connString);
+        }
         return matcher.matches() && Type.isSupported(decodeSkippingPlusSign(matcher.group("scheme")));
     }
 
@@ -160,7 +170,10 @@ public class ConnectionUrlParser implements DatabaseUrlContainer {
         String connString = this.baseConnectionString;
         Matcher matcher = CONNECTION_STRING_PTRN.matcher(connString);
         if (!matcher.matches()) {
-            throw ExceptionFactory.createException(WrongArgumentException.class, Messages.getString("ConnectionString.1"));
+            matcher = ORI_CONNECTION_STRING_PTRN.matcher(connString);
+            if (!matcher.matches()) {
+                throw ExceptionFactory.createException(WrongArgumentException.class, Messages.getString("ConnectionString.1"));
+            }
         }
         this.scheme = decodeSkippingPlusSign(matcher.group("scheme"));
         this.authority = matcher.group("authority"); // Don't decode just yet.
