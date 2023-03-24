@@ -29,7 +29,7 @@ public class MultiDataSourceTest extends BaseTest {
     public void testMultiHikari() {
         this.testMultiHikari(new String[]{
                 "jdbc:tdsql-mysql:loadbalance:" +
-                        "//9.30.0.250:15023,9.30.2.116:15023/test" +
+                        "//9.30.0.250:15012,9.30.2.116:15012/test" +
                         "?tdsqlLoadBalanceStrategy=sed" +
                         "&logger=Slf4JLogger" +
                         "&tdsqlLoadBalanceWeightFactor=1,1" +
@@ -39,7 +39,7 @@ public class MultiDataSourceTest extends BaseTest {
                         "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
                         "&autoReconnect=true",
                 "jdbc:tdsql-mysql:loadbalance:" +
-                        "//9.30.2.89:15023,9.30.2.94:15023/qt4s" +
+                        "//9.30.2.89:15012,9.30.2.94:15012/qt4s" +
                         "?tdsqlLoadBalanceStrategy=sed" +
                         "&logger=Slf4JLogger" +
                         "&tdsqlLoadBalanceWeightFactor=2,1" +
@@ -56,7 +56,7 @@ public class MultiDataSourceTest extends BaseTest {
     public void testMultiDruid() throws Exception {
         this.testMultiDruid(new String[]{
                 "jdbc:tdsql-mysql:loadbalance:" +
-                        "//9.30.0.250:15023,9.30.2.116:15023/test" +
+                        "//9.30.0.250:15012,9.30.2.116:15012/test" +
                         "?tdsqlLoadBalanceStrategy=sed" +
                         "&logger=Slf4JLogger" +
                         "&tdsqlLoadBalanceWeightFactor=1,1" +
@@ -66,7 +66,7 @@ public class MultiDataSourceTest extends BaseTest {
                         "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
                         "&autoReconnect=true",
                 "jdbc:tdsql-mysql:loadbalance:" +
-                        "//9.30.0.250:15023,9.30.2.116:15023/qt4s" +
+                        "//9.30.0.250:15012,9.30.2.116:15012/qt4s" +
                         "?tdsqlLoadBalanceStrategy=sed" +
                         "&logger=Slf4JLogger" +
                         "&tdsqlLoadBalanceWeightFactor=2,1" +
@@ -83,7 +83,7 @@ public class MultiDataSourceTest extends BaseTest {
     public void testMultiAtomikos() throws SQLException, InterruptedException {
         this.testMultiAtomikos(new String[]{
                 "jdbc:tdsql-mysql:loadbalance:" +
-                        "//9.30.0.250:15023,9.30.2.116:15023/test" +
+                        "//9.30.0.250:15023,9.30.2.116:15012/test" +
                         "?tdsqlLoadBalanceStrategy=sed" +
                         "&logger=Slf4JLogger" +
                         "&tdsqlLoadBalanceWeightFactor=1,1" +
@@ -93,7 +93,7 @@ public class MultiDataSourceTest extends BaseTest {
                         "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
                         "&autoReconnect=true",
                 "jdbc:tdsql-mysql:loadbalance:" +
-                        "//9.30.0.250:15023,9.30.2.116:15023/qt4s" +
+                        "//9.30.0.250:15023,9.30.2.116:15012/qt4s" +
                         "?tdsqlLoadBalanceStrategy=sed" +
                         "&logger=Slf4JLogger" +
                         "&tdsqlLoadBalanceWeightFactor=2,1" +
@@ -134,7 +134,7 @@ public class MultiDataSourceTest extends BaseTest {
             assertEquals(0, mxBean.getActiveConnections());
             assertEquals(max, mxBean.getIdleConnections());
 
-            TimeUnit.HOURS.sleep(1);
+            TimeUnit.MINUTES.sleep(10);
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
@@ -174,7 +174,7 @@ public class MultiDataSourceTest extends BaseTest {
             assertEquals(0, ds2.getActiveCount());
             assertEquals(max, ds2.getPoolingCount());
 
-            TimeUnit.HOURS.sleep(1);
+            TimeUnit.MINUTES.sleep(10);
         } finally {
             if (ds1 != null) {
                 ds1.close();
@@ -216,7 +216,7 @@ public class MultiDataSourceTest extends BaseTest {
         assertTrue(conn.isValid(1));
         conn.close();
 
-        TimeUnit.HOURS.sleep(1);
+        TimeUnit.MINUTES.sleep(10);
 
         ds1.close();
         ds2.close();

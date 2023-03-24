@@ -38,13 +38,15 @@ import org.junit.jupiter.api.TestInfo;
 public class BaseTest {
 
     protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
-    protected static final String PROXY_16 = "tdsqlshard-j9cybzl8.sql.tencentcdb.com:16";
-    protected static final String PROXY_44 = "tdsqlshard-axvsyeas.sql.tencentcdb.com:44";
-    protected static final String PROXY_46 = "tdsqlshard-e07e0ois.sql.tencentcdb.com:46";
-    protected static final String PROXY_48 = "tdsqlshard-p9or8etq.sql.tencentcdb.com:48";
+    protected static final String PROXY_21 = "9.30.0.250:15012";
+    protected static final String PROXY_22 = "9.30.2.116:15012";
+    protected static final String PROXY_23 = "9.30.2.89:15012";
+    protected static final String PROXY_24 = "9.30.2.94:15012";
 
-    protected static final String[] PROXY_ARRAY = {PROXY_16, PROXY_44, PROXY_46, PROXY_48};
-    protected static final String DB_MYSQL = "mysql";
+
+
+    protected static final String[] PROXY_ARRAY = {PROXY_21, PROXY_22, PROXY_23, PROXY_24};
+    protected static final String DB_MYSQL = "test";
     protected static final String LB_URL_PROPS = "?useLocalSessionStates=true"
             + "&useUnicode=true"
             + "&characterEncoding=utf-8"
@@ -56,10 +58,10 @@ public class BaseTest {
             + "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000"
             + "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1";
     protected static final String LB_URL =
-            "jdbc:tdsql-mysql:loadbalance://" + PROXY_16 + "," + PROXY_44 + "," + PROXY_46 + "," + PROXY_48 + "/"
+            "jdbc:tdsql-mysql:loadbalance://" + PROXY_21 + "," + PROXY_22 + "," + PROXY_23 + "," + PROXY_24 + "/"
                     + DB_MYSQL + LB_URL_PROPS;
-    protected static final String USER = "tdsqluser";
-    protected static final String PASS = "Tdsql@2022";
+    protected static final String USER = "qt4s";
+    protected static final String PASS = "g<m:7KNDF.L1<^1C";
 
     @BeforeEach
     public void setUp(TestInfo testInfo) throws Exception {

@@ -21,14 +21,14 @@ public class UrlTest extends BaseTest {
     @Test
     @Order(1)
     public void testSingle() {
-        connect(String.format("jdbc:tdsql-mysql://%s/%s", PROXY_16, DB_MYSQL));
+        connect(String.format("jdbc:tdsql-mysql://%s/%s", PROXY_21, DB_MYSQL));
     }
 
     @Test
     @Order(2)
     public void testLoadBalance() {
         StringJoiner joiner = new StringJoiner(",");
-        joiner.add(PROXY_16).add(PROXY_44).add(PROXY_46).add(PROXY_48);
+        joiner.add(PROXY_21).add(PROXY_22).add(PROXY_23).add(PROXY_24);
         connect(String.format("jdbc:tdsql-mysql:loadbalance://%s/%s", joiner, DB_MYSQL));
     }
 
@@ -36,7 +36,7 @@ public class UrlTest extends BaseTest {
     @Order(3)
     public void testReplication() {
         StringJoiner joiner = new StringJoiner(",");
-        joiner.add(PROXY_16).add(PROXY_44).add(PROXY_46).add(PROXY_48);
+        joiner.add(PROXY_21).add(PROXY_22).add(PROXY_23).add(PROXY_24);
         connect(String.format("jdbc:tdsql-mysql:replication://%s/%s", joiner, DB_MYSQL));
     }
 
@@ -44,7 +44,7 @@ public class UrlTest extends BaseTest {
     @Order(4)
     public void testFailover() {
         StringJoiner joiner = new StringJoiner(",");
-        joiner.add(PROXY_16).add(PROXY_44).add(PROXY_46).add(PROXY_48);
+        joiner.add(PROXY_21).add(PROXY_22).add(PROXY_23).add(PROXY_24);
         connect(String.format("jdbc:tdsql-mysql://%s/%s", joiner, DB_MYSQL));
     }
 

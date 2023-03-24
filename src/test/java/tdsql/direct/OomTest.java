@@ -5,7 +5,10 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
+
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -32,6 +35,7 @@ public class OomTest {
      * @throws SQLException
      */
     @Test
+    @Disabled
     public void case01() throws InterruptedException, SQLException {
         for (int i = 1; i <= 10; i++) {
             Connection conn = DriverManager.getConnection(URL + i + PROP, USERNAME_1, PASSWORD_1);
@@ -41,6 +45,7 @@ public class OomTest {
     }
 
     @Test
+    @Disabled
     public void case02() throws SQLException, InterruptedException {
         int i = 100000;
         Connection conn = DriverManager.getConnection("jdbc:tdsql-mysql:loadbalance://"

@@ -12,9 +12,9 @@ import org.junit.jupiter.api.Test;
 
 public class CharacterEncodingTest {
 
-    private static final String URL = "jdbc:tdsql-mysql://9.30.2.94:15003/test?characterEncoding=UTF-8";
-    private static final String USERNAME = "test3";
-    private static final String PASSWORD = "test3";
+    private static final String URL = "jdbc:tdsql-mysql://9.30.2.94:15012/test?characterEncoding=UTF-8";
+    private static final String USERNAME = "qt4s";
+    private static final String PASSWORD = "g<m:7KNDF.L1<^1C";
 
     @BeforeAll
     public static void setUp() {
@@ -25,11 +25,11 @@ public class CharacterEncodingTest {
         }
         try (Connection conn = DriverManager.getConnection(URL, USERNAME, PASSWORD);
                 Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("truncate table tt1_hash");
+            stmt.executeUpdate("truncate table t1");
 
             for (int i = 1; i <= 100; i++) {
                 String chinese = getChinese();
-                stmt.executeUpdate("insert into tt1_hash(`id`, `name`) values (" + i + ", '" + chinese + "');");
+                stmt.executeUpdate("insert into t1 (`id`, `name`) values (" + i + ", '" + chinese + "');");
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -41,7 +41,7 @@ public class CharacterEncodingTest {
         try (Connection conn = DriverManager.getConnection(URL, USERNAME, PASSWORD);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(
-                        "select t1.`name` from tt1_hash t1 left join tt1 t2 on t1.id = t2.id order by t1.`id`")) {
+                        "select t1.`name` from t1 t1 left join t11 t2 on t1.id = t2.id order by t1.`id`")) {
             while (rs.next()) {
                 System.out.println(rs.getString(1));
             }

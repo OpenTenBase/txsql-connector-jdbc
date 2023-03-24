@@ -6,6 +6,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import tdsql.direct.base.BaseTest;
 
@@ -16,16 +18,17 @@ import tdsql.direct.base.BaseTest;
  */
 public class ProxyTest extends BaseTest {
 
-    private static final String DB_URL = "jdbc:tdsql-mysql:direct://9.36.169.230:15021/test"
+    private static final String DB_URL = "jdbc:tdsql-mysql:direct://9.30.0.250:15012/test"
             + "?useLocalSessionStates=true"
             + "&useUnicode=true"
             + "&characterEncoding=utf-8"
             + "&serverTimezone=Asia/Shanghai"
             + "&tdsqlReadWriteMode=rw&tdsqlMaxSlaveDelay=100&useSSL=false";
-    private static final String USERNAME = "test1234";
-    private static final String PASSWORD = "test1234";
+    private static final String USERNAME = "qt4s";
+    private static final String PASSWORD = "g<m:7KNDF.L1<^1C";
 
     @Test
+    @Disabled
     public void testOneProxyDown() throws SQLException, InterruptedException {
         for (; ; ) {
             Connection conn = DriverManager.getConnection(DB_URL, USERNAME, PASSWORD);

@@ -69,10 +69,20 @@ public class MultiDataSourcesTest {
     }
 
     @Test
-    public void testBuildMultiDatasources() {
+    public void testBuildMultiDatasources() throws SQLException {
         String url1 = "jdbc:tdsql-mysql:loadbalance://" + proxy1 + "," + proxy2 + "," + proxy3 + "," + proxy4 + "/test" + lbProperty1;
-        getConn(url1);
+        Connection conn1 = getConn(url1);
         String url2 = "jdbc:tdsql-mysql:loadbalance://" + proxy1 + "," + proxy2 + "," + proxy3 + "," + proxy4 + "/test" + lbProperty2;
-        getConn(url2);
+        Connection conn2 = getConn(url2);
+        conn1.close();
+        conn2.close();
+    }
+
+    @Test
+    public void testBuildOtherDatasourceAfterOneClosed() throws SQLException {
+        String url1 = "jdbc:tdsql-mysql:loadbalance://" + proxy1 + "," + proxy2 + "," + proxy3 + "," + proxy4 + "/test" + lbProperty1;
+        execute(url1);
+        String url2 = "jdbc:tdsql-mysql:loadbalance://" + proxy1 + "," + proxy2 + "," + proxy3 + "," + proxy4 + "/test" + lbProperty2;
+        execute(url2);
     }
 }

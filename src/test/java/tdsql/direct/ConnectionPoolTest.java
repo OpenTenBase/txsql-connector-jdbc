@@ -18,7 +18,7 @@ public class ConnectionPoolTest extends BaseTest {
 
     @Test
     public void testInReadOnly() throws InterruptedException {
-        HikariDataSource hikariDataSource = (HikariDataSource) createHikariDataSource(10, 10, RO);
+        HikariDataSource hikariDataSource = (HikariDataSource) createHikariDataSource(100, 100, RO);
         testHikariPool(hikariDataSource);
     }
 
@@ -53,16 +53,27 @@ public class ConnectionPoolTest extends BaseTest {
             System.out.println("Hikari pool total = " + hikariDataSource.getHikariPoolMXBean().getTotalConnections());
         }, 0L, 30L, TimeUnit.SECONDS);*/
 
-        for (; ; ) {
-            TimeUnit.MILLISECONDS.sleep(1);
-            taskExecutor.execute(() -> {
-                try (Connection conn = hikariDataSource.getConnection();
-                        Statement stmt = conn.createStatement()) {
-                    stmt.executeQuery("select sleep(1);");
-                } catch (SQLException e) {
-                    e.printStackTrace();
+        try {
+            long startTime=System.currentTimeMillis();
+            while(true) {
+                TimeUnit.MILLISECONDS.sleep(1);
+                taskExecutor.execute(() -> {
+                    try (Connection conn = hikariDataSource.getConnection();
+                         Statement stmt = conn.createStatement()) {
+                        stmt.executeQuery("select sleep(1);");
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                });
+                long endTime=System.currentTimeMillis(); //获取结束时间
+                if (endTime - startTime > (1000 * 60 * 10)) {
+                    break;
                 }
-            });
+            }
+        } finally {
+            taskExecutor.shutdownNow();
+            hikariDataSource.close();
         }
+
     }
 }
