@@ -1251,6 +1251,19 @@
                 <isset property="com.tencentcloud.tdsql.mysql.cj.testsuite.test.methods" />
             </and>
         </condition>
+        <property name="onlyTestTdSqlFeature" value="false"></property>
+        <condition property="testAllCases">
+            <and>
+                <equals arg1="${onlyTestTdSqlFeature}" arg2="false"/>
+                <not>
+                    <isset property="com.tencentcloud.tdsql.mysql.cj.testsuite.test.class"></isset>
+                </not>
+            </and>
+        </condition>
+        <condition property="testTdSqlFeature">
+            <equals arg1="${onlyTestTdSqlFeature}" arg2="true"/>
+        </condition>
+
 
         <local name="com.tencentcloud.tdsql.mysql.cj.testsuite.message.test.mode" />
         <condition property="com.tencentcloud.tdsql.mysql.cj.testsuite.message.test.mode"
@@ -1282,10 +1295,9 @@
                 </not>
             </and>
         </condition>
-
+        <echo>"start junit test"</echo>
         <junitlauncher haltOnFailure="false" printSummary="true" failureProperty="com.tencentcloud.tdsql.mysql.cj.testsuite.junit.fail">
             <classpath refid="com.tencentcloud.tdsql.mysql.cj.testsuite.build.classpath" />
-
             <test if="${com.tencentcloud.tdsql.mysql.cj.testsuite.test.methods.enabled}"
                   name="${com.tencentcloud.tdsql.mysql.cj.testsuite.test.class}"
                   methods="${com.tencentcloud.tdsql.mysql.cj.testsuite.test.methods}"
@@ -1314,10 +1326,26 @@
                 <listener type="legacy-plain" sendSysOut="true" sendSysErr="true" />
             </test>
 
-            <testclasses unless="com.tencentcloud.tdsql.mysql.cj.testsuite.test.class" outputdir="${com.tencentcloud.tdsql.mysql.cj.testsuite.junit.results}">
+            <testclasses if="testAllCases" outputdir="${com.tencentcloud.tdsql.mysql.cj.testsuite.junit.results}">
                 <fileset dir="${com.tencentcloud.tdsql.mysql.cj.testsuite.build.dir}/${com.tencentcloud.tdsql.mysql.cj.build.driver.fullName}">
                     <include name="**/*Test.class" />
                     <exclude name="**/perf/*.class" />
+                </fileset>
+                <fork>
+                    <jvmarg value="-Xmx1024m" />
+                    <jvmarg value="${com.tencentcloud.tdsql.mysql.cj.testsuite.test.coverage.jvmargfinal}" />
+                    <syspropertyset refid="junit.system.properties" />
+                </fork>
+                <listener classname="testsuite.JUnitSummary" />
+                <listener type="legacy-xml" sendSysOut="true" sendSysErr="true" />
+                <listener type="legacy-plain" sendSysOut="true" sendSysErr="true" />
+            </testclasses>
+
+            <testclasses if="testTdSqlFeature" outputdir="${com.tencentcloud.tdsql.mysql.cj.testsuite.junit.results}">
+                <fileset dir="${com.tencentcloud.tdsql.mysql.cj.testsuite.build.dir}/${com.tencentcloud.tdsql.mysql.cj.build.driver.fullName}">
+                    <include name="**/*Test.class" />
+                    <exclude name="**/perf/*.class" />
+                    <exclude name="**/mysql/**/*" />
                 </fileset>
                 <fork>
                     <jvmarg value="-Xmx1024m" />
