@@ -1296,7 +1296,7 @@
             </and>
         </condition>
         <echo>"start junit test"</echo>
-        <junitlauncher haltOnFailure="false" printSummary="true" failureProperty="com.tencentcloud.tdsql.mysql.cj.testsuite.junit.fail">
+        <junitlauncher haltOnFailure="true" printSummary="true" failureProperty="com.tencentcloud.tdsql.mysql.cj.testsuite.junit.fail">
             <classpath refid="com.tencentcloud.tdsql.mysql.cj.testsuite.build.classpath" />
             <test if="${com.tencentcloud.tdsql.mysql.cj.testsuite.test.methods.enabled}"
                   name="${com.tencentcloud.tdsql.mysql.cj.testsuite.test.class}"
@@ -1346,6 +1346,7 @@
                     <include name="**/*Test.class" />
                     <exclude name="**/perf/*.class" />
                     <exclude name="**/mysql/**/*" />
+                    <exclude name="**/testsuite/*" />
                 </fileset>
                 <fork>
                     <jvmarg value="-Xmx1024m" />
@@ -1357,6 +1358,7 @@
                 <listener type="legacy-plain" sendSysOut="true" sendSysErr="true" />
             </testclasses>
         </junitlauncher>
+        <echo>"end junit test"</echo>
 
         <junitreport todir="${com.tencentcloud.tdsql.mysql.cj.testsuite.junit.results}/report">
             <fileset dir="${com.tencentcloud.tdsql.mysql.cj.testsuite.junit.results}">
