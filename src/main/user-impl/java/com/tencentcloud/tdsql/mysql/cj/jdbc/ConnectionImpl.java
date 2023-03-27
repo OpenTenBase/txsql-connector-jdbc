@@ -61,10 +61,11 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.result.CachedResultSetMetaDataImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.result.ResultSetInternalMethods;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.result.UpdatableResultSet;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionMode;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionModeEnum;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConnectionFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v1.TdsqlDirectConnectionFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance.TdsqlLoadBalanceConnectionFactory;
 import com.tencentcloud.tdsql.mysql.cj.log.ProfilerEvent;
 import com.tencentcloud.tdsql.mysql.cj.log.StandardLogger;
 import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSessionStateController;
@@ -720,17 +721,28 @@ public class ConnectionImpl implements JdbcConnection, SessionEventListener, Ser
                 throw e;
             } finally {
                 // 如果开启了直连模式，且数据库连接是由直连模式逻辑建立的，则执行直连模式逻辑的关闭连接方法
-                if (TdsqlDirectConnectionFactory.tdsqlDirectMode && origHostInfo instanceof TdsqlHostInfo) {
+                if (TdsqlDirectConnectionFactory.tdsqlDirectMode
+                        && origHostInfo instanceof TdsqlHostInfo) {
                     TdsqlHostInfo tdsqlHostInfo = (TdsqlHostInfo) origHostInfo;
-                    if (Objects.equals(TdsqlConnectionMode.DIRECT, tdsqlHostInfo.getConnectionMode())) {
+                    if (Objects.equals(TdsqlConnectionModeEnum.DIRECT, tdsqlHostInfo.getConnectionMode())) {
                         TdsqlDirectConnectionFactory.getInstance().closeConnection(this, tdsqlHostInfo);
+                    }
+                }
+
+                // 直连并发建连模式，关闭数据库连接
+                if (com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectConnectionFactory.directModeCalled()
+                        && origHostInfo instanceof TdsqlDirectHostInfo) {
+                    TdsqlDirectHostInfo directHostInfo = (TdsqlDirectHostInfo) origHostInfo;
+                    if (Objects.equals(TdsqlConnectionModeEnum.DIRECT, directHostInfo.getConnectionMode())) {
+                        directHostInfo.getDataSourceConfig().getConnectionManager()
+                                .closeConnection(directHostInfo, this);
                     }
                 }
 
                 // 如果开启了负载均衡模式，且数据库连接是由负载均衡模式逻辑建立的，则执行负载均衡模式逻辑的关闭连接方法
                 if (TdsqlLoadBalanceConnectionFactory.tdsqlLoadBalanceMode && origHostInfo instanceof TdsqlHostInfo) {
                     TdsqlHostInfo tdsqlHostInfo = (TdsqlHostInfo) origHostInfo;
-                    if (Objects.equals(TdsqlConnectionMode.LOAD_BALANCE, tdsqlHostInfo.getConnectionMode())) {
+                    if (Objects.equals(TdsqlConnectionModeEnum.LOAD_BALANCE, tdsqlHostInfo.getConnectionMode())) {
                         TdsqlLoadBalanceConnectionFactory.getInstance().closeConnection(tdsqlHostInfo);
                     }
                 }

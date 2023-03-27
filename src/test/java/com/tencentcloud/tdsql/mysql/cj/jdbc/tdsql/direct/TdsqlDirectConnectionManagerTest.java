@@ -2,8 +2,8 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct;
 
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RO;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RW;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.RO;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.RW;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.DatabaseUrlContainer;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
@@ -13,8 +13,9 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.exceptions.CommunicationsException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlBalanceStrategyFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.strategy.v1.TdsqlLoadBalanceStrategy;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.strategy.v1.TdsqlLoadBalanceStrategyFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.NodeMsg;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
 import java.sql.SQLException;
@@ -52,7 +53,7 @@ class TdsqlDirectConnectionManagerTest {
 
     @Test
     public void TestFailOver() throws SQLException {
-        TdsqlBalanceStrategyFactory instance = TdsqlBalanceStrategyFactory.getInstance();
+        TdsqlLoadBalanceStrategyFactory instance = TdsqlLoadBalanceStrategyFactory.getInstance();
         TdsqlLoadBalanceStrategy lc = instance.getStrategyInstance("Lc");
         JdbcConnection newConnection = createNewConnection(lc, true);
         System.out.println(newConnection);
@@ -109,7 +110,7 @@ class TdsqlDirectConnectionManagerTest {
                 scheduleQueueSlave.put(tdsqlHostInfo, scheduleQueue.get(tdsqlHostInfo));
             }
         }
-        TdsqlDirectReadWriteMode readWriteMode = RO;
+        TdsqlDirectReadWriteModeEnum readWriteMode = RO;
 
         JdbcConnection connection;
         if (RW.equals(readWriteMode)) {

@@ -288,16 +288,15 @@ public enum PropertyKey {
 
     // Direct
     tdsqlDirectReadWriteMode("tdsqlDirectReadWriteMode", true),
-    tdsqlDirectMaxSlaveDelaySeconds("tdsqlDirectMaxSlaveDelaySeconds", true),
     tdsqlDirectTopoRefreshIntervalMillis("tdsqlDirectTopoRefreshIntervalMillis", true),
-    tdsqlDirectTopoRefreshConnTimeoutMillis("tdsqlDirectTopoRefreshConnTimeoutMillis", true),
-    tdsqlDirectTopoRefreshStmtTimeoutSeconds("tdsqlDirectTopoRefreshStmtTimeoutSeconds", true),
-    tdsqlDirectCloseConnTimeoutMillis("tdsqlDirectCloseConnTimeoutMillis", true),
+    tdsqlDirectMaxSlaveDelaySeconds("tdsqlDirectMaxSlaveDelaySeconds", true),
     tdsqlDirectMasterCarryOptOfReadOnlyMode("tdsqlDirectMasterCarryOptOfReadOnlyMode", true),
-    tdsqlDirectHeartbeatMonitorEnable("tdsqlDirectHeartbeatMonitorEnable", true),
-    tdsqlDirectHeartbeatIntervalTimeMillis("tdsqlDirectHeartbeatIntervalTimeMillis", true),
-    tdsqlDirectHeartbeatMaxErrorRetries("tdsqlDirectHeartbeatMaxErrorRetries", true),
-    tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis("tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis", true),
+    tdsqlDirectTopoRefreshConnTimeoutMillis("tdsqlDirectTopoRefreshConnTimeoutMillis", true),
+    tdsqlDirectCloseConnTimeoutMillis("tdsqlDirectCloseConnTimeoutMillis", true),
+    tdsqlDirectTopoRefreshStmtTimeoutSeconds("tdsqlDirectTopoRefreshStmtTimeoutSeconds", true),
+    tdsqlDirectProxyBlacklistTimeoutSeconds("tdsqlDirectProxyBlacklistTimeoutSeconds", true),
+    tdsqlDirectReconnectProxyIntervalTimeSeconds("tdsqlDirectReconnectProxyIntervalTimeSeconds", true),
+    tdsqlDirectParallelCreateConnMode("tdsqlDirectParallelCreateConnMode", true),
 
     // Enable Query Attributes
     tdsqlQueryAttributesEnable("tdsqlQueryAttributesEnable", true),

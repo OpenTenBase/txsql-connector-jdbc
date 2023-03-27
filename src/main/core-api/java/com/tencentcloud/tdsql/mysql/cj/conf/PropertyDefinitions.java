@@ -29,16 +29,18 @@
 
 package com.tencentcloud.tdsql.mysql.cj.conf;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_CLOSE_CONN_TIMEOUT_MILLIS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_READ_WRITE_MODE_RW;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPO_REFRESH_CONN_TIMEOUT_MILLIS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPO_REFRESH_INTERVAL_MILLIS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPO_REFRESH_STMT_TIMEOUT_SECONDS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_MAX_ERROR_RETRIES;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_ERROR_RETRY_INTERVAL_TIME_MILLIS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_PROXY_BLACKLIST_TIMEOUT_SECONDS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_READ_WRITE_MODE;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_CLOSE_CONN_TIMEOUT_MILLIS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_RECONNECT_PROXY_INTERVAL_TIME_SECONDS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_CONN_SOCKET_TIMEOUT_MILLIS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_INTERVAL_MILLIS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_STMT_TIMEOUT_SECONDS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_ERROR_RETRY_INTERVAL_TIME_MILLIS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_MAX_ERROR_RETRIES;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance.TdsqlLoadBalanceConst.TDSQL_LOAD_BALANCE_STRATEGY_SED;
 
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.PerConnectionLRUFactory;
@@ -935,14 +937,14 @@ public class PropertyDefinitions {
 
                 // Direct
                 new StringPropertyDefinition(PropertyKey.tdsqlDirectReadWriteMode,
-                        TDSQL_DIRECT_READ_WRITE_MODE_RW,
+                        DEFAULT_TDSQL_DIRECT_READ_WRITE_MODE,
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlDirectReadWriteMode"),
                         "1.3.0",
                         CATEGORY_HA,
                         Integer.MIN_VALUE),
                 new IntegerPropertyDefinition(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds,
-                        TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS,
+                        DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS,
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlDirectMaxSlaveDelaySeconds"),
                         "1.3.0",
@@ -951,7 +953,7 @@ public class PropertyDefinitions {
                         0,
                         Integer.MAX_VALUE),
                 new IntegerPropertyDefinition(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis,
-                        TDSQL_DIRECT_TOPO_REFRESH_INTERVAL_MILLIS,
+                        DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_INTERVAL_MILLIS,
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlDirectTopoRefreshIntervalMillis"),
                         "1.3.0",
@@ -960,7 +962,7 @@ public class PropertyDefinitions {
                         0,
                         Integer.MAX_VALUE),
                 new IntegerPropertyDefinition(PropertyKey.tdsqlDirectTopoRefreshConnTimeoutMillis,
-                        TDSQL_DIRECT_TOPO_REFRESH_CONN_TIMEOUT_MILLIS,
+                        DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_CONN_SOCKET_TIMEOUT_MILLIS,
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlDirectTopoRefreshConnTimeoutMillis"),
                         "1.3.2",
@@ -969,7 +971,7 @@ public class PropertyDefinitions {
                         0,
                         Integer.MAX_VALUE),
                 new IntegerPropertyDefinition(PropertyKey.tdsqlDirectTopoRefreshStmtTimeoutSeconds,
-                        TDSQL_DIRECT_TOPO_REFRESH_STMT_TIMEOUT_SECONDS,
+                        DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_STMT_TIMEOUT_SECONDS,
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlDirectTopoRefreshStmtTimeoutSeconds"),
                         "1.3.2",
@@ -978,7 +980,7 @@ public class PropertyDefinitions {
                         0,
                         Integer.MAX_VALUE),
                 new IntegerPropertyDefinition(PropertyKey.tdsqlDirectCloseConnTimeoutMillis,
-                        TDSQL_DIRECT_CLOSE_CONN_TIMEOUT_MILLIS,
+                        DEFAULT_TDSQL_DIRECT_CLOSE_CONN_TIMEOUT_MILLIS,
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlDirectCloseConnTimeoutMillis"),
                         "1.3.2",
@@ -986,6 +988,34 @@ public class PropertyDefinitions {
                         Integer.MIN_VALUE,
                         0,
                         Integer.MAX_VALUE),
+                new BooleanPropertyDefinition(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode,
+                        DEFAULT_VALUE_FALSE,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlDirectMasterCarryOptOfReadOnlyMode"),
+                        "1.4.2",
+                        CATEGORY_HA,
+                        Integer.MIN_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlDirectProxyBlacklistTimeoutSeconds,
+                        DEFAULT_TDSQL_DIRECT_PROXY_BLACKLIST_TIMEOUT_SECONDS,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlDirectProxyBlacklistTimeoutSeconds"),
+                        "1.4.7",
+                        CATEGORY_HA,
+                        Integer.MIN_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlDirectReconnectProxyIntervalTimeSeconds,
+                        DEFAULT_TDSQL_DIRECT_RECONNECT_PROXY_INTERVAL_TIME_SECONDS,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlDirectReconnectProxyIntervalTimeSeconds"),
+                        "1.4.7",
+                        CATEGORY_HA,
+                        Integer.MIN_VALUE),
+                new BooleanPropertyDefinition(PropertyKey.tdsqlDirectParallelCreateConnMode,
+                        DEFAULT_VALUE_TRUE,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlDirectParallelCreateConnMode"),
+                        "1.5.0",
+                        CATEGORY_HA,
+                        Integer.MIN_VALUE),
 
                 // Enable Query Attributes
                 new BooleanPropertyDefinition(PropertyKey.tdsqlQueryAttributesEnable,

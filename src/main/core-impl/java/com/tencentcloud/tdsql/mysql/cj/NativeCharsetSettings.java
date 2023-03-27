@@ -29,7 +29,7 @@
 
 package com.tencentcloud.tdsql.mysql.cj;
 
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectConnectionFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v1.TdsqlDirectConnectionFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
