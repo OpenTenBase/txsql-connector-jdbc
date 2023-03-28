@@ -134,7 +134,7 @@ public class MultiDataSourceTest extends BaseTest {
             assertEquals(0, mxBean.getActiveConnections());
             assertEquals(max, mxBean.getIdleConnections());
 
-            TimeUnit.MINUTES.sleep(10);
+            TimeUnit.MINUTES.sleep(5);
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
@@ -174,7 +174,7 @@ public class MultiDataSourceTest extends BaseTest {
             assertEquals(0, ds2.getActiveCount());
             assertEquals(max, ds2.getPoolingCount());
 
-            TimeUnit.MINUTES.sleep(10);
+            TimeUnit.MINUTES.sleep(5);
         } finally {
             if (ds1 != null) {
                 ds1.close();
@@ -216,7 +216,7 @@ public class MultiDataSourceTest extends BaseTest {
         assertTrue(conn.isValid(1));
         conn.close();
 
-        TimeUnit.MINUTES.sleep(10);
+        TimeUnit.MINUTES.sleep(5);
 
         ds1.close();
         ds2.close();

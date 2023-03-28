@@ -66,7 +66,7 @@ public class ConnectionPoolTest extends BaseTest {
                     }
                 });
                 long endTime=System.currentTimeMillis(); //获取结束时间
-                if (endTime - startTime > (1000 * 60 * 10)) {
+                if (endTime - startTime > (1000 * 60 * 5)) {
                     break;
                 }
             }
