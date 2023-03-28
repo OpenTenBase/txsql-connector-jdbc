@@ -122,12 +122,6 @@ public final class TdsqlLoadBalanceConnectionFactory {
                             logError(errMessage);
                             throw SQLError.createSQLException(errMessage,
                                     MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
-                        } else {
-                            logInfo("All host in current datasource has finished first heartbeat checked!");
-                            if (TdsqlLoadBalanceBlacklistHolder.getInstance().isBlacklistEnabled()) {
-                                logInfo("Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
-                                        .printBlacklist() + "]");
-                            }
                         }
                     } catch (InterruptedException e) {
                         String errMessage = "Wait for first heartbeat check finished timeout!";
@@ -136,6 +130,11 @@ public final class TdsqlLoadBalanceConnectionFactory {
                                 MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE, null);
                     }
                 }
+            }
+            logInfo("All host in current datasource has finished first heartbeat checked!");
+            if (TdsqlLoadBalanceBlacklistHolder.getInstance().isBlacklistEnabled()) {
+                logInfo("Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
+                        .printBlacklist() + "]");
             }
         }
 

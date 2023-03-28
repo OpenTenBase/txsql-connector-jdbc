@@ -150,7 +150,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         public void run() {
             try {
                 logInfo("Start heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
-                int attemptCount = 0;
+                int attemptCount = 1;
 
                 // 设置建立心跳检测连接的超时时间为1秒，同时需要保留改IP地址设置的其它参数设置
                 Properties properties = tdsqlHostInfo.exposeAsProperties();
@@ -188,7 +188,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                         // 计算并比较心跳检测次数是否达到允许的最大次数
                         // 如果没有达到，则继续下次心跳检测
                         // 否则，将该IP地址加入黑名单并记录错误级别的日志，同时更新首次检测标识和计数器
-                        if (attemptCount + 1 > retries) {
+                        if (attemptCount > retries) {
                             // 加入黑名单
                             logError("Host heartbeat monitor failed. now attempts [" + attemptCount
                                     + "] equals max attempts [" + retries + "], try add to blacklist. HostInfo ["

@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
 public class MultiCreateConn {
 
     private static final String DRIVER_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
-    private static final String DB_URL = "jdbc:tdsql-mysql:direct://9.30.0.250:15006/qt4s" +
+    private static final String DB_URL = "jdbc:tdsql-mysql:direct://9.30.0.250:15012/test" +
             "?passwordCharacterEncoding=latin1&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useUnicode=true&useSSL=false&connectTimeout=10000&socketTimeout=60000&allowMultiQueries=true&logger=NullLogger"
             + "&tdsqlDirectTopoRefreshIntervalMillis=1000"
             ;

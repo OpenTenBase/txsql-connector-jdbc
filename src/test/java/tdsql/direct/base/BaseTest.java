@@ -43,7 +43,7 @@ import org.junit.jupiter.api.TestInfo;
  */
 public abstract class BaseTest {
 
-    protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
+    protected static final String DRIVER_CLASS_NAME = "com.mysql.cj.jdbc.Driver";
     /**
      * protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
      *     protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
@@ -56,16 +56,16 @@ public abstract class BaseTest {
      *     protected static final String PASS = "5R77aqf9kSk8HnN%R";
      *
      */
-    protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
-        + "9.30.1.231:15006,"
-        + "/mysql?useSSL=false&tdsqlReadWriteMode=rw";
-    protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
-            + "9.30.1.231:15006,"
-            + "/mysql?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=12.9";
-    protected static final String USER_RW = "tdsqlsys_normal";
-    protected static final String PASS_RW = "tdsqlsys_normal";
-    protected static final String USER_RO = "5R77aqf9kSk8HnN%R";
-    protected static final String PASS_RO = "5R77aqf9kSk8HnN%R";
+    protected static final String URL_RW = "jdbc:mysql:direct://"
+        + "9.30.0.250:15012,"
+        + "/test?useSSL=false&tdsqlReadWriteMode=rw";
+    protected static final String URL_RO = "jdbc:mysql:direct://"
+            + "9.30.0.250:15012,"
+            + "/test?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=12.9";
+    protected static final String USER_RW = "qt4s";
+    protected static final String PASS_RW = "g<m:7KNDF.L1<^1C";
+    protected static final String USER_RO = "qt4s_ro";
+    protected static final String PASS_RO = "g<m:7KNDF.L1<^1C";
 
     @BeforeEach
     public void setUp(TestInfo testInfo) throws Exception {
