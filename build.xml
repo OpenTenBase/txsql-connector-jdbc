@@ -1296,7 +1296,7 @@
             </and>
         </condition>
         <echo>"start junit test"</echo>
-        <junitlauncher haltOnFailure="true" printSummary="true" failureProperty="com.tencentcloud.tdsql.mysql.cj.testsuite.junit.fail">
+        <junitlauncher haltOnFailure="false" printSummary="true" failureProperty="com.tencentcloud.tdsql.mysql.cj.testsuite.junit.fail">
             <classpath refid="com.tencentcloud.tdsql.mysql.cj.testsuite.build.classpath" />
             <test if="${com.tencentcloud.tdsql.mysql.cj.testsuite.test.methods.enabled}"
                   name="${com.tencentcloud.tdsql.mysql.cj.testsuite.test.class}"
