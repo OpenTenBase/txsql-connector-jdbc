@@ -11,14 +11,8 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlThreadFactoryBuilder;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -69,7 +63,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         // 根据生成的DataSourceUuid，初始化第一次心跳检测完成计数器
         // 计数器的大小设置为该DataSource里面配置的IP地址的个数，每个IP地址心跳检测完成后，计数器递减
         String datasourceUuid = tdsqlLoadBalanceInfo.getDatasourceUuid();
-        Set<String> ipPortSet = TdsqlLoadBalanceInfo.parseDatasourceUuid(datasourceUuid);
+        Set<String> ipPortSet = tdsqlLoadBalanceInfo.getIpPortSet();
         // 取出DataSourceUuid中的IP和端口字符串列表，逐一判断
         for (String ipPortStr : ipPortSet) {
             if (firstCheckFinishedMap.containsKey(ipPortStr)) {
@@ -102,9 +96,9 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         }
     }
 
-    public List<CountDownLatch> getFirstCheckFinished(String datasourceUuid) {
+    public List<CountDownLatch> getFirstCheckFinished(Set<String> ipPortSet) {
         List<CountDownLatch> latchList = new ArrayList<>();
-        for (String ipPort : TdsqlLoadBalanceInfo.parseDatasourceUuid(datasourceUuid)) {
+        for (String ipPort : ipPortSet) {
             if (this.firstCheckFinishedMap.containsKey(ipPort)) {
                 latchList.add(this.firstCheckFinishedMap.get(ipPort));
             }
