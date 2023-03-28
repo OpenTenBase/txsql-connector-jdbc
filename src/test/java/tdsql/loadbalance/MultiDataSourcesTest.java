@@ -40,7 +40,7 @@ public class MultiDataSourcesTest {
 
             String proxyUrl = connUrl;
             try {
-                conn = DriverManager.getConnection(proxyUrl, "qt4s", "g<m:7KNDF.L1<^1C");
+                conn = DriverManager.getConnection(proxyUrl, userName, password);
             } catch (SQLException e) {
                 e.printStackTrace();
             }

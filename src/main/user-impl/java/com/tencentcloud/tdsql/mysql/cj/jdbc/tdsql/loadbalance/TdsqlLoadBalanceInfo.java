@@ -13,6 +13,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+
 /**
  * <p>TDSQL-MySQL独有的负载均衡信息记录类</p>
  *
@@ -62,6 +64,7 @@ public class TdsqlLoadBalanceInfo {
     public void setTdsqlHostInfoList(List<TdsqlHostInfo> tdsqlHostInfoList, ConnectionUrl connectionUrl) {
         this.tdsqlHostInfoList = tdsqlHostInfoList;
         this.datasourceUuid = TdsqlDataSourceUuidGenerator.generateUuid(connectionUrl);
+        logInfo("current connection uuid: " + this.datasourceUuid);
 
         for (TdsqlHostInfo tdsqlHostInfo : this.tdsqlHostInfoList) {
             tdsqlHostInfo.setOwnerUuid(this.datasourceUuid);
