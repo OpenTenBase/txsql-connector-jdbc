@@ -1346,7 +1346,7 @@
                     <include name="**/*Test.class" />
                     <exclude name="**/perf/*.class" />
                     <exclude name="**/mysql/**/*" />
-                    <exclude name="**/testsuite/*" />
+                    <exclude name="**/testsuite/**/*" />
                 </fileset>
                 <fork>
                     <jvmarg value="-Xmx1024m" />

@@ -37,7 +37,7 @@ import org.junit.jupiter.api.TestInfo;
  */
 public class BaseTest {
 
-    protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
+    protected static final String DRIVER_CLASS_NAME = "com.mysql.cj.jdbc.Driver";
     protected static final String PROXY_21 = "9.30.0.250:15012";
     protected static final String PROXY_22 = "9.30.2.116:15012";
     protected static final String PROXY_23 = "9.30.2.89:15012";
@@ -58,7 +58,7 @@ public class BaseTest {
             + "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000"
             + "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1";
     protected static final String LB_URL =
-            "jdbc:tdsql-mysql:loadbalance://" + PROXY_21 + "," + PROXY_22 + "," + PROXY_23 + "," + PROXY_24 + "/"
+            "jdbc:mysql:loadbalance://" + PROXY_21 + "," + PROXY_22 + "," + PROXY_23 + "," + PROXY_24 + "/"
                     + DB_MYSQL + LB_URL_PROPS;
     protected static final String USER = "qt4s";
     protected static final String PASS = "g<m:7KNDF.L1<^1C";

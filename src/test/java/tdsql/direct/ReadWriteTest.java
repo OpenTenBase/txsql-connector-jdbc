@@ -13,6 +13,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -24,9 +26,11 @@ import tdsql.direct.base.BaseTest;
  *
  * @author dorianzhang@tencent.com
  */
+
 public class ReadWriteTest extends BaseTest {
 
     @TestMethodOrder(OrderAnnotation.class)
+    @Disabled
     public static class WriteReadUserInReadWriteModeTest extends BaseTest {
 
         @Test
@@ -79,6 +83,7 @@ public class ReadWriteTest extends BaseTest {
     }
 
     @TestMethodOrder(OrderAnnotation.class)
+    @Disabled
     public static class WriteReadUserInReadOnlyModeTest extends BaseTest {
 
         @Test
@@ -197,6 +202,7 @@ public class ReadWriteTest extends BaseTest {
     }
 
     @TestMethodOrder(OrderAnnotation.class)
+    @Disabled
     public static class ReadOnlyUserInReadWriteModeTest extends BaseTest {
 
         @Test

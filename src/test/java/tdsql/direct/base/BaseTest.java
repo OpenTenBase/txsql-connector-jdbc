@@ -43,7 +43,7 @@ import org.junit.jupiter.api.TestInfo;
  */
 public abstract class BaseTest {
 
-    protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
+    protected static final String DRIVER_CLASS_NAME = "com.mysql.cj.jdbc.Driver";
     /**
      * protected static final String DRIVER_CLASS_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
      *     protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
@@ -56,10 +56,10 @@ public abstract class BaseTest {
      *     protected static final String PASS = "5R77aqf9kSk8HnN%R";
      *
      */
-    protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
+    protected static final String URL_RW = "jdbc:mysql:direct://"
         + "9.30.0.250:15012,"
         + "/test?useSSL=false&tdsqlReadWriteMode=rw";
-    protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
+    protected static final String URL_RO = "jdbc:mysql:direct://"
             + "9.30.0.250:15012,"
             + "/test?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=12.9";
     protected static final String USER_RW = "qt4s";
