@@ -329,10 +329,6 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
         this.tdsqlDirectProxyHostInfoList = tdsqlDirectProxyHostInfoList;
     }
 
-    public Properties getTdsqlDirectOriginalPropertiesWithoutDirectMode() {
-        return tdsqlDirectOriginalPropertiesWithoutDirectMode;
-    }
-
     public void setTdsqlDirectOriginalPropertiesWithoutDirectMode(
             Properties tdsqlDirectOriginalPropertiesWithoutDirectMode) {
         this.tdsqlDirectOriginalPropertiesWithoutDirectMode = tdsqlDirectOriginalPropertiesWithoutDirectMode;

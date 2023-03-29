@@ -8,10 +8,10 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDire
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectCacheServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.TdsqlDirectDataSourceConfig;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectRefreshTopologyException;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlExceptionFactory;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -34,7 +34,8 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
     private final List<String> unmodifiableHostPortList;
     private final Map<String, TdsqlDirectProxyConnectionHolder> unmodifiableLiveConnectionMap;
 
-    public TdsqlDirectRefreshTopologyTask(TdsqlDirectDataSourceConfig dataSourceConfig, List<String> unmodifiableHostPortList,
+    public TdsqlDirectRefreshTopologyTask(TdsqlDirectDataSourceConfig dataSourceConfig,
+            List<String> unmodifiableHostPortList,
             Map<String, TdsqlDirectProxyConnectionHolder> unmodifiableLiveConnectionMap) {
         this.dataSourceUuid = dataSourceConfig.getDataSourceUuid();
         this.topoServer = dataSourceConfig.getTopologyServer();
