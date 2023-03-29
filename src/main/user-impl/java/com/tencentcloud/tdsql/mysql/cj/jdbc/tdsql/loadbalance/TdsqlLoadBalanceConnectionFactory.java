@@ -26,6 +26,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalancedStrategy.TdsqlBalanceStrategyFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlAtomicLongMap;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlDataSourceUuidGenerator;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -76,7 +77,7 @@ public final class TdsqlLoadBalanceConnectionFactory {
 
         // 解析并校验连接参数
         TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo = this.validateConnectionAttributes(props, tdsqlHostInfoList,
-                numHosts);
+                numHosts, connectionUrl);
 
         // 进入获取连接核心处理逻辑
         return createNewConnection(tdsqlLoadBalanceInfo);
@@ -104,7 +105,7 @@ public final class TdsqlLoadBalanceConnectionFactory {
             // 这时，如果IP地址无法建立数据库连接，则该IP地址会被加入黑名单
             // 同时，该IP地址会在全局连接计数器中被移除，被移除的IP地址在之后的负载均衡算法策略中不会被调度
             List<CountDownLatch> latchList = TdsqlLoadBalanceHeartbeatMonitor.getInstance()
-                    .getFirstCheckFinished(tdsqlLoadBalanceInfo.getDatasourceUuid());
+                    .getFirstCheckFinished(tdsqlLoadBalanceInfo.getIpPortSet());
             for (CountDownLatch latch : latchList) {
                 if (latch.getCount() != 0L) {
                     try {
@@ -204,12 +205,12 @@ public final class TdsqlLoadBalanceConnectionFactory {
      * @throws SQLException 当连接参数解析或校验失败时
      */
     private TdsqlLoadBalanceInfo validateConnectionAttributes(Properties props, List<TdsqlHostInfo> tdsqlHostInfoList,
-            int numHosts) throws SQLException {
+            int numHosts, ConnectionUrl connectionUrl) throws SQLException {
         // 初始化TDSQL负载均衡信息记录类对象，并在依次解析URL参数后对其赋值
         // 每个负载均衡信息记录类都有自己的DataSourceUuid
         // 该DataSourceUuid是由 TdsqlLoadBalanceInfo 的 setTdsqlHostInfoList 方法生成并赋值的
         TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo = new TdsqlLoadBalanceInfo();
-        tdsqlLoadBalanceInfo.setTdsqlHostInfoList(tdsqlHostInfoList);
+        tdsqlLoadBalanceInfo.setTdsqlHostInfoList(tdsqlHostInfoList, connectionUrl);
 
         // 解析并校验“策略算法”参数，目前允许设置为"SED"或者"LC"
         String tdsqlLoadBalanceStrategyStr = props.getProperty(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName(),
