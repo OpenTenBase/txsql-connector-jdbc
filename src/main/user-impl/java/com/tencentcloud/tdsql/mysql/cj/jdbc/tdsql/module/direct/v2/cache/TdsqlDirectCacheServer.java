@@ -341,12 +341,9 @@ public class TdsqlDirectCacheServer {
                 // 配置的刷新拓扑间隔时间
                 Integer intervalMillis = this.cacheServer.dataSourceConfig.getTdsqlDirectTopoRefreshIntervalMillis();
 
-                // 非幸存模式时，如果连续三次没有缓存，进入幸存模式
-                if (!this.cacheServer.isSurvived
-                        && System.currentTimeMillis() - this.cacheServer.latestComparedTimeMillis
-                        > intervalMillis * 3L) {
-                    this.cacheServer.isSurvived = true;
-                }
+                // 如果连续三次没有缓存，进入幸存模式
+                this.cacheServer.isSurvived =
+                        System.currentTimeMillis() - this.cacheServer.latestComparedTimeMillis > intervalMillis * 3L;
 
                 if (this.cacheServer.isSurvived) {
                     TdsqlLoggerFactory.logWarn(this.cacheServer.dataSourceUuid,
