@@ -215,7 +215,8 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
      * @return 删除直连模式特有配置后的配置信息
      */
     public static Properties removeAllDirectModeProperties(Properties originalProperties) {
-        Properties props = new Properties(originalProperties);
+        Properties props = new Properties();
+        props.putAll(originalProperties);
         props.remove(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName());
         props.remove(PropertyKey.tdsqlDirectReadWriteMode.getKeyName());
         props.remove(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis.getKeyName());
