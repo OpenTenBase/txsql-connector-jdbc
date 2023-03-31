@@ -276,7 +276,7 @@ public class SendSqlTest extends BaseTest {
             + "(`name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,"
             + "`key` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,"
             + "PRIMARY KEY (`key`)"
-            + ") ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci SHARDKEY=`key`;";
+            + ") ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci;";
     private static final String TRUNCATE_TABLE = "TRUNCATE TABLE `jdbc_loadbalance_db`.`jdbc_loadbalance_tb`;";
     private static final String INSERT = "INSERT INTO `jdbc_loadbalance_db`.`jdbc_loadbalance_tb`"
             + "(`name`, `key`) values (?, ?), (?, ?), (?, ?), (?, ?), (?, ?);";

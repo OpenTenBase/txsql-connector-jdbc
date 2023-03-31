@@ -18,12 +18,12 @@ public class MultiLbAndDirectTest {
 
     private static final String DRIVER_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
     private static final String DB_URL1 = "jdbc:tdsql-mysql:direct:" +
-            "//9.30.0.250:15023,9.30.2.116:15023/test" +
+            "//9.30.0.250:15012,9.30.2.116:15012/test" +
             "?logger=Slf4JLogger" +
             "&tdsqlDirectReadWriteMode=ro" +
             "&autoReconnect=true";
     private static final String DB_URL2 = "jdbc:tdsql-mysql:loadbalance:" +
-            "//9.30.0.250:15023,9.30.2.116:15023/qt4s" +
+            "//9.30.0.250:15012,9.30.2.116:15012/test" +
             "?tdsqlLoadBalanceStrategy=sed" +
             "&logger=Slf4JLogger" +
             "&tdsqlLoadBalanceWeightFactor=2,1" +
@@ -98,10 +98,22 @@ public class MultiLbAndDirectTest {
         initDataSource(ds2);
         initMonitor();
 
-        while (true) {
-            TimeUnit.MILLISECONDS.sleep(100);
-            executorService.execute(new QueryTask());
+        try {
+            long startTime = System.currentTimeMillis();
+            while (true) {
+                TimeUnit.MILLISECONDS.sleep(100);
+                executorService.execute(new QueryTask());
+                long endTime=System.currentTimeMillis(); //获取结束时间
+                if (endTime - startTime > (1000 * 60 * 5)) {
+                    break;
+                }
+            }
+        } finally {
+            executorService.shutdownNow();
+            ds1.close();
+            ds2.close();
         }
+
     }
 
     private static class QueryTask implements Runnable {

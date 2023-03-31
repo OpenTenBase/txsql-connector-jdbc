@@ -6,6 +6,8 @@ import java.sql.SQLException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class CountTest {
@@ -28,6 +30,7 @@ public class CountTest {
     private static final String PASSWORD = "Tdsql@2022";
 
     @Test
+    @Disabled("无限循环的测试无法建立流水线")
     public void case01() throws Exception {
         Class.forName(DRIVER_CLASS_NAME);
 

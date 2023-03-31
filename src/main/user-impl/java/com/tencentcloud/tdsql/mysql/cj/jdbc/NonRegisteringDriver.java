@@ -248,18 +248,19 @@ public class NonRegisteringDriver implements java.sql.Driver {
                     // 判断建立连接模式是串行还是并行
                     String parallelCreateConnModeStr = props.getProperty(
                             PropertyKey.tdsqlDirectParallelCreateConnMode.getKeyName(), "true");
+                    boolean parallelCreateConnMode;
                     try {
-                        boolean parallelCreateConnMode = Boolean.parseBoolean(parallelCreateConnModeStr);
-                        if (parallelCreateConnMode) {
-                            return com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectConnectionFactory.createConnection(
-                                    conStr);
-                        } else {
-                            return TdsqlDirectConnectionFactory.getInstance().createConnection(conStr);
-                        }
+                        parallelCreateConnMode = Boolean.parseBoolean(parallelCreateConnModeStr);
                     } catch (Exception e) {
                         throw TdsqlExceptionFactory.logException(TdsqlInvalidConnectionPropertyException.class,
                                 Messages.getString("ConnectionProperties.badValueForTdsqlDirectParallelCreateConnMode",
-                                        new Object[]{parallelCreateConnModeStr}));
+                                        new Object[]{e.getMessage()}));
+                    }
+                    if (parallelCreateConnMode) {
+                        return com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectConnectionFactory.createConnection(
+                                conStr);
+                    } else {
+                        return TdsqlDirectConnectionFactory.getInstance().createConnection(conStr);
                     }
                 default:
                     return null;

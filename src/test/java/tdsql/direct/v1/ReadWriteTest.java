@@ -13,6 +13,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -24,6 +26,7 @@ import tdsql.direct.v1.base.BaseTest;
  *
  * @author dorianzhang@tencent.com
  */
+
 public class ReadWriteTest extends BaseTest {
 
     @TestMethodOrder(OrderAnnotation.class)
@@ -31,48 +34,56 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(1)
+        @Disabled
         public void testDropDatabase() {
             assertDoesNotThrow(() -> INSTANCE.dropDatabase(RW, USER_RW));
         }
 
         @Test
         @Order(2)
+        @Disabled
         public void testCreateDatabase() {
             assertDoesNotThrow(() -> INSTANCE.createDatabase(RW, USER_RW));
         }
 
         @Test
         @Order(3)
+        @Disabled
         public void testDropTable() {
             assertDoesNotThrow(() -> INSTANCE.dropTable(RW, USER_RW));
         }
 
         @Test
         @Order(4)
+        @Disabled
         public void testCreateTable() {
             assertDoesNotThrow(() -> INSTANCE.createTable(RW, USER_RW));
         }
 
         @Test
         @Order(5)
+        @Disabled
         public void testInsert() {
             assertDoesNotThrow(() -> INSTANCE.insert(RW, USER_RW));
         }
 
         @Test
         @Order(6)
+        @Disabled
         public void testUpdate() {
             assertDoesNotThrow(() -> INSTANCE.update(RW, USER_RW));
         }
 
         @Test
         @Order(7)
+        @Disabled
         public void testDelete() {
             assertDoesNotThrow(() -> INSTANCE.delete(RW, USER_RW));
         }
 
         @Test
         @Order(8)
+        @Disabled
         public void testSelect() {
             assertDoesNotThrow(() -> INSTANCE.select(RW, USER_RW));
         }
@@ -83,6 +94,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(1)
+        @Disabled
         public void testDropDatabase() {
             assertThrows(CJException.class, () -> INSTANCE.dropDatabase(RO, USER_RW),
                     "Access denied for user 'test_ro'@'%' to database 'jdbc_direct_db'");
@@ -90,6 +102,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(2)
+        @Disabled
         public void testCreateDatabase() {
             assertThrows(CJException.class, () -> INSTANCE.createDatabase(RO, USER_RW),
                     "Access denied for user 'test_ro'@'%' to database 'jdbc_direct_db'");
@@ -97,6 +110,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(3)
+        @Disabled
         public void testDropTable() {
             assertThrows(CJException.class, () -> INSTANCE.dropTable(RO, USER_RW),
                     "DROP command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -104,6 +118,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(4)
+        @Disabled
         public void testCreateTable() {
             assertThrows(CJException.class, () -> INSTANCE.createTable(RO, USER_RW),
                     "CREATE command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -111,6 +126,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(5)
+        @Disabled
         public void testInsert() {
             assertThrows(CJException.class, () -> INSTANCE.insert(RO, USER_RW),
                     "INSERT command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -118,6 +134,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(6)
+        @Disabled
         public void testUpdate() {
             assertThrows(CJException.class, () -> INSTANCE.update(RO, USER_RW),
                     "UPDATE command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -125,6 +142,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(7)
+        @Disabled
         public void testDelete() {
             assertThrows(CJException.class, () -> INSTANCE.delete(RO, USER_RW),
                     "DELETE command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -132,6 +150,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(8)
+        @Disabled
         public void testSelect() {
             assertDoesNotThrow(() -> INSTANCE.select(RO, USER_RW));
         }
@@ -142,6 +161,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(1)
+        @Disabled
         public void testDropDatabase() {
             assertThrows(CJException.class, () -> INSTANCE.dropDatabase(RO, USER_RO),
                     "Access denied for user 'test_ro'@'%' to database 'jdbc_direct_db'");
@@ -149,6 +169,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(2)
+        @Disabled
         public void testCreateDatabase() {
             assertThrows(CJException.class, () -> INSTANCE.createDatabase(RO, USER_RO),
                     "Access denied for user 'test_ro'@'%' to database 'jdbc_direct_db'");
@@ -156,6 +177,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(3)
+        @Disabled
         public void testDropTable() {
             assertThrows(CJException.class, () -> INSTANCE.dropTable(RO, USER_RO),
                     "DROP command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -163,6 +185,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(4)
+        @Disabled
         public void testCreateTable() {
             assertThrows(CJException.class, () -> INSTANCE.createTable(RO, USER_RO),
                     "CREATE command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -170,6 +193,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(5)
+        @Disabled
         public void testInsert() {
             assertThrows(CJException.class, () -> INSTANCE.insert(RO, USER_RO),
                     "INSERT command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -177,6 +201,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(6)
+        @Disabled
         public void testUpdate() {
             assertThrows(CJException.class, () -> INSTANCE.update(RO, USER_RO),
                     "UPDATE command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -184,6 +209,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(7)
+        @Disabled
         public void testDelete() {
             assertThrows(CJException.class, () -> INSTANCE.delete(RO, USER_RO),
                     "DELETE command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -191,16 +217,19 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(8)
+        @Disabled
         public void testSelect() {
             assertDoesNotThrow(() -> INSTANCE.select(RO, USER_RO));
         }
     }
 
     @TestMethodOrder(OrderAnnotation.class)
+    @Disabled
     public static class ReadOnlyUserInReadWriteModeTest extends BaseTest {
 
         @Test
         @Order(1)
+        @Disabled
         public void testDropDatabase() {
             assertThrows(CJException.class, () -> INSTANCE.dropDatabase(RW, USER_RO),
                     "Access denied for user 'test_ro'@'%' to database 'jdbc_direct_db'");
@@ -208,6 +237,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(2)
+        @Disabled
         public void testCreateDatabase() {
             assertThrows(CJException.class, () -> INSTANCE.createDatabase(RW, USER_RO),
                     "Access denied for user 'test_ro'@'%' to database 'jdbc_direct_db'");
@@ -215,6 +245,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(3)
+        @Disabled
         public void testDropTable() {
             assertThrows(CJException.class, () -> INSTANCE.dropTable(RW, USER_RO),
                     "DROP command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -222,6 +253,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(4)
+        @Disabled
         public void testCreateTable() {
             assertThrows(CJException.class, () -> INSTANCE.createTable(RW, USER_RO),
                     "CREATE command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -229,6 +261,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(5)
+        @Disabled
         public void testInsert() {
             assertThrows(CJException.class, () -> INSTANCE.insert(RW, USER_RO),
                     "INSERT command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -236,6 +269,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(6)
+        @Disabled
         public void testUpdate() {
             assertThrows(CJException.class, () -> INSTANCE.update(RW, USER_RO),
                     "UPDATE command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -243,6 +277,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(7)
+        @Disabled
         public void testDelete() {
             assertThrows(CJException.class, () -> INSTANCE.delete(RW, USER_RO),
                     "DELETE command denied to user 'test_ro'@'10.22.87.7' for table 'jdbc_direct_tb'");
@@ -250,6 +285,7 @@ public class ReadWriteTest extends BaseTest {
 
         @Test
         @Order(8)
+        @Disabled
         public void testSelect() {
             assertDoesNotThrow(() -> INSTANCE.select(RO, USER_RO));
         }

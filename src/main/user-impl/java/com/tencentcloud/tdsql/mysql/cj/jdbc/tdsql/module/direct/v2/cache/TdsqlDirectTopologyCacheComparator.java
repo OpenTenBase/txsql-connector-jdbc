@@ -210,7 +210,7 @@ public class TdsqlDirectTopologyCacheComparator {
                                 weightChangedMap.put(source, target);
                             }
                         }
-                        // 如果从等延迟没有吵过阈值，或者没有阈值设定，
+                        // 如果从等延迟没有超过阈值，或者没有阈值设定，
                         // 那么该节点等延迟改变可以不考虑在内，从而减少schedule改变的次数
                         Integer maxSlaveDelaySeconds = this.dataSourceConfig.getTdsqlDirectMaxSlaveDelaySeconds();
                         Boolean shouldSkip = !(maxSlaveDelaySeconds != null
