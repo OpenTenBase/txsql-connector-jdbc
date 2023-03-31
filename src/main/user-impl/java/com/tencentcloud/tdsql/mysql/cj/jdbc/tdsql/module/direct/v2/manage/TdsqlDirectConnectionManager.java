@@ -1,6 +1,8 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.manage;
 
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionModeEnum.DIRECT;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logWarn;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.RO;
 
 import com.tencentcloud.tdsql.mysql.cj.Messages;
@@ -20,6 +22,8 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.Tdsq
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.strategy.v2.TdsqlLoadBalanceStrategy;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.strategy.v2.TdsqlLoadBalanceStrategyFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlSynchronousExecutor;
+import org.junit.platform.commons.util.CollectionUtils;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,8 +33,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * <p>TDSQL专属，直连模式连接管理器类</p>
@@ -55,7 +61,7 @@ public class TdsqlDirectConnectionManager {
     public TdsqlDirectConnectionManager(TdsqlDirectDataSourceConfig dataSourceConfig) {
         this.dataSourceUuid = dataSourceConfig.getDataSourceUuid();
         this.dataSourceConfig = dataSourceConfig;
-        this.liveConnectionMap = new HashMap<>();
+        this.liveConnectionMap = new ConcurrentHashMap<>();
         this.slaveBlacklist = new HashMap<>();
         this.lock = new ReentrantLock();
         // 只读模式需要初始化负载均衡策略算法类实例
@@ -142,6 +148,22 @@ public class TdsqlDirectConnectionManager {
         }
     }
 
+    public void closeConnections(TdsqlDirectHostInfo directHostInfo) {
+        if (this.liveConnectionMap.containsKey(directHostInfo)) {
+            List<JdbcConnection> connections = this.liveConnectionMap.remove(directHostInfo);
+            if (connections == null || connections.isEmpty()) {
+                return;
+            }
+            for (JdbcConnection connection : connections) {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    logWarn("close connection failed; hostInfo: " + directHostInfo.getHostPortPair() + ", exception:" + e.getMessage());
+                }
+            }
+        }
+    }
+
     /**
      * 获取所有存量连接
      *
@@ -160,20 +182,25 @@ public class TdsqlDirectConnectionManager {
     private JdbcConnection createMasterConnection() throws SQLException {
         TdsqlDirectScheduleServer scheduleServer = this.dataSourceConfig.getScheduleServer();
 
-        // 当没有主库调度信息时，记录日志并抛出异常
-        TdsqlDirectConnectionCounter masterCounter = scheduleServer.getMaster();
-        if (masterCounter == null || masterCounter.getTdsqlHostInfo() == null) {
-            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCreateConnectionException.class,
-                    Messages.getString("TdsqlDirectConnectionManagerException.EmptySchedule", new Object[]{"MASTER"}));
+        ReentrantReadWriteLock.ReadLock readLock = scheduleServer.getSchedualeReadLock();
+        try {
+            readLock.lock();
+            // 当没有主库调度信息时，记录日志并抛出异常
+            TdsqlDirectConnectionCounter masterCounter = scheduleServer.getMaster();
+            if (masterCounter == null || masterCounter.getTdsqlHostInfo() == null) {
+                throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCreateConnectionException.class,
+                        Messages.getString("TdsqlDirectConnectionManagerException.EmptySchedule", new Object[]{"MASTER"}));
+            }
+            // 创建数据库连接
+            JdbcConnection jdbcConnection = ConnectionImpl.getInstance(masterCounter.getTdsqlHostInfo());
+            // 累加计数器
+            masterCounter.getCount().increment();
+            // 保存已建立的数据库连接
+            this.cacheConnection(masterCounter.getTdsqlHostInfo(), jdbcConnection);
+            return jdbcConnection;
+        } finally {
+            readLock.unlock();
         }
-
-        // 创建数据库连接
-        JdbcConnection jdbcConnection = ConnectionImpl.getInstance(masterCounter.getTdsqlHostInfo());
-        // 累加计数器
-        masterCounter.getCount().increment();
-        // 保存已建立的数据库连接
-        this.cacheConnection(masterCounter.getTdsqlHostInfo(), jdbcConnection);
-        return jdbcConnection;
     }
 
     /**
@@ -185,75 +212,81 @@ public class TdsqlDirectConnectionManager {
     private JdbcConnection createSlaveConnection() throws SQLException {
         TdsqlDirectScheduleServer scheduleServer = this.dataSourceConfig.getScheduleServer();
 
-        // 当没有备库调度信息时，记录日志并抛出异常
-        Set<TdsqlDirectConnectionCounter> slaveSet = scheduleServer.getSlaveSet();
-        if (slaveSet.isEmpty()) {
-            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCreateConnectionException.class,
-                    Messages.getString("TdsqlDirectConnectionManagerException.EmptySchedule", new Object[]{"SLAVE"}));
-        }
-
-        // 从备库的调度信息中移除已经被加入到黑名单的备库信息
-        Set<TdsqlDirectConnectionCounter> filteredSlaveSet = this.filterSlaveBlacklist(slaveSet);
-        // 如果所有备库都已经被加入到了黑名单
-        if (filteredSlaveSet.isEmpty()) {
-            // 如果设置了主库承接只读流量开关，则建立到主库的数据库连接
-            if (this.dataSourceConfig.getTdsqlDirectMasterCarryOptOfReadOnlyMode()) {
-                return createMasterConnection();
+        ReentrantReadWriteLock.ReadLock readLock = scheduleServer.getSchedualeReadLock();
+        try {
+            readLock.lock();
+            // 当没有备库调度信息时，记录日志并抛出异常
+            Set<TdsqlDirectConnectionCounter> slaveSet = scheduleServer.getSlaveSet();
+            if (slaveSet.isEmpty()) {
+                throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCreateConnectionException.class,
+                        Messages.getString("TdsqlDirectConnectionManagerException.EmptySchedule", new Object[]{"SLAVE"}));
             }
-            // 否则，记录日志并抛出异常
-            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCreateConnectionException.class,
-                    Messages.getString("TdsqlDirectConnectionManagerException.AllSlaveInBlacklist"));
-        }
 
-        // 根据负载均衡策略算法，从允许调度的备库集合中，选取一个备库信息
-        TdsqlConnectionCounter slaveCounter = this.algorithm.choice(Collections.unmodifiableSet(filteredSlaveSet));
-        // 如果选择失败
-        if (slaveCounter == null) {
-            // 如果设置了主库承接只读流量开关，则建立到主库的数据库连接
-            if (this.dataSourceConfig.getTdsqlDirectMasterCarryOptOfReadOnlyMode()) {
-                return createMasterConnection();
+            // 从备库的调度信息中移除已经被加入到黑名单的备库信息
+            Set<TdsqlDirectConnectionCounter> filteredSlaveSet = this.filterSlaveBlacklist(slaveSet);
+            // 如果所有备库都已经被加入到了黑名单
+            if (filteredSlaveSet.isEmpty()) {
+                // 如果设置了主库承接只读流量开关，则建立到主库的数据库连接
+                if (this.dataSourceConfig.getTdsqlDirectMasterCarryOptOfReadOnlyMode()) {
+                    return createMasterConnection();
+                }
+                // 否则，记录日志并抛出异常
+                throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCreateConnectionException.class,
+                        Messages.getString("TdsqlDirectConnectionManagerException.AllSlaveInBlacklist"));
             }
-            // 否则，记录日志并抛出异常
-            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCreateConnectionException.class,
-                    Messages.getString("TdsqlDirectConnectionManagerException.AllSlaveIsZeroWeight"));
-        }
 
-        // 尝试建立到备库的数据库连接，最大尝试建立三次，否则加入黑名单
-        int numRetries = 3;
-        JdbcConnection jdbcConnection = null;
-        for (int attempts = 1; attempts <= numRetries; ) {
-            AbstractTdsqlHostInfo slaveHostInfo = slaveCounter.getTdsqlHostInfo();
-            try {
-                jdbcConnection = ConnectionImpl.getInstance(slaveHostInfo);
-                // 设置连接只读时，间接验证了连接的有效性
-                jdbcConnection.setReadOnly(true);
-                break;
-            } catch (Throwable t) {
-                // 建立连接失败，或者连接无效，减少连接计数器的值
-                slaveCounter.getCount().decrement();
-                // 补偿性的尝试关闭连接
-                if (jdbcConnection != null) {
-                    try {
-                        jdbcConnection.close();
-                    } catch (SQLException ex) {
-                        // Eat this exception.
+            // 根据负载均衡策略算法，从允许调度的备库集合中，选取一个备库信息
+            TdsqlConnectionCounter slaveCounter = this.algorithm.choice(Collections.unmodifiableSet(filteredSlaveSet));
+            // 如果选择失败
+            if (slaveCounter == null) {
+                // 如果设置了主库承接只读流量开关，则建立到主库的数据库连接
+                if (this.dataSourceConfig.getTdsqlDirectMasterCarryOptOfReadOnlyMode()) {
+                    return createMasterConnection();
+                }
+                // 否则，记录日志并抛出异常
+                throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCreateConnectionException.class,
+                        Messages.getString("TdsqlDirectConnectionManagerException.AllSlaveIsZeroWeight"));
+            }
+
+            // 尝试建立到备库的数据库连接，最大尝试建立三次，否则加入黑名单
+            int numRetries = 3;
+            JdbcConnection jdbcConnection = null;
+            for (int attempts = 1; attempts <= numRetries; ) {
+                AbstractTdsqlHostInfo slaveHostInfo = slaveCounter.getTdsqlHostInfo();
+                try {
+                    jdbcConnection = ConnectionImpl.getInstance(slaveHostInfo);
+                    // 设置连接只读时，间接验证了连接的有效性
+                    jdbcConnection.setReadOnly(true);
+                    break;
+                } catch (Throwable t) {
+                    // 建立连接失败，或者连接无效，减少连接计数器的值
+                    slaveCounter.getCount().decrement();
+                    // 补偿性的尝试关闭连接
+                    if (jdbcConnection != null) {
+                        try {
+                            jdbcConnection.close();
+                        } catch (SQLException ex) {
+                            // Eat this exception.
+                        }
                     }
+                    // 达到最大尝试次数后，加入黑名单，抛出异常
+                    if (attempts == numRetries) {
+                        this.addSlaveBlacklist(slaveHostInfo.getHostPortPair());
+                        throw t;
+                    }
+                    // 否则，记录失败日志，继续下次尝试
+                    TdsqlLoggerFactory.logError(this.dataSourceUuid,
+                            Messages.getString("TdsqlDirectConnectionManagerException.FailedToCreateSlaveConnection",
+                                    new Object[]{slaveHostInfo.getHostPortPair(), attempts}), t);
+                    attempts++;
                 }
-                // 达到最大尝试次数后，加入黑名单，抛出异常
-                if (attempts == numRetries) {
-                    this.addSlaveBlacklist(slaveHostInfo.getHostPortPair());
-                    throw t;
-                }
-                // 否则，记录失败日志，继续下次尝试
-                TdsqlLoggerFactory.logError(this.dataSourceUuid,
-                        Messages.getString("TdsqlDirectConnectionManagerException.FailedToCreateSlaveConnection",
-                                new Object[]{slaveHostInfo.getHostPortPair(), attempts}), t);
-                attempts++;
             }
+            // 保存已建立的数据库连接
+            this.cacheConnection((TdsqlDirectHostInfo) slaveCounter.getTdsqlHostInfo(), jdbcConnection);
+            return jdbcConnection;
+        } finally {
+            readLock.unlock();
         }
-        // 保存已建立的数据库连接
-        this.cacheConnection((TdsqlDirectHostInfo) slaveCounter.getTdsqlHostInfo(), jdbcConnection);
-        return jdbcConnection;
     }
 
     /**

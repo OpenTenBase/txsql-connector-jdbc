@@ -5,6 +5,8 @@ import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectCacheServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectDataSourceException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverHandler;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverHandlerImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverMasterHandler;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverSlavesHandler;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.manage.TdsqlDirectConnectionManager;
@@ -47,6 +49,9 @@ public class TdsqlDirectDataSource {
             // 初始化调度服务并赋值
             TdsqlDirectScheduleServer scheduleServer = new TdsqlDirectScheduleServer(this.dataSourceConfig);
             this.dataSourceConfig.setScheduleServer(scheduleServer);
+
+            TdsqlDirectFailoverHandler failoverHandler = new TdsqlDirectFailoverHandlerImpl(this.dataSourceConfig);
+            this.dataSourceConfig.setFailoverHandler(failoverHandler);
 
             // 初始化主库故障转移处理器并赋值
             TdsqlDirectFailoverMasterHandler failoverMasterHandler = new TdsqlDirectFailoverMasterHandler(

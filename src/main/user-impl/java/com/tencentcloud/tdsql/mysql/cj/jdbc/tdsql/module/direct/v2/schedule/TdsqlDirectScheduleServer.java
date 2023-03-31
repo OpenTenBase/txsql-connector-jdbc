@@ -42,6 +42,10 @@ public class TdsqlDirectScheduleServer implements
         this.slaveCounterSet = new LinkedHashSet<>(8);
     }
 
+    public ReentrantReadWriteLock.ReadLock getSchedualeReadLock() {
+        return this.rwLock.readLock();
+    }
+
     /**
      * 获取主库调度信息
      *

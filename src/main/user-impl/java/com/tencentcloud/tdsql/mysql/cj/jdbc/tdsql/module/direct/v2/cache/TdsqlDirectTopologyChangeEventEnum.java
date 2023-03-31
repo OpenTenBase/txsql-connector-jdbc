@@ -6,6 +6,10 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache;
  * @author dorianzhang@tencent.com
  */
 public enum TdsqlDirectTopologyChangeEventEnum {
+    /**
+     * 第一次加载
+     */
+    FIRST_LOAD,
 
     /**
      * 主备切换

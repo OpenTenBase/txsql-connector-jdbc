@@ -1,5 +1,6 @@
 package tdsql.direct.v2.cache;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.RW;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyChangeEventEnum.NO_CHANGE;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyChangeEventEnum.SLAVE_ALL_ATTR_CHANGE;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyChangeEventEnum.SLAVE_DELAY_CHANGE;
@@ -12,6 +13,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDi
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyCacheCompareResult.MasterResult;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyCacheCompareResult.SlaveResult;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyChangeEventEnum;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.TdsqlDirectDataSourceConfig;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectCompareTopologyException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectMasterTopologyInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectSlaveTopologyInfo;
@@ -34,9 +36,14 @@ public class TdsqlDirectTopologyCacheComparatorTest extends TdsqlDirectBaseTest 
 
     private TdsqlDirectTopologyCacheComparator comparator;
 
+    private TdsqlDirectDataSourceConfig dataSourceConfig;
+
     @BeforeEach
     public void beforeEach() {
-        this.comparator = new TdsqlDirectTopologyCacheComparator(super.defaultDataSourceUuid);
+        this.dataSourceConfig = new TdsqlDirectDataSourceConfig(super.defaultDataSourceUuid);
+        this.dataSourceConfig.setTdsqlDirectReadWriteMode(RW);
+        this.dataSourceConfig.setTdsqlDirectMasterCarryOptOfReadOnlyMode(true);
+       this.comparator = new TdsqlDirectTopologyCacheComparator(dataSourceConfig);
     }
 
     /**

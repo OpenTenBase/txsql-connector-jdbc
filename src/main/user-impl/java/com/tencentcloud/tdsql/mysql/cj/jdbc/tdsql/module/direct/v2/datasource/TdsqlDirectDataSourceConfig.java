@@ -12,6 +12,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.IsValidRwModeReturned;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectCacheServer;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverHandler;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverMasterHandler;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverSlavesHandler;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.manage.TdsqlDirectConnectionManager;
@@ -51,6 +52,7 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
     private TdsqlDirectCacheServer cacheServer;
     private TdsqlDirectScheduleServer scheduleServer;
     private TdsqlDirectConnectionManager connectionManager;
+    private TdsqlDirectFailoverHandler failoverHandler;
     private TdsqlDirectFailoverMasterHandler failoverMasterHandler;
     private TdsqlDirectFailoverSlavesHandler failoverSlavesHandler;
 
@@ -375,6 +377,14 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
     public void setConnectionManager(
             TdsqlDirectConnectionManager connectionManager) {
         this.connectionManager = connectionManager;
+    }
+
+    public TdsqlDirectFailoverHandler getFailoverHandler() {
+        return failoverHandler;
+    }
+
+    public void setFailoverHandler(TdsqlDirectFailoverHandler failoverHandler) {
+        this.failoverHandler = failoverHandler;
     }
 
     public TdsqlDirectFailoverMasterHandler getFailoverMasterHandler() {

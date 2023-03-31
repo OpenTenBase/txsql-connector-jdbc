@@ -18,6 +18,8 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.Tdsq
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectSlaveTopologyInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectTopologyInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlThreadFactoryBuilder;
+
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -33,9 +35,10 @@ public class TdsqlDirectCacheServer {
     private final TdsqlDirectDataSourceConfig dataSourceConfig;
     private final String dataSourceUuid;
     private final TdsqlDirectTopologyCacheComparator cacheComparator;
-    private final TdsqlDirectScheduleServer scheduleServer;
-    private final TdsqlDirectFailoverHandler failoverMasterHandler;
-    private final TdsqlDirectFailoverHandler failoverSlavesHandler;
+//    private final TdsqlDirectScheduleServer scheduleServer;
+//    private final TdsqlDirectFailoverHandler failoverHandler;
+//    private final TdsqlDirectFailoverHandler failoverMasterHandler;
+//    private final TdsqlDirectFailoverHandler failoverSlavesHandler;
     private final CountDownLatch finishedFirstCache;
     final ScheduledThreadPoolExecutor survivedChecker;
     private Boolean isInitialCached;
@@ -54,27 +57,33 @@ public class TdsqlDirectCacheServer {
         this.dataSourceConfig = dataSourceConfig;
         this.dataSourceUuid = dataSourceConfig.getDataSourceUuid();
         // 初始化比较器
-        this.cacheComparator = new TdsqlDirectTopologyCacheComparator(this.dataSourceUuid);
-        // 确保调度服务已经初始化
-        this.scheduleServer = dataSourceConfig.getScheduleServer();
-        if (this.scheduleServer == null) {
-            TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedScheduleServer"));
-        }
-        // 确保主库故障转移处理类已经初始化
-        this.failoverMasterHandler = dataSourceConfig.getFailoverMasterHandler();
-        if (this.failoverMasterHandler == null) {
-            TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedFailoverHandler",
-                            new Object[]{"MASTER"}));
-        }
-        // 确保备库故障转移处理类已经初始化
-        this.failoverSlavesHandler = dataSourceConfig.getFailoverSlavesHandler();
-        if (this.failoverSlavesHandler == null) {
-            TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedFailoverHandler",
-                            new Object[]{"SLAVES"}));
-        }
+        this.cacheComparator = new TdsqlDirectTopologyCacheComparator(this.dataSourceConfig);
+//        // 确保调度服务已经初始化
+//        this.scheduleServer = dataSourceConfig.getScheduleServer();
+//        if (this.scheduleServer == null) {
+//            TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+//                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedScheduleServer"));
+//        }
+//        this.failoverHandler = dataSourceConfig.getFailoverHandler();
+//        if (this.failoverHandler == null) {
+//            TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+//                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedFailoverHandler"));
+//        }
+//
+//        // 确保主库故障转移处理类已经初始化
+//        this.failoverMasterHandler = dataSourceConfig.getFailoverMasterHandler();
+//        if (this.failoverMasterHandler == null) {
+//            TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+//                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedFailoverHandler",
+//                            new Object[]{"MASTER"}));
+//        }
+//        // 确保备库故障转移处理类已经初始化
+//        this.failoverSlavesHandler = dataSourceConfig.getFailoverSlavesHandler();
+//        if (this.failoverSlavesHandler == null) {
+//            TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+//                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedFailoverHandler",
+//                            new Object[]{"SLAVES"}));
+//        }
         this.finishedFirstCache = new CountDownLatch(1);
         this.isInitialCached = false;
         this.isSurvived = false;
@@ -130,7 +139,7 @@ public class TdsqlDirectCacheServer {
                 // 读写模式，主库变化后，更新主库拓扑缓存，处理主库故障转移
                 if (!masterResult.isNoChange()) {
                     this.cachedTopologyInfo.updateMaster(masterTopologyInfo);
-                    this.failoverMasterHandler.handleMaster(masterResult);
+                    this.dataSourceConfig.getFailoverHandler().handleMaster(masterResult);
                 }
 
                 if (!slaveResultSet.isNoChange()) {
@@ -144,13 +153,13 @@ public class TdsqlDirectCacheServer {
                 if (!masterResult.isNoChange()) {
                     this.cachedTopologyInfo.updateMaster(masterTopologyInfo);
                     if (this.dataSourceConfig.getTdsqlDirectMasterCarryOptOfReadOnlyMode()) {
-                        this.failoverMasterHandler.handleMaster(masterResult);
+                        this.dataSourceConfig.getFailoverHandler().handleMaster(masterResult);
                     }
                 }
 
                 if (!slaveResultSet.isNoChange()) {
                     this.cachedTopologyInfo.updateSlaveSet(slaveTopologyInfoSet);
-                    this.failoverSlavesHandler.handleSlaves(slaveResultSet);
+                    this.dataSourceConfig.getFailoverHandler().handleSlaves(slaveResultSet);
                 }
                 break;
             case UNKNOWN:
@@ -249,14 +258,21 @@ public class TdsqlDirectCacheServer {
         Set<TdsqlDirectSlaveTopologyInfo> slaveTopologyInfoSet = topologyInfo.getSlaveTopologyInfoSet();
         switch (rwMode) {
             case RW:
-                this.scheduleServer.addMaster(masterTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig));
+                this.dataSourceConfig.getFailoverHandler().handleMaster(MasterResult.firstLoad(masterTopologyInfo));
+                //this.scheduleServer.addMaster(masterTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig));
                 break;
             case RO:
+                Set<TdsqlDirectSlaveTopologyInfo> newSlaveSet = new LinkedHashSet<>();
                 for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : slaveTopologyInfoSet) {
-                    this.scheduleServer.addSlave(slaveTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig));
+                    newSlaveSet.add(slaveTopologyInfo);
+                    //this.scheduleServer.addSlave(slaveTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig));
                 }
+                SlaveResultSet<SlaveResult> slaveResult = new SlaveResultSet<>();
+                slaveResult.add(SlaveResult.firstLoad(newSlaveSet));
+                this.dataSourceConfig.getFailoverHandler().handleSlaves(slaveResult);
                 if (this.dataSourceConfig.getTdsqlDirectMasterCarryOptOfReadOnlyMode()) {
-                    this.scheduleServer.addMaster(masterTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig));
+                    this.dataSourceConfig.getFailoverHandler().handleMaster(MasterResult.firstLoad(masterTopologyInfo));
+                    //this.scheduleServer.addMaster(masterTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig));
                 }
                 break;
             case UNKNOWN:
@@ -287,15 +303,15 @@ public class TdsqlDirectCacheServer {
     }
 
     public TdsqlDirectScheduleServer getScheduleServer() {
-        return scheduleServer;
+        return dataSourceConfig.getScheduleServer();
     }
 
     public TdsqlDirectFailoverHandler getFailoverMasterHandler() {
-        return failoverMasterHandler;
+        return dataSourceConfig.getFailoverMasterHandler();
     }
 
     public TdsqlDirectFailoverHandler getFailoverSlavesHandler() {
-        return failoverSlavesHandler;
+        return dataSourceConfig.getFailoverSlavesHandler();
     }
 
     public Boolean getSurvived() {

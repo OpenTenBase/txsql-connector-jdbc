@@ -1,5 +1,6 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyChangeEventEnum.SLAVE_OFFLINE;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyChangeEventEnum.SLAVE_ONLINE;
 
@@ -8,15 +9,12 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlExceptionFactor
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyCacheCompareResult.MasterResult;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyCacheCompareResult.SlaveResult;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyCacheCompareResult.SlaveResultSet;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.TdsqlDirectDataSourceConfig;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectCompareTopologyException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectMasterTopologyInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectSlaveTopologyInfo;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
+
+import java.util.*;
 
 /**
  * <p>TDSQL专属，直连模式缓存比较器</p>
@@ -27,8 +25,11 @@ public class TdsqlDirectTopologyCacheComparator {
 
     private final String dataSourceUuid;
 
-    public TdsqlDirectTopologyCacheComparator(String dataSourceUuid) {
-        this.dataSourceUuid = dataSourceUuid;
+    private final TdsqlDirectDataSourceConfig dataSourceConfig;
+
+    public TdsqlDirectTopologyCacheComparator(TdsqlDirectDataSourceConfig dataSourceConfig) {
+        this.dataSourceUuid = dataSourceConfig.getDataSourceUuid();
+        this.dataSourceConfig = dataSourceConfig;
     }
 
     /**
@@ -209,7 +210,13 @@ public class TdsqlDirectTopologyCacheComparator {
                                 weightChangedMap.put(source, target);
                             }
                         }
-                        if (!delay.equals(target.getDelay())) {
+                        // 如果从等延迟没有吵过阈值，或者没有阈值设定，
+                        // 那么该节点等延迟改变可以不考虑在内，从而减少schedule改变的次数
+                        Integer maxSlaveDelaySeconds = this.dataSourceConfig.getTdsqlDirectMaxSlaveDelaySeconds();
+                        Boolean shouldSkip = !(maxSlaveDelaySeconds != null
+                                && !Objects.equals(maxSlaveDelaySeconds, DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS)
+                                && target.getDelay() >= maxSlaveDelaySeconds);
+                        if (!delay.equals(target.getDelay()) && shouldSkip) {
                             attributeChanged = true;
                             if (SLAVE_ONLINE.equals(changeEventEnum)) {
                                 delayChangedMap.put(target, source);

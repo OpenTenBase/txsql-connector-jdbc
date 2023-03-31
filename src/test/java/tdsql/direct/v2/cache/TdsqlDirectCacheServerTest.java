@@ -7,6 +7,8 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectRe
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectCacheServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.TdsqlDirectDataSourceConfig;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectCacheTopologyException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverHandler;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverHandlerImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverMasterHandler;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverSlavesHandler;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.manage.TdsqlDirectConnectionManager;
@@ -31,8 +33,7 @@ public class TdsqlDirectCacheServerTest extends TdsqlDirectBaseTest {
 
     private TdsqlDirectDataSourceConfig dataSourceConfig;
     private TdsqlDirectScheduleServer scheduleServer;
-    private TdsqlDirectFailoverMasterHandler failoverMasterHandler;
-    private TdsqlDirectFailoverSlavesHandler failoverSlavesHandler;
+    private TdsqlDirectFailoverHandler failoverHandler;
     private TdsqlDirectCacheServer cacheServer;
 
     @BeforeEach
@@ -49,8 +50,6 @@ public class TdsqlDirectCacheServerTest extends TdsqlDirectBaseTest {
         Assertions.assertEquals(super.defaultDataSourceUuid, this.cacheServer.getDataSourceUuid());
         Assertions.assertNotNull(this.cacheServer.getCacheComparator());
         Assertions.assertEquals(this.scheduleServer, this.cacheServer.getScheduleServer());
-        Assertions.assertEquals(this.failoverMasterHandler, this.cacheServer.getFailoverMasterHandler());
-        Assertions.assertEquals(this.failoverSlavesHandler, this.cacheServer.getFailoverSlavesHandler());
         Assertions.assertFalse(this.cacheServer.getSurvived());
         Assertions.assertFalse(this.cacheServer.getInitialCached());
         Assertions.assertNull(this.cacheServer.getClusterName());
@@ -696,12 +695,8 @@ public class TdsqlDirectCacheServerTest extends TdsqlDirectBaseTest {
 
         TdsqlDirectConnectionManager connectionManager = new TdsqlDirectConnectionManager(this.dataSourceConfig);
         this.dataSourceConfig.setConnectionManager(connectionManager);
-
-        this.failoverMasterHandler = new TdsqlDirectFailoverMasterHandler(this.dataSourceConfig);
-        this.dataSourceConfig.setFailoverMasterHandler(this.failoverMasterHandler);
-
-        this.failoverSlavesHandler = new TdsqlDirectFailoverSlavesHandler(this.dataSourceConfig);
-        this.dataSourceConfig.setFailoverSlavesHandler(this.failoverSlavesHandler);
+        this.failoverHandler = new TdsqlDirectFailoverHandlerImpl(this.dataSourceConfig);
+        this.dataSourceConfig.setFailoverHandler(failoverHandler);
 
         this.cacheServer = new TdsqlDirectCacheServer(this.dataSourceConfig);
     }

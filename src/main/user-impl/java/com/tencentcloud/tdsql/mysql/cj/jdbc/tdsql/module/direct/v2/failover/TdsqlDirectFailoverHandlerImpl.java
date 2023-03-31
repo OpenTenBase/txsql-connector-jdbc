@@ -1,45 +1,67 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.RO;
-
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyCacheCompareResult.SlaveResult;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyCacheCompareResult.SlaveResultSet;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyCacheCompareResult;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyChangeEventEnum;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.TdsqlDirectDataSourceConfig;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectHandleFailoverException;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.manage.TdsqlDirectConnectionManager;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectHostInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectScheduleServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectSlaveTopologyInfo;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Set;
 
-/**
- * <p>TDSQL专属，直连模式备库故障转移处理器</p>
- *
- * @author dorianzhang@tencent.com
- */
-public class TdsqlDirectFailoverSlavesHandler implements TdsqlDirectFailoverHandler {
+import java.util.*;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.RO;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyChangeEventEnum.SWITCH;
+
+public class TdsqlDirectFailoverHandlerImpl implements TdsqlDirectFailoverHandler {
     private final String dataSourceUuid;
     private final TdsqlDirectDataSourceConfig dataSourceConfig;
-    private final TdsqlDirectScheduleServer scheduleServer;
-    private final TdsqlDirectConnectionManager connectionManager;
+//    private final TdsqlDirectScheduleServer scheduleServer;
+//    private final TdsqlDirectConnectionManager connectionManager;
 
-    public TdsqlDirectFailoverSlavesHandler(TdsqlDirectDataSourceConfig dataSourceConfig) {
+    public TdsqlDirectFailoverHandlerImpl(TdsqlDirectDataSourceConfig dataSourceConfig) {
         this.dataSourceUuid = dataSourceConfig.getDataSourceUuid();
         this.dataSourceConfig = dataSourceConfig;
-        this.scheduleServer = dataSourceConfig.getScheduleServer();
-        this.connectionManager = dataSourceConfig.getConnectionManager();
+//        this.scheduleServer = dataSourceConfig.getScheduleServer();
+//        this.connectionManager = dataSourceConfig.getConnectionManager();
+    }
+
+    /**
+     * 处理主库故障转移
+     *
+     * @param masterResult 主库拓扑信息比较结果
+     */
+    @Override
+    public void handleMaster(TdsqlDirectTopologyCacheCompareResult.MasterResult masterResult) {
+        // 无变化抛出异常
+        if (masterResult.isNoChange()) {
+            throw TdsqlExceptionFactory.createException(TdsqlDirectHandleFailoverException.class,
+                    Messages.getString("TdsqlDirectHandleFailoverException.NoChangeForMaster"));
+        }
+
+        if (masterResult.isFirstLoad()) {
+            this.dataSourceConfig.getScheduleServer().addMaster(masterResult.getNewMaster().convertToDirectHostInfo(this.dataSourceConfig));
+            return;
+        }
+
+        // 变化类型应该为主备切换，否则抛出异常
+        if (!SWITCH.equals(masterResult.getTdsqlDirectTopoChangeEventEnum())) {
+            throw TdsqlExceptionFactory.createException(TdsqlDirectHandleFailoverException.class,
+                    Messages.getString("TdsqlDirectHandleFailoverException.UnknownChangeEventForMaster"));
+        }
+
+        TdsqlDirectHostInfo oldMaster = masterResult.getOldMaster().convertToDirectHostInfo(this.dataSourceConfig);
+        TdsqlDirectHostInfo newMaster = masterResult.getNewMaster().convertToDirectHostInfo(this.dataSourceConfig);
+
+        // 调用调度服务，更新主库调度信息
+        this.dataSourceConfig.getScheduleServer().updateMaster(oldMaster, newMaster);
+
+        // 调用连接管理器，关闭所有老主库存量连接
+        this.dataSourceConfig.getConnectionManager().closeAllConnection(oldMaster);
     }
 
     /**
@@ -48,7 +70,7 @@ public class TdsqlDirectFailoverSlavesHandler implements TdsqlDirectFailoverHand
      * @param slaveResultSet 备库拓扑信息比较结果
      */
     @Override
-    public void handleSlaves(SlaveResultSet<SlaveResult> slaveResultSet) {
+    public void handleSlaves(TdsqlDirectTopologyCacheCompareResult.SlaveResultSet<TdsqlDirectTopologyCacheCompareResult.SlaveResult> slaveResultSet) {
         // 读写模式无需处理备库故障转移，抛出异常
         TdsqlDirectReadWriteModeEnum rwMode = dataSourceConfig.getTdsqlDirectReadWriteMode();
         if (!RO.equals(rwMode)) {
@@ -63,9 +85,10 @@ public class TdsqlDirectFailoverSlavesHandler implements TdsqlDirectFailoverHand
         }
 
         // 依次比较备库变化并处理
-        for (SlaveResult slaveResult : slaveResultSet) {
+        for (TdsqlDirectTopologyCacheCompareResult.SlaveResult slaveResult : slaveResultSet) {
             TdsqlDirectTopologyChangeEventEnum changeEvent = slaveResult.getTdsqlDirectTopoChangeEventEnum();
             switch (changeEvent) {
+                case FIRST_LOAD:
                 case SLAVE_ONLINE:
                     // 处理上线
                     this.handleSlaveOnline(slaveResult.getNewSlaveSet());
@@ -107,7 +130,7 @@ public class TdsqlDirectFailoverSlavesHandler implements TdsqlDirectFailoverHand
         // 上线备库加入调度
         for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : slaveSet) {
             TdsqlDirectHostInfo directHostInfo = slaveTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig);
-            this.scheduleServer.addSlave(directHostInfo);
+            this.dataSourceConfig.getScheduleServer().addSlave(directHostInfo);
         }
     }
 
@@ -126,8 +149,8 @@ public class TdsqlDirectFailoverSlavesHandler implements TdsqlDirectFailoverHand
         // 下线备库移除调度，并关闭所有存量连接
         for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : slaveSet) {
             TdsqlDirectHostInfo directHostInfo = slaveTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig);
-            this.scheduleServer.removeSlave(directHostInfo);
-            this.connectionManager.closeAllConnection(directHostInfo);
+            this.dataSourceConfig.getScheduleServer().removeSlave(directHostInfo);
+            this.dataSourceConfig.getConnectionManager().closeAllConnection(directHostInfo);
         }
     }
 
@@ -150,8 +173,9 @@ public class TdsqlDirectFailoverSlavesHandler implements TdsqlDirectFailoverHand
         if (!invalidSet.isEmpty()) {
             for (TdsqlDirectSlaveTopologyInfo invalidTopologyInfo : invalidSet) {
                 TdsqlDirectHostInfo directHostInfo = invalidTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig);
-                // 仅移除调度，并不关闭存量连接
-                this.scheduleServer.removeSlave(directHostInfo);
+                // 移除调度，关闭存量连接
+                this.dataSourceConfig.getScheduleServer().removeSlave(directHostInfo);
+                this.dataSourceConfig.getConnectionManager().closeConnections(directHostInfo);
             }
         }
 
@@ -162,10 +186,10 @@ public class TdsqlDirectFailoverSlavesHandler implements TdsqlDirectFailoverHand
         }
 
         // 属性变化备库更新调度
-        for (Entry<TdsqlDirectSlaveTopologyInfo, TdsqlDirectSlaveTopologyInfo> entry : validMap.entrySet()) {
+        for (Map.Entry<TdsqlDirectSlaveTopologyInfo, TdsqlDirectSlaveTopologyInfo> entry : validMap.entrySet()) {
             TdsqlDirectHostInfo oldDirectHostInfo = entry.getKey().convertToDirectHostInfo(this.dataSourceConfig);
             TdsqlDirectHostInfo newDirectHostInfo = entry.getValue().convertToDirectHostInfo(this.dataSourceConfig);
-            this.scheduleServer.updateSlave(oldDirectHostInfo, newDirectHostInfo);
+            this.dataSourceConfig.getScheduleServer().updateSlave(oldDirectHostInfo, newDirectHostInfo);
         }
     }
 
@@ -197,7 +221,7 @@ public class TdsqlDirectFailoverSlavesHandler implements TdsqlDirectFailoverHand
                 sourceMap.keySet().size());
         Set<TdsqlDirectSlaveTopologyInfo> invalidSet = new LinkedHashSet<>(sourceMap.keySet().size());
 
-        for (Entry<TdsqlDirectSlaveTopologyInfo, TdsqlDirectSlaveTopologyInfo> entry : sourceMap.entrySet()) {
+        for (Map.Entry<TdsqlDirectSlaveTopologyInfo, TdsqlDirectSlaveTopologyInfo> entry : sourceMap.entrySet()) {
             TdsqlDirectSlaveTopologyInfo oldTopologyInfo = entry.getKey();
             TdsqlDirectSlaveTopologyInfo newTopologyInfo = entry.getValue();
             if (this.shouldSlaveBeFiltered(newTopologyInfo)) {
@@ -220,7 +244,8 @@ public class TdsqlDirectFailoverSlavesHandler implements TdsqlDirectFailoverHand
         Integer maxSlaveDelaySeconds = this.dataSourceConfig.getTdsqlDirectMaxSlaveDelaySeconds();
 
         // 如果配置了备库最大延迟，并且待过滤的拓扑信息大于该值时，需要被过滤，同时打印警告日志
-        if (!Objects.equals(maxSlaveDelaySeconds, DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS)
+        if (maxSlaveDelaySeconds != null
+                && !Objects.equals(maxSlaveDelaySeconds, DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS)
                 && slaveTopologyInfo.getDelay() >= maxSlaveDelaySeconds) {
             TdsqlLoggerFactory.logWarn(this.dataSourceUuid,
                     Messages.getString("TdsqlDirectHandleFailoverMessage.IgnoreSlaveForMaxSlaveDelay",
@@ -247,7 +272,7 @@ public class TdsqlDirectFailoverSlavesHandler implements TdsqlDirectFailoverHand
         private final Set<TdsqlDirectSlaveTopologyInfo> invalidSet;
 
         public DoFilterMapResult(Map<TdsqlDirectSlaveTopologyInfo, TdsqlDirectSlaveTopologyInfo> validMap,
-                Set<TdsqlDirectSlaveTopologyInfo> invalidSet) {
+                                 Set<TdsqlDirectSlaveTopologyInfo> invalidSet) {
             this.validMap = validMap;
             this.invalidSet = invalidSet;
         }

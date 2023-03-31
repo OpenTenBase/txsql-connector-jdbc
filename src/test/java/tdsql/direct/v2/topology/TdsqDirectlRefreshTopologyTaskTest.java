@@ -7,6 +7,7 @@ import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectCacheServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.TdsqlDirectDataSourceConfig;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverHandlerImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectConnectionCounter;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectScheduleServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectMasterTopologyInfo;
@@ -38,6 +39,8 @@ public class TdsqDirectlRefreshTopologyTaskTest extends TdsqlDirectBaseTest {
         dataSourceConfig.validateConnectionProperties(super.defaultConnectionUrlRw);
         TdsqlDirectTopologyServer topologyServer = new TdsqlDirectTopologyServer(dataSourceConfig);
         dataSourceConfig.setTopologyServer(topologyServer);
+        TdsqlDirectFailoverHandlerImpl handler = new TdsqlDirectFailoverHandlerImpl(dataSourceConfig);
+        dataSourceConfig.setFailoverHandler(handler);
         TdsqlDirectScheduleServer scheduleServer = new TdsqlDirectScheduleServer(dataSourceConfig);
         dataSourceConfig.setScheduleServer(scheduleServer);
         TdsqlDirectCacheServer cacheServer = new TdsqlDirectCacheServer(dataSourceConfig);
@@ -80,6 +83,8 @@ public class TdsqDirectlRefreshTopologyTaskTest extends TdsqlDirectBaseTest {
         dataSourceConfig.validateConnectionProperties(super.defaultConnectionUrlRo);
         TdsqlDirectTopologyServer topologyServer = new TdsqlDirectTopologyServer(dataSourceConfig);
         dataSourceConfig.setTopologyServer(topologyServer);
+        TdsqlDirectFailoverHandlerImpl handler = new TdsqlDirectFailoverHandlerImpl(dataSourceConfig);
+        dataSourceConfig.setFailoverHandler(handler);
         TdsqlDirectScheduleServer scheduleServer = new TdsqlDirectScheduleServer(dataSourceConfig);
         dataSourceConfig.setScheduleServer(scheduleServer);
         TdsqlDirectCacheServer cacheServer = new TdsqlDirectCacheServer(dataSourceConfig);
@@ -130,6 +135,8 @@ public class TdsqDirectlRefreshTopologyTaskTest extends TdsqlDirectBaseTest {
         dataSourceConfig.setTdsqlDirectMasterCarryOptOfReadOnlyMode(true);
         TdsqlDirectTopologyServer topologyServer = new TdsqlDirectTopologyServer(dataSourceConfig);
         dataSourceConfig.setTopologyServer(topologyServer);
+        TdsqlDirectFailoverHandlerImpl handler = new TdsqlDirectFailoverHandlerImpl(dataSourceConfig);
+        dataSourceConfig.setFailoverHandler(handler);
         TdsqlDirectScheduleServer scheduleServer = new TdsqlDirectScheduleServer(dataSourceConfig);
         dataSourceConfig.setScheduleServer(scheduleServer);
         TdsqlDirectCacheServer cacheServer = new TdsqlDirectCacheServer(dataSourceConfig);

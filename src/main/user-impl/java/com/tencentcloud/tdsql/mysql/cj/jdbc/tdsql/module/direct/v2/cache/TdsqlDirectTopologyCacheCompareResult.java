@@ -37,6 +37,10 @@ public class TdsqlDirectTopologyCacheCompareResult {
             this.newMaster = newMaster;
         }
 
+        public static MasterResult firstLoad(TdsqlDirectMasterTopologyInfo newMaster) {
+            return new MasterResult(TdsqlDirectTopologyChangeEventEnum.FIRST_LOAD, null, newMaster);
+        }
+
         /**
          * 无变化结果
          *
@@ -73,6 +77,10 @@ public class TdsqlDirectTopologyCacheCompareResult {
          */
         public boolean isNoChange() {
             return TdsqlDirectTopologyChangeEventEnum.NO_CHANGE.equals(this.tdsqlDirectTopologyChangeEventEnum);
+        }
+
+        public boolean isFirstLoad() {
+            return TdsqlDirectTopologyChangeEventEnum.FIRST_LOAD.equals(this.tdsqlDirectTopologyChangeEventEnum);
         }
 
         public TdsqlDirectTopologyChangeEventEnum getTdsqlDirectTopoChangeEventEnum() {
@@ -134,6 +142,10 @@ public class TdsqlDirectTopologyCacheCompareResult {
             this.oldSlaveSet = null;
             this.newSlaveSet = null;
             this.attributeChangedMap = attributeChangedMap;
+        }
+
+        public static SlaveResult firstLoad(Set<TdsqlDirectSlaveTopologyInfo> newSlaveSet) {
+            return new SlaveResult(TdsqlDirectTopologyChangeEventEnum.FIRST_LOAD, null, newSlaveSet);
         }
 
         /**
