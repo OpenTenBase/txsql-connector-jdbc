@@ -4,6 +4,7 @@ import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectCacheServer;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectCacheTopologyException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectDataSourceException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverHandler;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverHandlerImpl;
@@ -12,6 +13,9 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.Tdsq
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.manage.TdsqlDirectConnectionManager;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectScheduleServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectTopologyServer;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -25,10 +29,13 @@ public class TdsqlDirectDataSource {
     private final TdsqlDirectDataSourceConfig dataSourceConfig;
     private final AtomicBoolean isInitialized;
 
+    private CountDownLatch countDownLatch;
+
     public TdsqlDirectDataSource(String dataSourceUuid) {
         this.dataSourceUuid = dataSourceUuid;
         this.dataSourceConfig = new TdsqlDirectDataSourceConfig(dataSourceUuid);
         this.isInitialized = new AtomicBoolean(false);
+        this.countDownLatch = new CountDownLatch(1);
     }
 
     /**
@@ -53,19 +60,10 @@ public class TdsqlDirectDataSource {
             TdsqlDirectFailoverHandler failoverHandler = new TdsqlDirectFailoverHandlerImpl(this.dataSourceConfig);
             this.dataSourceConfig.setFailoverHandler(failoverHandler);
 
-            // 初始化主库故障转移处理器并赋值
-            TdsqlDirectFailoverMasterHandler failoverMasterHandler = new TdsqlDirectFailoverMasterHandler(
-                    this.dataSourceConfig);
-            this.dataSourceConfig.setFailoverMasterHandler(failoverMasterHandler);
-
-            // 初始化备库故障转移处理器并赋值
-            TdsqlDirectFailoverSlavesHandler failoverSlavesHandler = new TdsqlDirectFailoverSlavesHandler(
-                    this.dataSourceConfig);
-            this.dataSourceConfig.setFailoverSlavesHandler(failoverSlavesHandler);
-
             // 初始化拓扑缓存服务并赋值
             TdsqlDirectCacheServer cacheServer = new TdsqlDirectCacheServer(this.dataSourceConfig);
             this.dataSourceConfig.setCacheServer(cacheServer);
+            this.countDownLatch.countDown();
 
             // 初始化连接管理器并赋值
             TdsqlDirectConnectionManager connectionManager = new TdsqlDirectConnectionManager(this.dataSourceConfig);
@@ -80,6 +78,21 @@ public class TdsqlDirectDataSource {
                             new Object[]{this.dataSourceUuid}));
         }
     }
+
+    public boolean waitForFirstFinished() {
+        try {
+            if (!this.countDownLatch.await(1000, TimeUnit.MILLISECONDS)) {
+                throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+                        "init tdsql direct datasource failed! wait timeout: 1000ms");
+            }
+        } catch  (InterruptedException e) {
+            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+                    "init tdsql direct datasource failed! interrupted");
+        }
+
+        return this.getCacheServer().waitForFirstFinished();
+    }
+
 
     public TdsqlDirectCacheServer getCacheServer() {
         return this.dataSourceConfig.getCacheServer();

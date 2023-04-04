@@ -8,6 +8,8 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.Td
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlDataSourceUuidGenerator;
 import com.tencentcloud.tdsql.mysql.cj.util.LRUCache;
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -20,9 +22,29 @@ public class TdsqlDirectConnectionFactory {
 
     private static boolean directModeCalled = false;
     private static final LRUCache<String, TdsqlDirectDataSource> directDataSourceCache = new LRUCache<>(100);
+
+    private static final Map<String, TdsqlDirectDataSource> directDataSourceMap = new ConcurrentHashMap<>();
     private static final ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
     private TdsqlDirectConnectionFactory() {
+    }
+
+    public static JdbcConnection createDirectConnection(ConnectionUrl connectionUrl) throws SQLException {
+        directModeCalled = true;
+
+        String dataSourceUuid = TdsqlDataSourceUuidGenerator.generateUuid(connectionUrl);
+        TdsqlDirectDataSource directDataSource = new TdsqlDirectDataSource(dataSourceUuid);
+        TdsqlDirectDataSource dataSource = directDataSourceMap.putIfAbsent(dataSourceUuid, directDataSource);
+        if (dataSource == null) {
+            directDataSource.initialize(connectionUrl);
+        } else {
+            directDataSource = dataSource;
+        }
+
+        if (directDataSource.waitForFirstFinished()) {
+            return directDataSource.getConnectionManager().createNewConnection();
+        }
+        return null;
     }
 
     public static JdbcConnection createConnection(ConnectionUrl connectionUrl) throws SQLException {
@@ -82,6 +104,6 @@ public class TdsqlDirectConnectionFactory {
     public static TdsqlDirectDataSource getDataSource(ConnectionUrl connectionUrl) {
         // 根据URL配置，生成数据源UUID，为16进制32位MD5哈希字符串
         String dataSourceUuid = TdsqlDataSourceUuidGenerator.generateUuid(connectionUrl);
-        return directDataSourceCache.getOrDefault(dataSourceUuid, null);
+        return directDataSourceMap.getOrDefault(dataSourceUuid, null);
     }
 }

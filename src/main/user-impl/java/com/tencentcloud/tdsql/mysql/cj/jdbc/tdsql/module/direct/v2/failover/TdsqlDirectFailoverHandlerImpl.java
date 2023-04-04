@@ -9,10 +9,12 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDi
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.TdsqlDirectDataSourceConfig;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectHandleFailoverException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectMasterTopologyInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectSlaveTopologyInfo;
 
 import java.util.*;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.RO;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyChangeEventEnum.SWITCH;
@@ -61,7 +63,7 @@ public class TdsqlDirectFailoverHandlerImpl implements TdsqlDirectFailoverHandle
         this.dataSourceConfig.getScheduleServer().updateMaster(oldMaster, newMaster);
 
         // 调用连接管理器，关闭所有老主库存量连接
-        this.dataSourceConfig.getConnectionManager().closeAllConnection(oldMaster);
+        this.dataSourceConfig.getConnectionManager().asyncCloseAllConnection(oldMaster);
     }
 
     /**
@@ -149,8 +151,9 @@ public class TdsqlDirectFailoverHandlerImpl implements TdsqlDirectFailoverHandle
         // 下线备库移除调度，并关闭所有存量连接
         for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : slaveSet) {
             TdsqlDirectHostInfo directHostInfo = slaveTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig);
+            logInfo("host:" + directHostInfo.getHostPortPair() + ", close connection, as its has been offline!");
             this.dataSourceConfig.getScheduleServer().removeSlave(directHostInfo);
-            this.dataSourceConfig.getConnectionManager().closeAllConnection(directHostInfo);
+            this.dataSourceConfig.getConnectionManager().asyncCloseAllConnection(directHostInfo);
         }
     }
 
@@ -174,8 +177,9 @@ public class TdsqlDirectFailoverHandlerImpl implements TdsqlDirectFailoverHandle
             for (TdsqlDirectSlaveTopologyInfo invalidTopologyInfo : invalidSet) {
                 TdsqlDirectHostInfo directHostInfo = invalidTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig);
                 // 移除调度，关闭存量连接
+                logInfo("host:" + directHostInfo.getHostPortPair() + ", close connection, as its attributes has been invalid!");
                 this.dataSourceConfig.getScheduleServer().removeSlave(directHostInfo);
-                this.dataSourceConfig.getConnectionManager().closeConnections(directHostInfo);
+                this.dataSourceConfig.getConnectionManager().asyncCloseAllConnection(directHostInfo);
             }
         }
 
@@ -229,9 +233,31 @@ public class TdsqlDirectFailoverHandlerImpl implements TdsqlDirectFailoverHandle
                 invalidSet.add(oldTopologyInfo);
                 continue;
             }
+            if (this.shouldBeIgnored(oldTopologyInfo, newTopologyInfo)) {
+                continue;
+            }
             validMap.put(oldTopologyInfo, newTopologyInfo);
         }
         return new DoFilterMapResult(validMap, invalidSet);
+    }
+
+    private boolean shouldBeIgnored(TdsqlDirectSlaveTopologyInfo oldTopoInfo, TdsqlDirectSlaveTopologyInfo newTopoInfo) {
+        // 如果权重变了，则不可能呢忽略
+        if (!oldTopoInfo.getWeight().equals(newTopoInfo.getWeight())) {
+            return false;
+        }
+
+        // 如果用户没设置最大延迟阈值，则可以直接忽略delay变化
+        Integer maxSlaveDelaySeconds = this.dataSourceConfig.getTdsqlDirectMaxSlaveDelaySeconds();
+        if (Objects.equals(maxSlaveDelaySeconds, DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS)) {
+            return true;
+        }
+
+        // 如果最新和上一次的延迟都在阈值内，则该属性变化可以直接忽略
+        if (newTopoInfo.getDelay() < maxSlaveDelaySeconds && oldTopoInfo.getDelay() < maxSlaveDelaySeconds) {
+            return true;
+        }
+        return false;
     }
 
     /**

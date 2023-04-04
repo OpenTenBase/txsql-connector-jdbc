@@ -35,7 +35,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
     @Test
     public void testCase01() {
         Assertions.assertDoesNotThrow(() -> {
-            try (JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createConnection(
+            try (JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createDirectConnection(
                     super.defaultConnectionUrlRw)) {
                 Assertions.assertNotNull(jdbcConnection);
                 Assertions.assertTrue(jdbcConnection.isValid(3));
@@ -47,7 +47,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
                 TdsqlDirectConnectionManager connectionManager = dataSource.getConnectionManager();
                 Assertions.assertNotNull(connectionManager);
 
-                Map<TdsqlDirectHostInfo, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
+                Map<String, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
                 Assertions.assertNotNull(liveConnectionMap);
                 Assertions.assertEquals(1, liveConnectionMap.size());
                 Assertions.assertEquals(1, liveConnectionMap.keySet().size());
@@ -81,7 +81,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
         TdsqlDirectConnectionManager connectionManager = dataSource.getConnectionManager();
         Assertions.assertNotNull(connectionManager);
 
-        Map<TdsqlDirectHostInfo, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
+        Map<String, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
         Assertions.assertNotNull(liveConnectionMap);
         Assertions.assertEquals(0, liveConnectionMap.size());
         Assertions.assertEquals(0, liveConnectionMap.keySet().size());
@@ -123,7 +123,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             executorService.execute(() -> {
                 try {
                     Assertions.assertDoesNotThrow(() -> {
-                        JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createConnection(super.defaultConnectionUrlRw);
+                        JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createDirectConnection(super.defaultConnectionUrlRw);
                         Assertions.assertNotNull(jdbcConnection);
                         Assertions.assertTrue(jdbcConnection.isValid(3));
                         allList.add(jdbcConnection);
@@ -144,7 +144,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
         TdsqlDirectConnectionManager cm1 = ds1.getConnectionManager();
         Assertions.assertNotNull(cm1);
 
-        Map<TdsqlDirectHostInfo, List<JdbcConnection>> lcm1 = cm1.getLiveConnectionMap();
+        Map<String, List<JdbcConnection>> lcm1 = cm1.getLiveConnectionMap();
         Assertions.assertNotNull(lcm1);
         Assertions.assertEquals(1, lcm1.size());
         Assertions.assertEquals(1, lcm1.keySet().size());
@@ -188,7 +188,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
         TdsqlDirectConnectionManager cm2 = ds2.getConnectionManager();
         Assertions.assertNotNull(cm2);
 
-        Map<TdsqlDirectHostInfo, List<JdbcConnection>> lcm2 = cm2.getLiveConnectionMap();
+        Map<String, List<JdbcConnection>> lcm2 = cm2.getLiveConnectionMap();
         Assertions.assertNotNull(lcm2);
         Assertions.assertEquals(0, lcm2.size());
         Assertions.assertEquals(0, lcm2.keySet().size());
@@ -243,7 +243,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             for (int i = 0; i < connPerDsCount; i++) {
                 executorService.execute(() -> Assertions.assertDoesNotThrow(() -> {
                     try {
-                        JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createConnection(connectionUrl);
+                        JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createDirectConnection(connectionUrl);
                         Assertions.assertNotNull(jdbcConnection);
                         Assertions.assertTrue(jdbcConnection.isValid(3));
                         allConnectionList.add(jdbcConnection);
@@ -264,7 +264,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             TdsqlDirectConnectionManager connectionManager = dataSource.getConnectionManager();
             Assertions.assertNotNull(connectionManager);
 
-            Map<TdsqlDirectHostInfo, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
+            Map<String, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
             Assertions.assertNotNull(liveConnectionMap);
             Assertions.assertEquals(1, liveConnectionMap.size());
             Assertions.assertEquals(1, liveConnectionMap.keySet().size());
@@ -314,7 +314,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             TdsqlDirectConnectionManager connectionManager = dataSource.getConnectionManager();
             Assertions.assertNotNull(connectionManager);
 
-            Map<TdsqlDirectHostInfo, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
+            Map<String, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
             Assertions.assertNotNull(liveConnectionMap);
             Assertions.assertEquals(0, liveConnectionMap.size());
             Assertions.assertEquals(0, liveConnectionMap.keySet().size());
@@ -353,7 +353,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
         int countDs = 1;
 
         Assertions.assertDoesNotThrow(() -> {
-            try (JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createConnection(
+            try (JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createDirectConnection(
                     super.defaultConnectionUrlRo)) {
                 Assertions.assertNotNull(jdbcConnection);
                 Assertions.assertTrue(jdbcConnection.isValid(3));
@@ -365,7 +365,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
                 TdsqlDirectConnectionManager connectionManager = dataSource.getConnectionManager();
                 Assertions.assertNotNull(connectionManager);
 
-                Map<TdsqlDirectHostInfo, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
+                Map<String, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
                 Assertions.assertNotNull(liveConnectionMap);
                 Assertions.assertEquals(perDsConnection, liveConnectionMap.size());
                 Assertions.assertEquals(perDsConnection, liveConnectionMap.keySet().size());
@@ -416,7 +416,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             executorService.execute(() -> {
                 try {
                     Assertions.assertDoesNotThrow(() -> {
-                        JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createConnection(connectionUrl);
+                        JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createDirectConnection(connectionUrl);
                         Assertions.assertNotNull(jdbcConnection);
                         Assertions.assertTrue(jdbcConnection.isValid(3));
                         allList.add(jdbcConnection);
@@ -439,7 +439,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
         TdsqlDirectConnectionManager cm1 = ds1.getConnectionManager();
         Assertions.assertNotNull(cm1);
 
-        Map<TdsqlDirectHostInfo, List<JdbcConnection>> lcm1 = cm1.getLiveConnectionMap();
+        Map<String, List<JdbcConnection>> lcm1 = cm1.getLiveConnectionMap();
         Assertions.assertNotNull(lcm1);
         Assertions.assertEquals(3, lcm1.size());
         Assertions.assertEquals(3, lcm1.keySet().size());
@@ -492,7 +492,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
         TdsqlDirectConnectionManager cm2 = ds2.getConnectionManager();
         Assertions.assertNotNull(cm2);
 
-        Map<TdsqlDirectHostInfo, List<JdbcConnection>> lcm2 = cm2.getLiveConnectionMap();
+        Map<String, List<JdbcConnection>> lcm2 = cm2.getLiveConnectionMap();
         Assertions.assertNotNull(lcm2);
         Assertions.assertEquals(0, lcm2.size());
         Assertions.assertEquals(0, lcm2.keySet().size());
@@ -533,7 +533,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             executorService.execute(() -> {
                 try {
                     Assertions.assertDoesNotThrow(() -> {
-                        JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createConnection(connectionUrl);
+                        JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createDirectConnection(connectionUrl);
                         Assertions.assertNotNull(jdbcConnection);
                         Assertions.assertTrue(jdbcConnection.isValid(3));
                         allList.add(jdbcConnection);
@@ -556,7 +556,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
         TdsqlDirectConnectionManager cm1 = ds1.getConnectionManager();
         Assertions.assertNotNull(cm1);
 
-        Map<TdsqlDirectHostInfo, List<JdbcConnection>> lcm1 = cm1.getLiveConnectionMap();
+        Map<String, List<JdbcConnection>> lcm1 = cm1.getLiveConnectionMap();
         Assertions.assertNotNull(lcm1);
         Assertions.assertEquals(3, lcm1.size());
         Assertions.assertEquals(3, lcm1.keySet().size());
@@ -613,7 +613,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
         TdsqlDirectConnectionManager cm2 = ds2.getConnectionManager();
         Assertions.assertNotNull(cm2);
 
-        Map<TdsqlDirectHostInfo, List<JdbcConnection>> lcm2 = cm2.getLiveConnectionMap();
+        Map<String, List<JdbcConnection>> lcm2 = cm2.getLiveConnectionMap();
         Assertions.assertNotNull(lcm2);
         Assertions.assertEquals(0, lcm2.size());
         Assertions.assertEquals(0, lcm2.keySet().size());
@@ -659,7 +659,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             for (int i = 0; i < connPerDsCount; i++) {
                 executorService.execute(() -> Assertions.assertDoesNotThrow(() -> {
                     try {
-                        JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createConnection(connectionUrl);
+                        JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createDirectConnection(connectionUrl);
                         Assertions.assertNotNull(jdbcConnection);
                         Assertions.assertTrue(jdbcConnection.isValid(3));
                         allConnectionList.add(jdbcConnection);
@@ -680,7 +680,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             TdsqlDirectConnectionManager connectionManager = dataSource.getConnectionManager();
             Assertions.assertNotNull(connectionManager);
 
-            Map<TdsqlDirectHostInfo, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
+            Map<String, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
             Assertions.assertNotNull(liveConnectionMap);
             Assertions.assertEquals(3, liveConnectionMap.size());
             Assertions.assertEquals(3, liveConnectionMap.keySet().size());
@@ -731,7 +731,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             TdsqlDirectConnectionManager connectionManager = dataSource.getConnectionManager();
             Assertions.assertNotNull(connectionManager);
 
-            Map<TdsqlDirectHostInfo, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
+            Map<String, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
             Assertions.assertNotNull(liveConnectionMap);
             Assertions.assertEquals(0, liveConnectionMap.size());
             Assertions.assertEquals(0, liveConnectionMap.keySet().size());
@@ -784,7 +784,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             for (int i = 0; i < connPerDsCount; i++) {
                 executorService.execute(() -> Assertions.assertDoesNotThrow(() -> {
                     try {
-                        JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createConnection(connectionUrl);
+                        JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createDirectConnection(connectionUrl);
                         Assertions.assertNotNull(jdbcConnection);
                         Assertions.assertTrue(jdbcConnection.isValid(3));
                         allConnectionList.add(jdbcConnection);
@@ -805,7 +805,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             TdsqlDirectConnectionManager connectionManager = dataSource.getConnectionManager();
             Assertions.assertNotNull(connectionManager);
 
-            Map<TdsqlDirectHostInfo, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
+            Map<String, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
             Assertions.assertNotNull(liveConnectionMap);
             Assertions.assertEquals(3, liveConnectionMap.size());
             Assertions.assertEquals(3, liveConnectionMap.keySet().size());
@@ -828,6 +828,9 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             TdsqlDirectConnectionCounter masterCounter = dataSource.getScheduleServer().getMaster();
             Assertions.assertNull(masterCounter);
 
+            for (TdsqlDirectConnectionCounter slaveCounter : dataSource.getScheduleServer().getSlaveSet()){
+                System.out.println(slaveCounter.getTdsqlHostInfo().getHostPortPair() + ":" +  slaveCounter.getCount());
+            }
             for (TdsqlDirectConnectionCounter slaveCounter : dataSource.getScheduleServer().getSlaveSet()) {
                 if (slaveCounter.getTdsqlHostInfo().getWeight() == 100) {
                     Assertions.assertEquals(connPerDsCount / 5 * 2, slaveCounter.getCount().intValue());
@@ -860,7 +863,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
             TdsqlDirectConnectionManager connectionManager = dataSource.getConnectionManager();
             Assertions.assertNotNull(connectionManager);
 
-            Map<TdsqlDirectHostInfo, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
+            Map<String, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
             Assertions.assertNotNull(liveConnectionMap);
             Assertions.assertEquals(0, liveConnectionMap.size());
             Assertions.assertEquals(0, liveConnectionMap.keySet().size());

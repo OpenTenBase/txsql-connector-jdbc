@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
@@ -197,13 +198,18 @@ public class TdsqlDirectScheduleServer implements
                     break;
                 }
             }
-            if (toBeRemoved == null) {
-                throw TdsqlExceptionFactory.createException(TdsqlDirectScheduleTopologyException.class,
-                        Messages.getString("TdsqlDirectScheduleTopologyException.NotEqualsOldSlave",
-                                new Object[]{oldSlave}));
+//            if (toBeRemoved == null) {
+//                throw TdsqlExceptionFactory.createException(TdsqlDirectScheduleTopologyException.class,
+//                        Messages.getString("TdsqlDirectScheduleTopologyException.NotEqualsOldSlave",
+//                                new Object[]{oldSlave}));
+//            }
+            if (toBeRemoved != null) {
+                this.slaveCounterSet.remove(toBeRemoved);
+                this.slaveCounterSet.add(new TdsqlDirectConnectionCounter(newSlave, toBeRemoved.getCount()));
+            } else {
+                this.slaveCounterSet.add(new TdsqlDirectConnectionCounter(newSlave, new LongAdder()));
             }
-            this.slaveCounterSet.remove(toBeRemoved);
-            this.slaveCounterSet.add(new TdsqlDirectConnectionCounter(newSlave, toBeRemoved.getCount()));
+
         } finally {
             this.rwLock.writeLock().unlock();
         }

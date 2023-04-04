@@ -20,7 +20,7 @@ public class TdsqlSedAlgorithm<T extends TdsqlConnectionCounter> implements Tdsq
      * @return
      */
     @Override
-    public TdsqlConnectionCounter choice(Set<T> counterSet) {
+    public synchronized TdsqlConnectionCounter choice(Set<T> counterSet) {
         if (counterSet.size() == 1) {
             for (T t : counterSet) {
                 t.getCount().increment();

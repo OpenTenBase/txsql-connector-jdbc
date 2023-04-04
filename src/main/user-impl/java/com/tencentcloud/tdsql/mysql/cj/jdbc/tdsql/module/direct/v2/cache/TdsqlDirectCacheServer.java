@@ -35,10 +35,6 @@ public class TdsqlDirectCacheServer {
     private final TdsqlDirectDataSourceConfig dataSourceConfig;
     private final String dataSourceUuid;
     private final TdsqlDirectTopologyCacheComparator cacheComparator;
-//    private final TdsqlDirectScheduleServer scheduleServer;
-//    private final TdsqlDirectFailoverHandler failoverHandler;
-//    private final TdsqlDirectFailoverHandler failoverMasterHandler;
-//    private final TdsqlDirectFailoverHandler failoverSlavesHandler;
     private final CountDownLatch finishedFirstCache;
     final ScheduledThreadPoolExecutor survivedChecker;
     private Boolean isInitialCached;
@@ -58,32 +54,16 @@ public class TdsqlDirectCacheServer {
         this.dataSourceUuid = dataSourceConfig.getDataSourceUuid();
         // 初始化比较器
         this.cacheComparator = new TdsqlDirectTopologyCacheComparator(this.dataSourceConfig);
-//        // 确保调度服务已经初始化
-//        this.scheduleServer = dataSourceConfig.getScheduleServer();
-//        if (this.scheduleServer == null) {
-//            TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-//                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedScheduleServer"));
-//        }
-//        this.failoverHandler = dataSourceConfig.getFailoverHandler();
-//        if (this.failoverHandler == null) {
-//            TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-//                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedFailoverHandler"));
-//        }
-//
-//        // 确保主库故障转移处理类已经初始化
-//        this.failoverMasterHandler = dataSourceConfig.getFailoverMasterHandler();
-//        if (this.failoverMasterHandler == null) {
-//            TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-//                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedFailoverHandler",
-//                            new Object[]{"MASTER"}));
-//        }
-//        // 确保备库故障转移处理类已经初始化
-//        this.failoverSlavesHandler = dataSourceConfig.getFailoverSlavesHandler();
-//        if (this.failoverSlavesHandler == null) {
-//            TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-//                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedFailoverHandler",
-//                            new Object[]{"SLAVES"}));
-//        }
+        // 确保调度服务已经初始化
+        if (this.dataSourceConfig.getScheduleServer() == null) {
+            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedScheduleServer"));
+        }
+        // 确保故障转移已经初始化
+        if (this.dataSourceConfig.getFailoverHandler() == null) {
+            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+                    Messages.getString("TdsqlDirectCacheTopologyException.NotCreatedFailoverHandler"));
+        }
         this.finishedFirstCache = new CountDownLatch(1);
         this.isInitialCached = false;
         this.isSurvived = false;
@@ -178,13 +158,13 @@ public class TdsqlDirectCacheServer {
      */
     public boolean waitForFirstFinished() {
         try {
-            if (!this.finishedFirstCache.await(60L, TimeUnit.SECONDS)) {
-                TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                        Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheTimeout"));
+            if (!this.finishedFirstCache.await(this.dataSourceConfig.getTdsqlConnectionTimeOut(), TimeUnit.MILLISECONDS)) {
+                throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+                        "create first proxy connection failed! timeout: " + this.dataSourceConfig.getTdsqlConnectionTimeOut() + "ms");
             }
         } catch (InterruptedException e) {
-            TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                    Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheInterrupted"));
+            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+                    "create first proxy connection failed! interrupted");
         }
         return true;
     }
@@ -306,14 +286,6 @@ public class TdsqlDirectCacheServer {
         return dataSourceConfig.getScheduleServer();
     }
 
-    public TdsqlDirectFailoverHandler getFailoverMasterHandler() {
-        return dataSourceConfig.getFailoverMasterHandler();
-    }
-
-    public TdsqlDirectFailoverHandler getFailoverSlavesHandler() {
-        return dataSourceConfig.getFailoverSlavesHandler();
-    }
-
     public Boolean getSurvived() {
         return isSurvived;
     }
@@ -358,8 +330,9 @@ public class TdsqlDirectCacheServer {
                 Integer intervalMillis = this.cacheServer.dataSourceConfig.getTdsqlDirectTopoRefreshIntervalMillis();
 
                 // 如果连续三次没有缓存，进入幸存模式
+                long currentTime = System.currentTimeMillis();
                 this.cacheServer.isSurvived =
-                        System.currentTimeMillis() - this.cacheServer.latestComparedTimeMillis > intervalMillis * 3L;
+                        currentTime - this.cacheServer.latestComparedTimeMillis > intervalMillis * 3L;
 
                 if (this.cacheServer.isSurvived) {
                     TdsqlLoggerFactory.logWarn(this.cacheServer.dataSourceUuid,

@@ -257,7 +257,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
                                         new Object[]{e.getMessage()}));
                     }
                     if (parallelCreateConnMode) {
-                        return com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectConnectionFactory.createConnection(
+                        return com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectConnectionFactory.createDirectConnection(
                                 conStr);
                     } else {
                         return TdsqlDirectConnectionFactory.getInstance().createConnection(conStr);

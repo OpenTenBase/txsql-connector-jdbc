@@ -19,7 +19,7 @@ public class TdsqlLcAlgorithm<T extends TdsqlConnectionCounter> implements Tdsql
      * @return 选择后的值
      */
     @Override
-    public TdsqlConnectionCounter choice(Set<T> counterSet) {
+    public synchronized TdsqlConnectionCounter choice(Set<T> counterSet) {
         if (counterSet.size() == 1) {
             for (T t : counterSet) {
                 t.getCount().increment();

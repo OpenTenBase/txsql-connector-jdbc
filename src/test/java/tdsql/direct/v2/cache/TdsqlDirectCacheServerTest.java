@@ -485,7 +485,6 @@ public class TdsqlDirectCacheServerTest extends TdsqlDirectBaseTest {
     @Test
     public void testCase12() {
         this.init(RO);
-
         // 第一次缓存
         this.cacheServer.compareAndCache(super.newTopologyInfo());
 
@@ -513,9 +512,12 @@ public class TdsqlDirectCacheServerTest extends TdsqlDirectBaseTest {
 
         // 间接加入到调度服务的备库信息
         int matchCount = 0;
+        Set<TdsqlDirectSlaveTopologyInfo> scheduleTopologyInfoSet = super.newSlaveTopologyInfoSet("3.3.3.3:3333@50@0@0",
+                "4.4.4.4:4444@50@0@0", "5.5.5.5:5555@100@0@0");
         Set<TdsqlDirectConnectionCounter> slaveCounterSet = this.scheduleServer.getSlaveSet();
-        Assertions.assertEquals(slaveTopologyInfoSet.size(), slaveCounterSet.size());
-        for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : slaveTopologyInfoSet) {
+        Assertions.assertEquals(scheduleTopologyInfoSet.size(), slaveCounterSet.size());
+        // 因为没有设置最大超时时间，所以忽略了延迟的改变
+        for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : scheduleTopologyInfoSet) {
             TdsqlDirectHostInfo directHostInfo = slaveTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig);
             for (TdsqlDirectConnectionCounter counter : slaveCounterSet) {
                 if (counter.getTdsqlHostInfo().equals(directHostInfo)) {
@@ -533,7 +535,6 @@ public class TdsqlDirectCacheServerTest extends TdsqlDirectBaseTest {
     @Test
     public void testCase13() {
         this.init(RO, true);
-
         // 第一次缓存
         this.cacheServer.compareAndCache(super.newTopologyInfo());
 
@@ -564,9 +565,12 @@ public class TdsqlDirectCacheServerTest extends TdsqlDirectBaseTest {
 
         // 间接加入到调度服务的备库信息
         int matchCount = 0;
+        Set<TdsqlDirectSlaveTopologyInfo> scheduleTopologyInfoSet = super.newSlaveTopologyInfoSet("3.3.3.3:3333@50@0@0",
+                "4.4.4.4:4444@50@0@0", "5.5.5.5:5555@100@0@0");
         Set<TdsqlDirectConnectionCounter> slaveCounterSet = this.scheduleServer.getSlaveSet();
-        Assertions.assertEquals(slaveTopologyInfoSet.size(), slaveCounterSet.size());
-        for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : slaveTopologyInfoSet) {
+        Assertions.assertEquals(scheduleTopologyInfoSet.size(), slaveCounterSet.size());
+        // 因为没有设置最大超时时间，所以忽略了延迟的改变
+        for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : scheduleTopologyInfoSet) {
             TdsqlDirectHostInfo directHostInfo = slaveTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig);
             for (TdsqlDirectConnectionCounter counter : slaveCounterSet) {
                 if (counter.getTdsqlHostInfo().equals(directHostInfo)) {
@@ -579,12 +583,12 @@ public class TdsqlDirectCacheServerTest extends TdsqlDirectBaseTest {
     }
 
     /**
-     * 只读模式 - 主库、从库都变化 - 主库不承接流量
+     * 只读模式 - 主库、从库都变化 - 主库不承接流量 - 设置超时时间
      */
     @Test
     public void testCase14() {
         this.init(RO);
-
+        this.dataSourceConfig.setTdsqlDirectMaxSlaveDelaySeconds(8);
         // 第一次缓存
         this.cacheServer.compareAndCache(super.newTopologyInfo());
 
@@ -612,9 +616,12 @@ public class TdsqlDirectCacheServerTest extends TdsqlDirectBaseTest {
 
         // 间接加入到调度服务的备库信息
         int matchCount = 0;
+        Set<TdsqlDirectSlaveTopologyInfo> scheduleTopologyInfoSet = super.newSlaveTopologyInfoSet("3.3.3.3:3333@50@0@0",
+                "5.5.5.5:5555@100@0@0");
         Set<TdsqlDirectConnectionCounter> slaveCounterSet = this.scheduleServer.getSlaveSet();
-        Assertions.assertEquals(slaveTopologyInfoSet.size(), slaveCounterSet.size());
-        for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : slaveTopologyInfoSet) {
+        // 因为设置了超时时间，应该只有两个从库ip存在
+        Assertions.assertEquals(scheduleTopologyInfoSet.size(), slaveCounterSet.size());
+        for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : scheduleTopologyInfoSet) {
             TdsqlDirectHostInfo directHostInfo = slaveTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig);
             for (TdsqlDirectConnectionCounter counter : slaveCounterSet) {
                 if (counter.getTdsqlHostInfo().equals(directHostInfo)) {
@@ -623,16 +630,16 @@ public class TdsqlDirectCacheServerTest extends TdsqlDirectBaseTest {
                 }
             }
         }
-        Assertions.assertEquals(3, matchCount);
+        Assertions.assertEquals(2, matchCount);
     }
 
     /**
-     * 只读模式 - 主库、从库都变化 - 主库承接流量
+     * 只读模式 - 主库、从库都变化 - 主库承接流量 - 设置超时时间
      */
     @Test
     public void testCase15() {
         this.init(RO, true);
-
+        this.dataSourceConfig.setTdsqlDirectMaxSlaveDelaySeconds(8);
         // 第一次缓存
         this.cacheServer.compareAndCache(super.newTopologyInfo());
 
@@ -663,9 +670,12 @@ public class TdsqlDirectCacheServerTest extends TdsqlDirectBaseTest {
 
         // 间接加入到调度服务的备库信息
         int matchCount = 0;
+        Set<TdsqlDirectSlaveTopologyInfo> scheduleTopologyInfoSet = super.newSlaveTopologyInfoSet("3.3.3.3:3333@50@0@0",
+                "5.5.5.5:5555@100@0@0");
         Set<TdsqlDirectConnectionCounter> slaveCounterSet = this.scheduleServer.getSlaveSet();
-        Assertions.assertEquals(slaveTopologyInfoSet.size(), slaveCounterSet.size());
-        for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : slaveTopologyInfoSet) {
+        // 因为设置了超时时间，应该只有两个从库存在
+        Assertions.assertEquals(scheduleTopologyInfoSet.size(), slaveCounterSet.size());
+        for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : scheduleTopologyInfoSet) {
             TdsqlDirectHostInfo directHostInfo = slaveTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig);
             for (TdsqlDirectConnectionCounter counter : slaveCounterSet) {
                 if (counter.getTdsqlHostInfo().equals(directHostInfo)) {
@@ -674,7 +684,7 @@ public class TdsqlDirectCacheServerTest extends TdsqlDirectBaseTest {
                 }
             }
         }
-        Assertions.assertEquals(3, matchCount);
+        Assertions.assertEquals(2, matchCount);
     }
 
     private void init(TdsqlDirectReadWriteModeEnum rwMode) {

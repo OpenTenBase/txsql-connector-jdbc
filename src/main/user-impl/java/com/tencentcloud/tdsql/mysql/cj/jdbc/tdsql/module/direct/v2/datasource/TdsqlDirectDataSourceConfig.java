@@ -45,6 +45,16 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
     private Integer tdsqlDirectCloseConnTimeoutMillis;
     private Integer tdsqlDirectProxyBlacklistTimeoutSeconds;
     private Integer tdsqlDirectReconnectProxyIntervalTimeSeconds;
+
+    public Integer getTdsqlConnectionTimeOut() {
+        return tdsqlConnectionTimeOut;
+    }
+
+    public void setTdsqlConnectionTimeOut(Integer tdsqlConnectionTimeOut) {
+        this.tdsqlConnectionTimeOut = tdsqlConnectionTimeOut;
+    }
+
+    private Integer tdsqlConnectionTimeOut;
     private List<HostInfo> tdsqlDirectProxyHostInfoList;
     private Properties tdsqlDirectOriginalPropertiesWithoutDirectMode;
     private ConnectionUrl connectionUrl;
@@ -53,9 +63,6 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
     private TdsqlDirectScheduleServer scheduleServer;
     private TdsqlDirectConnectionManager connectionManager;
     private TdsqlDirectFailoverHandler failoverHandler;
-    private TdsqlDirectFailoverMasterHandler failoverMasterHandler;
-    private TdsqlDirectFailoverSlavesHandler failoverSlavesHandler;
-
     /**
      * URL信息校验并赋值
      *
@@ -201,6 +208,12 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
 
         // 16.赋值所有配置的Proxy地址
         this.setTdsqlDirectProxyHostInfoList(connectionUrl.getHostsList());
+
+        Integer connectionTimeout = jdbcPropertySet.getIntegerProperty(PropertyKey.connectTimeout).getValue();
+        if (connectionTimeout == 0) {
+            connectionTimeout = 1000 * 60;
+        }
+        this.tdsqlConnectionTimeOut = connectionTimeout;
 
         // 17.赋值URL原始参数信息，其中去除了直连模式特有的参数
         this.setTdsqlDirectOriginalPropertiesWithoutDirectMode(
@@ -385,24 +398,6 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
 
     public void setFailoverHandler(TdsqlDirectFailoverHandler failoverHandler) {
         this.failoverHandler = failoverHandler;
-    }
-
-    public TdsqlDirectFailoverMasterHandler getFailoverMasterHandler() {
-        return failoverMasterHandler;
-    }
-
-    public void setFailoverMasterHandler(
-            TdsqlDirectFailoverMasterHandler failoverMasterHandler) {
-        this.failoverMasterHandler = failoverMasterHandler;
-    }
-
-    public TdsqlDirectFailoverSlavesHandler getFailoverSlavesHandler() {
-        return failoverSlavesHandler;
-    }
-
-    public void setFailoverSlavesHandler(
-            TdsqlDirectFailoverSlavesHandler failoverSlavesHandler) {
-        this.failoverSlavesHandler = failoverSlavesHandler;
     }
 
     @Override

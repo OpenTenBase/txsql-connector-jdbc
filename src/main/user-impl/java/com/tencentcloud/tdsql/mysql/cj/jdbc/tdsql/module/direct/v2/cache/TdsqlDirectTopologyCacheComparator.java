@@ -13,6 +13,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.Td
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectCompareTopologyException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectMasterTopologyInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectSlaveTopologyInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectTopologyInfo;
 
 import java.util.*;
 
@@ -117,18 +118,18 @@ public class TdsqlDirectTopologyCacheComparator {
             return resultSet;
         }
 
-        SlaveResultSet<SlaveResult> tempResultSet;
-        // 判断是否有从库下线或属性变更
-        tempResultSet = this.compareInDeep(SLAVE_OFFLINE, distinctCachedSlaveSet, distinctNewestSlaveSet);
-        if (!tempResultSet.isEmpty()) {
-            resultSet.addAll(tempResultSet);
-        }
-
-        // 判断是否有从库上线或属性变更
-        tempResultSet = this.compareInDeep(SLAVE_ONLINE, distinctNewestSlaveSet, distinctCachedSlaveSet);
-        if (!tempResultSet.isEmpty()) {
-            resultSet.addAll(tempResultSet);
-        }
+        resultSet.addAll(compareTwoSet(distinctCachedSlaveSet, distinctNewestSlaveSet));
+//        // 判断是否有从库下线或属性变更
+//        tempResultSet = this.compareInDeep(SLAVE_OFFLINE, distinctCachedSlaveSet, distinctNewestSlaveSet);
+//        if (!tempResultSet.isEmpty()) {
+//            resultSet.addAll(tempResultSet);
+//        }
+//
+//        // 判断是否有从库上线或属性变更
+//        tempResultSet = this.compareInDeep(SLAVE_ONLINE, distinctNewestSlaveSet, distinctCachedSlaveSet);
+//        if (!tempResultSet.isEmpty()) {
+//            resultSet.addAll(tempResultSet);
+//        }
 
         return resultSet;
     }
@@ -172,6 +173,68 @@ public class TdsqlDirectTopologyCacheComparator {
         return tdsqlDirectSlaveTopologyInfos;
     }
 
+    private Map<String, TdsqlDirectSlaveTopologyInfo> transferTopoInfoSetToMap(Set<TdsqlDirectSlaveTopologyInfo> topoInfoSet) {
+        Map<String, TdsqlDirectSlaveTopologyInfo> topoInfoMap = new HashMap<>(topoInfoSet.size());
+        for (TdsqlDirectSlaveTopologyInfo topoInfo : topoInfoSet) {
+            topoInfoMap.put(topoInfo.getHostPortPair(), topoInfo);
+        }
+
+        return topoInfoMap;
+    }
+
+    private SlaveResultSet<SlaveResult> compareTwoSet(Set<TdsqlDirectSlaveTopologyInfo> oldSet, Set<TdsqlDirectSlaveTopologyInfo> newSet) {
+        SlaveResultSet<SlaveResult> resultSet = new SlaveResultSet<>();
+        Map<String, TdsqlDirectSlaveTopologyInfo> oldTopoInfoMap = transferTopoInfoSetToMap(oldSet);
+        Map<String, TdsqlDirectSlaveTopologyInfo> newTopoInfoMap = transferTopoInfoSetToMap(newSet);
+        // 计算出下线topo节点
+        Set<TdsqlDirectSlaveTopologyInfo> offlineSet = new LinkedHashSet<>();
+        Map<String, TdsqlDirectSlaveTopologyInfo> stillExistedTopoInfo = new LinkedHashMap<>();
+        oldTopoInfoMap.forEach((k, v) -> {
+            if (!newTopoInfoMap.containsKey(k)) {
+                offlineSet.add(v);
+            } else {
+                stillExistedTopoInfo.put(k, v);
+            }
+        });
+        if(offlineSet.size() != 0) {
+            resultSet.add(SlaveResult.offlineSlave(this.dataSourceUuid, offlineSet));
+        }
+
+        // 计算出新上线节点以及属性变化节点
+        Set<TdsqlDirectSlaveTopologyInfo> onlineSet = new LinkedHashSet<>();
+        Map<TdsqlDirectSlaveTopologyInfo, TdsqlDirectSlaveTopologyInfo> allAttributeChangedMap = new LinkedHashMap<>();
+        Map<TdsqlDirectSlaveTopologyInfo, TdsqlDirectSlaveTopologyInfo> weightChangedMap = new LinkedHashMap<>();
+        Map<TdsqlDirectSlaveTopologyInfo, TdsqlDirectSlaveTopologyInfo> delayChangedMap = new LinkedHashMap<>();
+        newTopoInfoMap.forEach((k, v) -> {
+            if (!oldTopoInfoMap.containsKey(k)) {
+                onlineSet.add(v);
+            } else {
+                TdsqlDirectSlaveTopologyInfo oldTopoInfo = stillExistedTopoInfo.get(k);
+                if (!oldTopoInfo.getDelay().equals(v.getDelay()) &&
+                        !oldTopoInfo.getWeight().equals(v.getWeight())) {
+                    allAttributeChangedMap.put(oldTopoInfo, v);
+                } else if (!oldTopoInfo.getDelay().equals(v.getDelay())) {
+                    delayChangedMap.put(oldTopoInfo, v);
+                } else if (!oldTopoInfo.getWeight().equals(v.getWeight())) {
+                    weightChangedMap.put(oldTopoInfo, v);
+                }
+            }
+        });
+        if (onlineSet.size() != 0) {
+            resultSet.add(SlaveResult.onlineSlave(this.dataSourceUuid, onlineSet));
+        }
+        if (allAttributeChangedMap.size() != 0) {
+            resultSet.add(SlaveResult.changeAllAttr(this.dataSourceUuid, allAttributeChangedMap));
+        }
+        if (weightChangedMap.size() != 0) {
+            resultSet.add(SlaveResult.changeWeight(this.dataSourceUuid, weightChangedMap));
+        }
+        if (delayChangedMap.size() != 0) {
+            resultSet.add(SlaveResult.changeDelay(this.dataSourceUuid, delayChangedMap));
+        }
+        return resultSet;
+    }
+
     /**
      * 深度比较
      *
@@ -212,11 +275,11 @@ public class TdsqlDirectTopologyCacheComparator {
                         }
                         // 如果从等延迟没有超过阈值，或者没有阈值设定，
                         // 那么该节点等延迟改变可以不考虑在内，从而减少schedule改变的次数
-                        Integer maxSlaveDelaySeconds = this.dataSourceConfig.getTdsqlDirectMaxSlaveDelaySeconds();
-                        Boolean shouldSkip = !(maxSlaveDelaySeconds != null
-                                && !Objects.equals(maxSlaveDelaySeconds, DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS)
-                                && target.getDelay() >= maxSlaveDelaySeconds);
-                        if (!delay.equals(target.getDelay()) && shouldSkip) {
+//                        Integer maxSlaveDelaySeconds = this.dataSourceConfig.getTdsqlDirectMaxSlaveDelaySeconds();
+//                        Boolean shouldSkip = !(maxSlaveDelaySeconds != null
+//                                && !Objects.equals(maxSlaveDelaySeconds, DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS)
+//                                && target.getDelay() >= maxSlaveDelaySeconds);
+                        if (!delay.equals(target.getDelay())) {
                             attributeChanged = true;
                             if (SLAVE_ONLINE.equals(changeEventEnum)) {
                                 delayChangedMap.put(target, source);
