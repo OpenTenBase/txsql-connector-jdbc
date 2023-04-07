@@ -12,7 +12,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDi
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyCacheCompareResult.SlaveResultSet;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.TdsqlDirectDataSourceConfig;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectCacheTopologyException;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverHandler;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectScheduleServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectMasterTopologyInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectSlaveTopologyInfo;
@@ -159,12 +158,19 @@ public class TdsqlDirectCacheServer {
     public boolean waitForFirstFinished() {
         try {
             if (!this.finishedFirstCache.await(this.dataSourceConfig.getTdsqlConnectionTimeOut(), TimeUnit.MILLISECONDS)) {
+                if (this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException() != null) {
+                    throw  TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+                            Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheTimeoutCauseBy",
+                                    new Object[]{this.dataSourceConfig.getTdsqlConnectionTimeOut(),
+                                            this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException().getMessage()}));
+
+                }
                 throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                        "create first proxy connection failed! timeout: " + this.dataSourceConfig.getTdsqlConnectionTimeOut() + "ms");
+                        Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheTimeout", new Object[]{this.dataSourceConfig.getTdsqlConnectionTimeOut()}));
             }
         } catch (InterruptedException e) {
             throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                    "create first proxy connection failed! interrupted");
+                    Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheInterrupted"));
         }
         return true;
     }

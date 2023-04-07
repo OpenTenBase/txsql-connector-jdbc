@@ -9,7 +9,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDi
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.TdsqlDirectDataSourceConfig;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectHandleFailoverException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectHostInfo;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectMasterTopologyInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectSlaveTopologyInfo;
 
 import java.util.*;
@@ -22,14 +21,10 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.
 public class TdsqlDirectFailoverHandlerImpl implements TdsqlDirectFailoverHandler {
     private final String dataSourceUuid;
     private final TdsqlDirectDataSourceConfig dataSourceConfig;
-//    private final TdsqlDirectScheduleServer scheduleServer;
-//    private final TdsqlDirectConnectionManager connectionManager;
 
     public TdsqlDirectFailoverHandlerImpl(TdsqlDirectDataSourceConfig dataSourceConfig) {
         this.dataSourceUuid = dataSourceConfig.getDataSourceUuid();
         this.dataSourceConfig = dataSourceConfig;
-//        this.scheduleServer = dataSourceConfig.getScheduleServer();
-//        this.connectionManager = dataSourceConfig.getConnectionManager();
     }
 
     /**

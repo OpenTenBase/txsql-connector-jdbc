@@ -34,6 +34,12 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
     private final List<String> unmodifiableHostPortList;
     private final Map<String, TdsqlDirectProxyConnectionHolder> unmodifiableLiveConnectionMap;
 
+    public Throwable getLastException() {
+        return lastException;
+    }
+
+    private Throwable lastException;
+
     public TdsqlDirectRefreshTopologyTask(TdsqlDirectDataSourceConfig dataSourceConfig,
             List<String> unmodifiableHostPortList,
             Map<String, TdsqlDirectProxyConnectionHolder> unmodifiableLiveConnectionMap) {
@@ -92,6 +98,8 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
                 try {
                     connectionHolder = this.topoServer.createConnectionForHost(hostPortSpec);
                 } catch (SQLException e) {
+                    // 底层sql连接会包一层错误，无法返回根本原因，因此选择getCause
+                    lastException = e.getCause();
                     TdsqlLoggerFactory.logError(this.dataSourceUuid, Messages.getString(
                             "TdsqlDirectRefreshTopologyMessage.FailedToEstablishConnectionWithOneProxy",
                             new Object[]{hostPortSpec}));

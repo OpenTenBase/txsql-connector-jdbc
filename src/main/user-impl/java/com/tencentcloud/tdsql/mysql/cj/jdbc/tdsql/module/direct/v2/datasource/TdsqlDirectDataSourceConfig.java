@@ -13,8 +13,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectRe
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.IsValidRwModeReturned;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectCacheServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverHandler;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverMasterHandler;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverSlavesHandler;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.manage.TdsqlDirectConnectionManager;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectScheduleServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectTopologyServer;
@@ -48,10 +46,6 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
 
     public Integer getTdsqlConnectionTimeOut() {
         return tdsqlConnectionTimeOut;
-    }
-
-    public void setTdsqlConnectionTimeOut(Integer tdsqlConnectionTimeOut) {
-        this.tdsqlConnectionTimeOut = tdsqlConnectionTimeOut;
     }
 
     private Integer tdsqlConnectionTimeOut;

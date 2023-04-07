@@ -22,7 +22,7 @@ import tdsql.direct.v1.base.BaseTest;
  */
 public class ProxyTest extends BaseTest {
 
-    private static final String DB_URL = "jdbc:tdsql-mysql:direct://9.30.0.250:15012,9.30.2.116:15012,9.30.2.89:15012,9.30.2.94:15012/test"
+    private static final String DB_URL = "jdbc:tdsql-mysql:direct://9.30.0.250:15012,9.30.2.116:15012,9.30.2.89:15012,9.30.2.94:15012/testdb"
             + "?useLocalSessionStates=true"
             + "&useUnicode=true"
             + "&characterEncoding=utf-8"

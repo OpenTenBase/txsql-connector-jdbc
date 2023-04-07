@@ -48,6 +48,12 @@ public class TdsqlDirectTopologyServer {
     private final ScheduledThreadPoolExecutor topologyRefreshExecutor;
     private final Executor netTimeoutExecutor;
 
+    public TdsqlDirectRefreshTopologyTask getRefreshTopologyTask() {
+        return refreshTopologyTask;
+    }
+
+    private TdsqlDirectRefreshTopologyTask refreshTopologyTask;
+
     /**
      * 构造方法
      *
@@ -76,11 +82,11 @@ public class TdsqlDirectTopologyServer {
 
         Map<String, TdsqlDirectProxyConnectionHolder> unmodifiableLiveConnectionMap = Collections.unmodifiableMap(
                 this.liveProxyConnectionMap);
-
+        this.refreshTopologyTask = new TdsqlDirectRefreshTopologyTask(this.dataSourceConfig, unmodifiableHostPortList,
+                unmodifiableLiveConnectionMap);
         // 根据配置的拓扑信息刷新间隔阈值，开始执行计划任务
         this.topologyRefreshExecutor.scheduleWithFixedDelay(
-                new TdsqlDirectRefreshTopologyTask(this.dataSourceConfig, unmodifiableHostPortList,
-                        unmodifiableLiveConnectionMap), 0L,
+                refreshTopologyTask, 0L,
                 this.dataSourceConfig.getTdsqlDirectTopoRefreshIntervalMillis(), TimeUnit.MILLISECONDS);
     }
 

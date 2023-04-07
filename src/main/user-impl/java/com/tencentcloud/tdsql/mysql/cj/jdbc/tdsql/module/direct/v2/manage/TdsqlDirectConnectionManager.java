@@ -10,7 +10,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.AbstractTdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionCounter;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlInvalidConnectionPropertyException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum;
@@ -116,7 +115,9 @@ public class TdsqlDirectConnectionManager {
         if (toCloseConnections == null || toCloseConnections.size() == 0) {
             return;
         }
-        this.removeConnectionCount(directHostInfo);
+        // 因为connection count在调用updateMaster、addSlave和removeSlave时候就已经更新了，
+        // 所以这里不需要调用removeConnectionCount，也避免再次上锁
+        // this.removeConnectionCount(directHostInfo);
         this.removeConnection(directHostInfo, null);
         this.recycler.submit(new AsyncCloseTask(toCloseConnections, this.netTimeoutExecutor, this.dataSourceConfig.getTdsqlDirectCloseConnTimeoutMillis()));
     }
@@ -459,7 +460,9 @@ public class TdsqlDirectConnectionManager {
         public void caughtAndRun() {
             for (JdbcConnection jdbcConnection : toCloseList) {
                 try {
+                    logInfo("check close connection! host: " + jdbcConnection.getHostPortPair());
                     if (jdbcConnection != null && !jdbcConnection.isClosed()) {
+                        logInfo("start close connection! host: " + jdbcConnection.getHostPortPair());
                         jdbcConnection.setNetworkTimeout(this.netTimeoutExecutor, closeConnTimeoutMillis);
                         jdbcConnection.close();
                         logInfo("close connection successfully! host:" + jdbcConnection.getHostPortPair());
