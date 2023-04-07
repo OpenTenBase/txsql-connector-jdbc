@@ -113,6 +113,7 @@ public class TdsqlDirectTopologyServer {
                 TdsqlLoggerFactory.logInfo(
                         Messages.getString("TdsqlDirectRefreshTopologyMessage.InvalidProxyConnection",
                                 new Object[]{jdbcConnection.getHostPortPair()}));
+                this.closeProxyConnection(jdbcConnection.getHostPortPair());
                 return false;
             }
             return true;
