@@ -111,10 +111,10 @@ public class TdsqlDirectConnectionManager {
             return;
         }
         List<JdbcConnection> toCloseConnections = new ArrayList<>();
-        toCloseConnections.addAll(this.liveConnectionMap.get(directHostInfo.getHostPortPair()));
-        if (toCloseConnections == null || toCloseConnections.size() == 0) {
+        if (this.liveConnectionMap.get(directHostInfo.getHostPortPair()) == null) {
             return;
         }
+        toCloseConnections.addAll(this.liveConnectionMap.get(directHostInfo.getHostPortPair()));
         // 因为connection count在调用updateMaster、addSlave和removeSlave时候就已经更新了，
         // 所以这里不需要调用removeConnectionCount，也避免再次上锁
         // this.removeConnectionCount(directHostInfo);

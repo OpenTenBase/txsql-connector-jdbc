@@ -352,14 +352,16 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
         long perDsConnection = 1;
         int countDs = 1;
 
+        ConnectionUrl connectionUrl = ConnectionUrl.getConnectionUrlInstance(
+                DEFAULT_URL_RO + "&tdsqlDirectMaxSlaveDelaySeconds=20", super.defaultProperties);
         Assertions.assertDoesNotThrow(() -> {
             try (JdbcConnection jdbcConnection = TdsqlDirectConnectionFactory.createDirectConnection(
-                    super.defaultConnectionUrlRo)) {
+                    connectionUrl)) {
                 Assertions.assertNotNull(jdbcConnection);
                 Assertions.assertTrue(jdbcConnection.isValid(3));
 
                 TdsqlDirectDataSource dataSource = TdsqlDirectConnectionFactory.getDataSource(
-                        super.defaultConnectionUrlRo);
+                        connectionUrl);
                 Assertions.assertNotNull(dataSource);
 
                 TdsqlDirectConnectionManager connectionManager = dataSource.getConnectionManager();
@@ -408,7 +410,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
         ExecutorService executorService = Executors.newFixedThreadPool(connCount);
         CountDownLatch createLatch = new CountDownLatch(connCount);
         ConnectionUrl connectionUrl = ConnectionUrl.getConnectionUrlInstance(
-                DEFAULT_URL_RO + "&tdsqlLoadBalanceStrategy=lc", super.defaultProperties);
+                DEFAULT_URL_RO + "&tdsqlLoadBalanceStrategy=lc&tdsqlDirectMaxSlaveDelaySeconds=20", super.defaultProperties);
         final List<Connection> allList = new CopyOnWriteArrayList<>();
 
         // 并发创建
@@ -525,7 +527,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
         ExecutorService executorService = Executors.newFixedThreadPool(connCount);
         CountDownLatch createLatch = new CountDownLatch(connCount);
         ConnectionUrl connectionUrl = ConnectionUrl.getConnectionUrlInstance(
-                DEFAULT_URL_RO + "&tdsqlLoadBalanceStrategy=sed", super.defaultProperties);
+                DEFAULT_URL_RO + "&tdsqlLoadBalanceStrategy=sed&tdsqlDirectMaxSlaveDelaySeconds=20", super.defaultProperties);
         final List<Connection> allList = new CopyOnWriteArrayList<>();
 
         // 并发创建
@@ -649,7 +651,7 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
         // 组装10个连接串
         List<ConnectionUrl> urlList = new ArrayList<>(dsCount);
         for (int i = 0; i < dsCount; i++) {
-            urlList.add(ConnectionUrl.getConnectionUrlInstance(DEFAULT_URL_RO + "&tdsqlLoadBalanceStrategy=lc&key=value" + i, super.defaultProperties));
+            urlList.add(ConnectionUrl.getConnectionUrlInstance(DEFAULT_URL_RO + "&tdsqlDirectMaxSlaveDelaySeconds=20&tdsqlLoadBalanceStrategy=lc&key=value" + i, super.defaultProperties));
         }
 
         // 并发创建，1个数据源60个连接
@@ -682,8 +684,8 @@ public class TdsqlDirectConnectionFactoryTest extends TdsqlDirectBaseTest {
 
             Map<String, List<JdbcConnection>> liveConnectionMap = connectionManager.getLiveConnectionMap();
             Assertions.assertNotNull(liveConnectionMap);
-            Assertions.assertEquals(3, liveConnectionMap.size());
-            Assertions.assertEquals(3, liveConnectionMap.keySet().size());
+            Assertions.assertEquals(2, liveConnectionMap.size());
+            Assertions.assertEquals(2, liveConnectionMap.keySet().size());
 
             List<JdbcConnection> allList = new ArrayList<>();
             for (List<JdbcConnection> connectionList : liveConnectionMap.values()) {
