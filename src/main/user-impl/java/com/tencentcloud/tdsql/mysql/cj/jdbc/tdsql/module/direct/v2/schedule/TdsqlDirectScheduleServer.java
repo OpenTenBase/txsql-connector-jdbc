@@ -173,7 +173,7 @@ public class TdsqlDirectScheduleServer implements
     public void removeSlave(TdsqlDirectHostInfo slave) {
         this.rwLock.writeLock().lock();
         try {
-            if (this.slaveCounterSet.removeIf(counter -> counter.getTdsqlHostInfo().equals(slave)))
+            if (this.slaveCounterSet.removeIf(counter -> counter.getTdsqlHostInfo().getHostPortPair().equals(slave.getHostPortPair())))
                 logInfo("remove slave successfully, host:" + slave.getHostPortPair());
             else {
                 logInfo("remove slave failed, host:" + slave.getHostPortPair());
