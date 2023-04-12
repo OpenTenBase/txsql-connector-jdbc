@@ -173,7 +173,11 @@ public class TdsqlDirectScheduleServer implements
     public void removeSlave(TdsqlDirectHostInfo slave) {
         this.rwLock.writeLock().lock();
         try {
-            this.slaveCounterSet.removeIf(counter -> counter.getTdsqlHostInfo().equals(slave));
+            if (this.slaveCounterSet.removeIf(counter -> counter.getTdsqlHostInfo().equals(slave)))
+                logInfo("remove slave successfully, host:" + slave.getHostPortPair());
+            else {
+                logInfo("remove slave failed, host:" + slave.getHostPortPair());
+            }
         } finally {
             this.rwLock.writeLock().unlock();
         }
@@ -207,7 +211,9 @@ public class TdsqlDirectScheduleServer implements
 //                                new Object[]{oldSlave}));
 //            }
             if (toBeRemoved != null) {
+                logInfo("remove slave through updateSlave, host:" + oldSlave.getHostPortPair());
                 this.slaveCounterSet.remove(toBeRemoved);
+                logInfo("Add new slave through updateSlave, host:" + newSlave.getHostPortPair());
                 this.slaveCounterSet.add(new TdsqlDirectConnectionCounter(newSlave, toBeRemoved.getCount()));
             } else {
                 logInfo("Add new slave through updateSlave, host:" + newSlave.getHostPortPair());
