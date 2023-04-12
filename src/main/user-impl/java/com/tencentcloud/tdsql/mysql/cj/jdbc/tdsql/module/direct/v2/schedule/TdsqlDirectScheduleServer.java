@@ -16,6 +16,8 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+
 /**
  * <p>TDSQL专属，直连模式调度服务类</p>
  *
@@ -155,6 +157,7 @@ public class TdsqlDirectScheduleServer implements
                         Messages.getString("TdsqlDirectScheduleTopologyException.RepeatedAddSlave",
                                 new Object[]{slave}));
             }
+            logInfo("Add new slave through addSlave, host:" + slave.getHostPortPair());
             this.slaveCounterSet.add(new TdsqlDirectConnectionCounter(slave));
         } finally {
             this.rwLock.writeLock().unlock();
@@ -207,6 +210,7 @@ public class TdsqlDirectScheduleServer implements
                 this.slaveCounterSet.remove(toBeRemoved);
                 this.slaveCounterSet.add(new TdsqlDirectConnectionCounter(newSlave, toBeRemoved.getCount()));
             } else {
+                logInfo("Add new slave through updateSlave, host:" + newSlave.getHostPortPair());
                 this.slaveCounterSet.add(new TdsqlDirectConnectionCounter(newSlave, new LongAdder()));
             }
 

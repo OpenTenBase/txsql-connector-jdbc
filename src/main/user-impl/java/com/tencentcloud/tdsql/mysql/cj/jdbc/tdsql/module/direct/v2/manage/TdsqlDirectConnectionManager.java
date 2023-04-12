@@ -227,6 +227,10 @@ public class TdsqlDirectConnectionManager {
             // 当没有备库调度信息时，记录日志并抛出异常
             Set<TdsqlDirectConnectionCounter> slaveSet = scheduleServer.getSlaveSet();
             if (slaveSet.isEmpty()) {
+                // 如果设置了主库承接只读流量开关，则建立到主库的数据库连接
+                if (this.dataSourceConfig.getTdsqlDirectMasterCarryOptOfReadOnlyMode()) {
+                    return createMasterConnection();
+                }
                 throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCreateConnectionException.class,
                         Messages.getString("TdsqlDirectConnectionManagerException.EmptySchedule", new Object[]{"SLAVE"}));
             }
@@ -308,6 +312,7 @@ public class TdsqlDirectConnectionManager {
         this.lock.lock();
         try {
             if (!this.liveConnectionMap.containsKey(directHostInfo.getHostPortPair())) {
+                logInfo("新增数据源host：" + directHostInfo.getHostPortPair());
                 this.liveConnectionMap.put(directHostInfo.getHostPortPair(), new ArrayList<>());
             }
             this.liveConnectionMap.get(directHostInfo.getHostPortPair()).add(jdbcConnection);

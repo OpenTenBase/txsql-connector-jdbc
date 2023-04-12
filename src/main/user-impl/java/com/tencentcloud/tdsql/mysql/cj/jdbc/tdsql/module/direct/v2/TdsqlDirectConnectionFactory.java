@@ -13,6 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+
 /**
  * <p>TDSQL专属，直连模式并发建连连接工厂类</p>
  *
@@ -36,6 +38,7 @@ public class TdsqlDirectConnectionFactory {
         TdsqlDirectDataSource directDataSource = new TdsqlDirectDataSource(dataSourceUuid);
         TdsqlDirectDataSource dataSource = directDataSourceMap.putIfAbsent(dataSourceUuid, directDataSource);
         if (dataSource == null) {
+            logInfo("新增数据源：" + connectionUrl.toString());
             directDataSource.initialize(connectionUrl);
         } else {
             directDataSource = dataSource;
@@ -66,7 +69,7 @@ public class TdsqlDirectConnectionFactory {
                     directDataSource = new TdsqlDirectDataSource(dataSourceUuid);
                     directDataSource.initialize(connectionUrl);
                     directDataSourceCache.put(dataSourceUuid, directDataSource);
-                    TdsqlLoggerFactory.logInfo(Messages.getString("TdsqlDirectDataSourceMessage.CreateNewDataSource",
+                    logInfo(Messages.getString("TdsqlDirectDataSourceMessage.CreateNewDataSource",
                             new Object[]{dataSourceUuid}));
                 }
                 rwLock.readLock().lock();
