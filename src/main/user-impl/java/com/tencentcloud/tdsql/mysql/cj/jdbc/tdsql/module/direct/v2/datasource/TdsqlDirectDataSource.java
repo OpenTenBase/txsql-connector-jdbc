@@ -2,6 +2,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource;
 
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectCacheServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectCacheTopologyException;
@@ -18,6 +19,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
+
 /**
  * <p>TDSQL专属，直连模式数据源类</p>
  *
@@ -30,6 +33,8 @@ public class TdsqlDirectDataSource {
     private final AtomicBoolean isInitialized;
 
     private CountDownLatch countDownLatch;
+
+    private Throwable lastException;
 
     public TdsqlDirectDataSource(String dataSourceUuid) {
         this.dataSourceUuid = dataSourceUuid;
@@ -45,32 +50,39 @@ public class TdsqlDirectDataSource {
      */
     public void initialize(ConnectionUrl connectionUrl) {
         if (this.isInitialized.compareAndSet(false, true)) {
+            try {
+                // URL参数校验并赋值
+                this.dataSourceConfig.validateConnectionProperties(connectionUrl);
 
-            // URL参数校验并赋值
-            this.dataSourceConfig.validateConnectionProperties(connectionUrl);
+                // 初始化拓扑刷新服务并赋值
+                TdsqlDirectTopologyServer topologyServer = new TdsqlDirectTopologyServer(this.dataSourceConfig);
+                this.dataSourceConfig.setTopologyServer(topologyServer);
 
-            // 初始化拓扑刷新服务并赋值
-            TdsqlDirectTopologyServer topologyServer = new TdsqlDirectTopologyServer(this.dataSourceConfig);
-            this.dataSourceConfig.setTopologyServer(topologyServer);
+                // 初始化调度服务并赋值
+                TdsqlDirectScheduleServer scheduleServer = new TdsqlDirectScheduleServer(this.dataSourceConfig);
+                this.dataSourceConfig.setScheduleServer(scheduleServer);
 
-            // 初始化调度服务并赋值
-            TdsqlDirectScheduleServer scheduleServer = new TdsqlDirectScheduleServer(this.dataSourceConfig);
-            this.dataSourceConfig.setScheduleServer(scheduleServer);
+                TdsqlDirectFailoverHandler failoverHandler = new TdsqlDirectFailoverHandlerImpl(this.dataSourceConfig);
+                this.dataSourceConfig.setFailoverHandler(failoverHandler);
 
-            TdsqlDirectFailoverHandler failoverHandler = new TdsqlDirectFailoverHandlerImpl(this.dataSourceConfig);
-            this.dataSourceConfig.setFailoverHandler(failoverHandler);
+                // 初始化拓扑缓存服务并赋值
+                TdsqlDirectCacheServer cacheServer = new TdsqlDirectCacheServer(this.dataSourceConfig);
+                this.dataSourceConfig.setCacheServer(cacheServer);
+                this.countDownLatch.countDown();
 
-            // 初始化拓扑缓存服务并赋值
-            TdsqlDirectCacheServer cacheServer = new TdsqlDirectCacheServer(this.dataSourceConfig);
-            this.dataSourceConfig.setCacheServer(cacheServer);
-            this.countDownLatch.countDown();
+                // 初始化连接管理器并赋值
+                TdsqlDirectConnectionManager connectionManager = new TdsqlDirectConnectionManager(this.dataSourceConfig);
+                this.dataSourceConfig.setConnectionManager(connectionManager);
 
-            // 初始化连接管理器并赋值
-            TdsqlDirectConnectionManager connectionManager = new TdsqlDirectConnectionManager(this.dataSourceConfig);
-            this.dataSourceConfig.setConnectionManager(connectionManager);
+                // 开始刷新拓扑信息
+                topologyServer.startRefreshTopology();
+            } catch (Throwable t) {
+                if (t.getCause() != null) {
+                    lastException = t.getCause();
+                    throw new RuntimeException(lastException);
+                }
+            }
 
-            // 开始刷新拓扑信息
-            topologyServer.startRefreshTopology();
         } else {
             // 数据源在初始化之后，不允许再次调用初始化方法
             throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectDataSourceException.class,
@@ -82,6 +94,10 @@ public class TdsqlDirectDataSource {
     public boolean waitForFirstFinished() {
         try {
             if (!this.countDownLatch.await(1000, TimeUnit.MILLISECONDS)) {
+                if (this.lastException != null) {
+                    logError(this.lastException);
+                    throw new RuntimeException(this.lastException);
+                }
                 throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
                         "init tdsql direct datasource failed! wait timeout: 1000ms");
             }

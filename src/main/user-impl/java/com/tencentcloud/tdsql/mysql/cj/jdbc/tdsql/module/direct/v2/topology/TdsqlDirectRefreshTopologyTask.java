@@ -1,5 +1,6 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.TDSQL_DIRECT_REFRESH_TOPOLOGY_SQL;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPOLOGY_COLUMN_CLUSTER_NAME;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPOLOGY_COLUMN_MASTER_IP;
@@ -60,7 +61,7 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
                 // 判断选择的Proxy连接是否需要重连
                 if (this.topoServer.needReconnectProxy(proxyConnectionHolder.getHoldTimeMillis())) {
                     this.topoServer.closeProxyConnection(proxyConnectionHolder.getJdbcConnection().getHostPortPair());
-                    TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+                    logInfo(this.dataSourceUuid,
                             Messages.getString("TdsqlDirectRefreshTopologyMessage.ReconnectProxyConnection",
                                     new Object[]{proxyConnectionHolder.getJdbcConnection().getHostPortPair()}));
                 }
@@ -98,8 +99,12 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
                 try {
                     connectionHolder = this.topoServer.createConnectionForHost(hostPortSpec);
                 } catch (SQLException e) {
-                    // 底层sql连接会包一层错误，无法返回根本原因，因此选择getCause
-                    lastException = e.getCause();
+                    // 底层sql可能连接会包一层错误，无法返回根本原因，因此选择getCause
+                    if (e.getCause() != null) {
+                        lastException = e.getCause();
+                    } else {
+                        lastException = e;
+                    }
                     TdsqlLoggerFactory.logError(this.dataSourceUuid, Messages.getString(
                             "TdsqlDirectRefreshTopologyMessage.FailedToEstablishConnectionWithOneProxy",
                             new Object[]{hostPortSpec}));
@@ -119,7 +124,7 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
                     continue;
                 }
             }
-            TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+            logInfo(this.dataSourceUuid,
                     Messages.getString("TdsqlDirectRefreshTopologyMessage.ChoiceOneProxy", new Object[]{hostPortSpec}));
             return connectionHolder;
         }
