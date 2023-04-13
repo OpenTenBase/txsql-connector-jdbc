@@ -159,11 +159,12 @@ public class TdsqlDirectCacheServer {
         try {
             if (!this.finishedFirstCache.await(this.dataSourceConfig.getTdsqlConnectionTimeOut(), TimeUnit.MILLISECONDS)) {
                 if (this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException() != null) {
-                    throw  TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+                    throw  TdsqlExceptionFactory.logException(this.dataSourceUuid,
+                            TdsqlDirectCacheTopologyException.class,
                             Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheTimeoutCauseBy",
                                     new Object[]{this.dataSourceConfig.getTdsqlConnectionTimeOut(),
-                                            this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException().getMessage()}));
-
+                                            this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException().getMessage()}),
+                            this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException());
                 }
                 throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
                         Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheTimeout", new Object[]{this.dataSourceConfig.getTdsqlConnectionTimeOut()}));

@@ -33,6 +33,12 @@ public class TdsqlExceptionFactory {
         return ex;
     }
 
+    public static <T extends TdsqlException> T logException(String datasourceUuid, Class<T> clazz, String message, Throwable cause) {
+        T ex = logException(datasourceUuid, clazz, message);
+        ex.initCause(cause);
+        return ex;
+    }
+
     @SuppressWarnings("unchecked")
     public static <T extends TdsqlException> T logException(Class<T> clazz, String message) {
         T ex;
