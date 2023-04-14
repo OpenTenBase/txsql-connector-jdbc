@@ -71,6 +71,11 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
             // 刷新拓扑
             this.refreshTopology(proxyConnectionHolder.getJdbcConnection());
         } catch (Throwable t) {
+            if (t.getCause() != null) {
+                this.lastException = t.getCause();
+            } else {
+                this.lastException = t;
+            }
             TdsqlLoggerFactory.logError(this.dataSourceUuid, t.getMessage(), t);
         }
     }
@@ -99,12 +104,7 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
                 try {
                     connectionHolder = this.topoServer.createConnectionForHost(hostPortSpec);
                 } catch (SQLException e) {
-                    // 底层sql可能连接会包一层错误，无法返回根本原因，因此选择getCause
-                    if (e.getCause() != null) {
-                        lastException = e.getCause();
-                    } else {
-                        lastException = e;
-                    }
+
                     TdsqlLoggerFactory.logError(this.dataSourceUuid, Messages.getString(
                             "TdsqlDirectRefreshTopologyMessage.FailedToEstablishConnectionWithOneProxy",
                             new Object[]{hostPortSpec}));
@@ -117,9 +117,11 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
                     this.topoServer.addToBlacklist(hostPortSpec);
 
                     if (allowList.isEmpty()) {
+                        // 底层sql可能连接会包一层错误，无法返回根本原因，因此选择getCause
                         throw TdsqlExceptionFactory.createException(TdsqlDirectRefreshTopologyException.class,
                                 Messages.getString(
-                                        "TdsqlDirectRefreshTopologyException.FailedToEstablishConnectionWithAllProxies"));
+                                        "TdsqlDirectRefreshTopologyException.FailedToEstablishConnectionWithAllProxies"),
+                                e);
                     }
                     continue;
                 }
@@ -149,12 +151,14 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
                 }
             } catch (SQLException e) {
                 throw TdsqlExceptionFactory.createException(TdsqlDirectRefreshTopologyException.class,
-                        Messages.getString("TdsqlDirectRefreshTopologyException.FailedToCreateStatement"));
+                        Messages.getString("TdsqlDirectRefreshTopologyException.FailedToCreateStatement"),
+                        e);
             }
         } catch (SQLException e) {
             throw TdsqlExceptionFactory.createException(TdsqlDirectRefreshTopologyException.class,
                     Messages.getString("TdsqlDirectRefreshTopologyException.FailedToExecuteRefreshTopologySql",
-                            new Object[]{TDSQL_DIRECT_REFRESH_TOPOLOGY_SQL}));
+                            new Object[]{TDSQL_DIRECT_REFRESH_TOPOLOGY_SQL}),
+                    e);
         }
     }
 

@@ -20,6 +20,15 @@ public class TdsqlExceptionFactory {
         return ex;
     }
 
+    public static <T extends TdsqlException> T createException(Class<T> clazz, String message, Throwable cause) {
+        T exception = createException(clazz, message);
+        if (cause.getCause() == null)
+            exception.initCause(cause);
+        else
+            exception.initCause(cause.getCause());
+        return exception;
+    }
+
     @SuppressWarnings("unchecked")
     public static <T extends TdsqlException> T logException(String datasourceUuid, Class<T> clazz, String message) {
         T ex;
