@@ -79,8 +79,10 @@ public class TdsqlDirectDataSource {
             } catch (Throwable t) {
                 if (t.getCause() != null) {
                     lastException = t.getCause();
-                    throw new RuntimeException(lastException);
+                } else {
+                    lastException = t;
                 }
+                throw new RuntimeException(lastException);
             }
 
         } else {
