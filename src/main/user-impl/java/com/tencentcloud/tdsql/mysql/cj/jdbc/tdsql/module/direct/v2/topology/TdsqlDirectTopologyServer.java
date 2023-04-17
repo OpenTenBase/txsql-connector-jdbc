@@ -2,6 +2,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology;
 
 import static com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl.Type.SINGLE_CONNECTION;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_CONNECTION_TIME_ZONE;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_CONN_CONNECT_TIMEOUT_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_CONN_SOCKET_TIMEOUT_MILLIS;
@@ -92,8 +93,13 @@ public class TdsqlDirectTopologyServer {
     }
 
     public void stopRefreshTopology() {
-        this.topologyRefreshExecutor.shutdownNow();
-        this.topologyRefreshExecutor.remove(this.refreshTopologyTaskFuture);
+
+        if (this.refreshTopologyTaskFuture.cancel(true)) {
+            logInfo("cancel refresh topo task successfully, uuid:" + this.dataSourceConfig.getDataSourceUuid());
+        }
+        if (this.topologyRefreshExecutor.remove(this.refreshTopologyTaskFuture)) {
+            logInfo("remove datasource successfully, uuid:" + this.dataSourceConfig.getDataSourceUuid());
+        }
     }
 
     public void closeAllProxyConnections() {
