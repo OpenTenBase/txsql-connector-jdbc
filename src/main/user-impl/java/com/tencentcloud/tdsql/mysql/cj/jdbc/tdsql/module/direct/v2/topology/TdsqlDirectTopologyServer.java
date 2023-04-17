@@ -93,6 +93,7 @@ public class TdsqlDirectTopologyServer {
 
     public void stopRefreshTopology() {
         this.topologyRefreshExecutor.shutdownNow();
+        this.topologyRefreshExecutor.remove(this.refreshTopologyTaskFuture);
     }
 
     public void closeAllProxyConnections() {
