@@ -53,6 +53,12 @@ public class TdsqlDirectConnectionManager {
     private final Executor netTimeoutExecutor;
     private ThreadPoolExecutor recycler;
 
+    public long getLastEmptyLiveConnectionTimestamp() {
+        return lastEmptyLiveConnectionTimestamp;
+    }
+
+    private long lastEmptyLiveConnectionTimestamp = 0;
+
     /**
      * 构造方法
      *
@@ -317,6 +323,9 @@ public class TdsqlDirectConnectionManager {
             }
             this.liveConnectionMap.get(directHostInfo.getHostPortPair()).add(jdbcConnection);
         } finally {
+            if (this.liveConnectionMap.size() != 0 && this.lastEmptyLiveConnectionTimestamp != 0) {
+                this.lastEmptyLiveConnectionTimestamp = 0;
+            }
             this.lock.unlock();
         }
     }
@@ -402,6 +411,9 @@ public class TdsqlDirectConnectionManager {
                 }
             }
         } finally {
+            if (this.liveConnectionMap.size() == 0 && this.lastEmptyLiveConnectionTimestamp == 0) {
+                this.lastEmptyLiveConnectionTimestamp = System.currentTimeMillis();
+            }
             this.lock.unlock();
         }
     }

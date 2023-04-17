@@ -2,15 +2,12 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource;
 
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectCacheServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectCacheTopologyException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectDataSourceException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverHandler;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverHandlerImpl;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverMasterHandler;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.failover.TdsqlDirectFailoverSlavesHandler;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.manage.TdsqlDirectConnectionManager;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectScheduleServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.TdsqlDirectTopologyServer;
@@ -18,6 +15,8 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.Tdsq
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
 
@@ -28,19 +27,26 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logE
  */
 public class TdsqlDirectDataSource {
 
+    public String getDataSourceUuid() {
+        return dataSourceUuid;
+    }
+
     private final String dataSourceUuid;
     private final TdsqlDirectDataSourceConfig dataSourceConfig;
     private final AtomicBoolean isInitialized;
-
+    private final AtomicBoolean isActived;
     private CountDownLatch countDownLatch;
-
     private Throwable lastException;
+
+    private final ReentrantReadWriteLock lock;
 
     public TdsqlDirectDataSource(String dataSourceUuid) {
         this.dataSourceUuid = dataSourceUuid;
         this.dataSourceConfig = new TdsqlDirectDataSourceConfig(dataSourceUuid);
         this.isInitialized = new AtomicBoolean(false);
+        this.isActived = new AtomicBoolean(true);
         this.countDownLatch = new CountDownLatch(1);
+        this.lock = new ReentrantReadWriteLock();
     }
 
     /**
@@ -122,5 +128,36 @@ public class TdsqlDirectDataSource {
 
     public TdsqlDirectScheduleServer getScheduleServer() {
         return this.dataSourceConfig.getScheduleServer();
+    }
+
+    public ReadWriteLock getLock() {
+        return this.lock;
+    }
+
+    public ReentrantReadWriteLock.ReadLock getReadLock() {
+        return this.lock.readLock();
+    }
+
+    public ReentrantReadWriteLock.WriteLock getWriteLock() {
+        return this.lock.writeLock();
+    }
+
+    public void setActiveState(boolean state) {
+        this.isActived.set(state);
+    }
+
+    public boolean getActiveState() {
+        return this.isActived.get();
+    }
+
+    public boolean shouldBeClosed() {
+        return (this.getConnectionManager().getLiveConnectionMap().size() == 0 &
+                this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() != 0 &
+                System.currentTimeMillis() - this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() > 1000 * 60);
+    }
+
+    public void close() {
+        this.dataSourceConfig.getTopologyServer().stopRefreshTopology();
+        this.dataSourceConfig.getTopologyServer().closeAllProxyConnections();
     }
 }

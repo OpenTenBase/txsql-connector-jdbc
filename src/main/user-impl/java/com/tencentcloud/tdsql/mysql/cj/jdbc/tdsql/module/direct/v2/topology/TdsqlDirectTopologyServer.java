@@ -1,6 +1,7 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology;
 
 import static com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl.Type.SINGLE_CONNECTION;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_CONNECTION_TIME_ZONE;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_CONN_CONNECT_TIMEOUT_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_CONN_SOCKET_TIMEOUT_MILLIS;
@@ -29,9 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 /**
@@ -53,6 +52,8 @@ public class TdsqlDirectTopologyServer {
     }
 
     private TdsqlDirectRefreshTopologyTask refreshTopologyTask;
+
+    private RunnableScheduledFuture<?> refreshTopologyTaskFuture;
 
     /**
      * 构造方法
@@ -85,9 +86,25 @@ public class TdsqlDirectTopologyServer {
         this.refreshTopologyTask = new TdsqlDirectRefreshTopologyTask(this.dataSourceConfig, unmodifiableHostPortList,
                 unmodifiableLiveConnectionMap);
         // 根据配置的拓扑信息刷新间隔阈值，开始执行计划任务
-        this.topologyRefreshExecutor.scheduleWithFixedDelay(
+        this.refreshTopologyTaskFuture = (RunnableScheduledFuture<?>)this.topologyRefreshExecutor.scheduleWithFixedDelay(
                 refreshTopologyTask, 0L,
                 this.dataSourceConfig.getTdsqlDirectTopoRefreshIntervalMillis(), TimeUnit.MILLISECONDS);
+    }
+
+    public void stopRefreshTopology() {
+        this.topologyRefreshExecutor.shutdownNow();
+    }
+
+    public void closeAllProxyConnections() {
+        this.liveProxyConnectionMap.forEach((k, v) -> {
+            try {
+                if (v.getJdbcConnection() != null) {
+                    v.getJdbcConnection().close();
+                }
+            } catch (SQLException e) {
+                logError(e.getMessage());
+            }
+        });
     }
 
     /**
