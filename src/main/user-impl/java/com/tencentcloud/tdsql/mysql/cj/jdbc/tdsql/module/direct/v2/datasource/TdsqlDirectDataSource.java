@@ -159,5 +159,6 @@ public class TdsqlDirectDataSource {
     public void close() {
         this.dataSourceConfig.getTopologyServer().stopRefreshTopology();
         this.dataSourceConfig.getTopologyServer().closeAllProxyConnections();
+        this.getCacheServer().closeSurvivedChecker();
     }
 }
