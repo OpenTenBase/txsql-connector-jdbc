@@ -73,6 +73,10 @@ public class TdsqlDirectCacheServer {
                 this.dataSourceConfig.getTdsqlDirectTopoRefreshIntervalMillis(), TimeUnit.MILLISECONDS);
     }
 
+    public void closeSurvivedChecker() {
+        this.survivedChecker.shutdownNow();
+    }
+
     /**
      * 比较、缓存拓扑信息
      *
