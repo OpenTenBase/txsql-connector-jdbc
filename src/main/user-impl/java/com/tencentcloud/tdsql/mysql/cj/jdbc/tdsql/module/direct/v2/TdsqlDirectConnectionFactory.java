@@ -165,7 +165,8 @@ public class TdsqlDirectConnectionFactory {
                 if (!dataSource.shouldBeClosed()) {
                     continue;
                 }
-                Lock writeLock = dataSource.getLock().writeLock();
+                Lock writeLock = dataSource.getWriteLock();
+                writeLock.lock();
                 if (!dataSource.shouldBeClosed()) {
                     writeLock.unlock();
                     continue;

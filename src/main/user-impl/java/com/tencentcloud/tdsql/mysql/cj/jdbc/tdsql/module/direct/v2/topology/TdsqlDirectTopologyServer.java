@@ -93,13 +93,7 @@ public class TdsqlDirectTopologyServer {
     }
 
     public void stopRefreshTopology() {
-
-        if (this.refreshTopologyTaskFuture.cancel(true)) {
-            logInfo("cancel refresh topo task successfully, uuid:" + this.dataSourceConfig.getDataSourceUuid());
-        }
-        if (this.topologyRefreshExecutor.remove(this.refreshTopologyTaskFuture)) {
-            logInfo("remove datasource successfully, uuid:" + this.dataSourceConfig.getDataSourceUuid());
-        }
+        this.topologyRefreshExecutor.shutdownNow();
     }
 
     public void closeAllProxyConnections() {
