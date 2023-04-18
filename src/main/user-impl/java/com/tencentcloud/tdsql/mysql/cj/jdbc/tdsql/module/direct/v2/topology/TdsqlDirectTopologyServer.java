@@ -87,7 +87,7 @@ public class TdsqlDirectTopologyServer {
     }
 
     public void stopRefreshTopology() {
-        while(this.refreshTopologyTaskFuture.isDone()) {
+        while(!this.refreshTopologyTaskFuture.isDone()) {
             try {
                 TimeUnit.MILLISECONDS.sleep(10);
             } catch (InterruptedException e) {
