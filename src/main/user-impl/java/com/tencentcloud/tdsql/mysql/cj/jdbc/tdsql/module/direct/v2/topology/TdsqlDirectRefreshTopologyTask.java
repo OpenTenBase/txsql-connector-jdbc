@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * <p>TDSQL专属，直连模式拓扑信息刷新任务</p>
@@ -38,6 +39,8 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
 
     private Throwable lastException;
 
+    private final AtomicBoolean isClosed;
+
     public TdsqlDirectRefreshTopologyTask(TdsqlDirectDataSourceConfig dataSourceConfig,
             List<String> unmodifiableHostPortList,
             Map<String, TdsqlDirectProxyConnectionHolder> unmodifiableLiveConnectionMap) {
@@ -46,6 +49,7 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
         this.cacheServer = dataSourceConfig.getCacheServer();
         this.unmodifiableHostPortList = unmodifiableHostPortList;
         this.unmodifiableLiveConnectionMap = unmodifiableLiveConnectionMap;
+        this.isClosed = new AtomicBoolean(false);
     }
 
     @Override
@@ -68,6 +72,9 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
             // 刷新拓扑
             this.refreshTopology(proxyConnectionHolder.getJdbcConnection());
         } catch (Throwable t) {
+            if (this.isClosed.get()) {
+                return;
+            }
             if (t.getCause() != null) {
                 this.lastException = t.getCause();
             } else {
@@ -165,6 +172,10 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
             m.put(list.get(i), i);
         }
         return m;
+    }
+
+    public void setIsClosed(boolean newValue) {
+        this.isClosed.set(newValue);
     }
 
     public Throwable getLastException() {
