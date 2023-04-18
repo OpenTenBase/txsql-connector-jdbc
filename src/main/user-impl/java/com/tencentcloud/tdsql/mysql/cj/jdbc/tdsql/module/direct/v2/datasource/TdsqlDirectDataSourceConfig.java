@@ -43,11 +43,7 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
     private Integer tdsqlDirectCloseConnTimeoutMillis;
     private Integer tdsqlDirectProxyBlacklistTimeoutSeconds;
     private Integer tdsqlDirectReconnectProxyIntervalTimeSeconds;
-
-    public Integer getTdsqlConnectionTimeOut() {
-        return tdsqlConnectionTimeOut;
-    }
-
+    private Integer tdsqlDirectProxyConnectMaxIdleTime;
     private Integer tdsqlConnectionTimeOut;
     private List<HostInfo> tdsqlDirectProxyHostInfoList;
     private Properties tdsqlDirectOriginalPropertiesWithoutDirectMode;
@@ -202,6 +198,18 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
 
         // 16.赋值所有配置的Proxy地址
         this.setTdsqlDirectProxyHostInfoList(connectionUrl.getHostsList());
+
+        // 17.判断限制proxy connect的最大时间是多少，有效范围 [30000,600000]， 单位毫秒，默认60000
+        Integer tdsqlDirectProxyConnectMaxIdleTime = jdbcPropertySet.getIntegerProperty(
+                PropertyKey.tdsqlDirectProxyConnectMaxIdleTime).getValue();
+        if (tdsqlDirectProxyConnectMaxIdleTime < TdsqlDirectConst.MINIMUM_TDSQL_DIRECT_PROXY_CONNECT_MAX_IDLE_TIME_SECONDS
+            || tdsqlDirectProxyConnectMaxIdleTime > TdsqlDirectConst.MAXIMUM_TDSQL_DIRECT_PROXY_CONNECT_MAX_IDLE_TIME_SECONDS) {
+            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlInvalidConnectionPropertyException.class,
+                    Messages.getString("ConnectionProperties.badValueForTdsqlDirectProxyConnectMaxIdleTime",
+                            new Object[]{tdsqlDirectProxyConnectMaxIdleTime}));
+        }
+
+        this.setTdsqlDirectProxyConnectMaxIdleTime(tdsqlDirectProxyConnectMaxIdleTime);
 
         Integer connectionTimeout = jdbcPropertySet.getIntegerProperty(PropertyKey.connectTimeout).getValue();
         if (connectionTimeout == 0) {
@@ -392,6 +400,18 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
 
     public void setFailoverHandler(TdsqlDirectFailoverHandler failoverHandler) {
         this.failoverHandler = failoverHandler;
+    }
+
+    public Integer getTdsqlDirectProxyConnectMaxIdleTime() {
+        return tdsqlDirectProxyConnectMaxIdleTime;
+    }
+
+    public void setTdsqlDirectProxyConnectMaxIdleTime(Integer tdsqlDirectProxyConnectMaxIdleTime) {
+        this.tdsqlDirectProxyConnectMaxIdleTime = tdsqlDirectProxyConnectMaxIdleTime;
+    }
+
+    public Integer getTdsqlConnectionTimeOut() {
+        return tdsqlConnectionTimeOut;
     }
 
     @Override

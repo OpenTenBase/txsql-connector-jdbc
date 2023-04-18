@@ -296,6 +296,8 @@ public enum PropertyKey {
     tdsqlDirectTopoRefreshStmtTimeoutSeconds("tdsqlDirectTopoRefreshStmtTimeoutSeconds", true),
     tdsqlDirectProxyBlacklistTimeoutSeconds("tdsqlDirectProxyBlacklistTimeoutSeconds", true),
     tdsqlDirectReconnectProxyIntervalTimeSeconds("tdsqlDirectReconnectProxyIntervalTimeSeconds", true),
+    tdsqlDirectProxyConnectMaxIdleTime("tdsqlDirectProxyConnectMaxIdleTime", true),
+
     tdsqlDirectParallelCreateConnMode("tdsqlDirectParallelCreateConnMode", true),
 
     // Enable Query Attributes

@@ -29,14 +29,7 @@
 
 package com.tencentcloud.tdsql.mysql.cj.conf;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_PROXY_BLACKLIST_TIMEOUT_SECONDS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_READ_WRITE_MODE;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_CLOSE_CONN_TIMEOUT_MILLIS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_RECONNECT_PROXY_INTERVAL_TIME_SECONDS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_CONN_SOCKET_TIMEOUT_MILLIS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_INTERVAL_MILLIS;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_TOPO_REFRESH_STMT_TIMEOUT_SECONDS;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.*;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_ERROR_RETRY_INTERVAL_TIME_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_INTERVAL_TIME_MILLIS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance.TdsqlLoadBalanceConst.DEFAULT_TDSQL_LOAD_BALANCE_HEARTBEAT_MAX_ERROR_RETRIES;
@@ -1013,6 +1006,13 @@ public class PropertyDefinitions {
                         DEFAULT_VALUE_TRUE,
                         RUNTIME_NOT_MODIFIABLE,
                         Messages.getString("ConnectionProperties.tdsqlDirectParallelCreateConnMode"),
+                        "1.5.0",
+                        CATEGORY_HA,
+                        Integer.MIN_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlDirectProxyConnectMaxIdleTime,
+                        DEFAULT_TDSQL_DIRECT_PROXY_CONNECT_MAX_IDLE_TIME_SECONDS,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlDirectProxyConnectMaxIdleTime"),
                         "1.5.0",
                         CATEGORY_HA,
                         Integer.MIN_VALUE),

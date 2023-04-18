@@ -27,10 +27,6 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logE
  */
 public class TdsqlDirectDataSource {
 
-    public String getDataSourceUuid() {
-        return dataSourceUuid;
-    }
-
     private final String dataSourceUuid;
     private final TdsqlDirectDataSourceConfig dataSourceConfig;
     private final AtomicBoolean isInitialized;
@@ -150,10 +146,15 @@ public class TdsqlDirectDataSource {
         return this.isActived.get();
     }
 
+    public String getDataSourceUuid() {
+        return dataSourceUuid;
+    }
+
     public boolean shouldBeClosed() {
         return (this.getConnectionManager().getLiveConnectionMap().size() == 0 &
                 this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() != 0 &
-                System.currentTimeMillis() - this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() > 1000 * 60);
+                System.currentTimeMillis() - this.getConnectionManager().getLastEmptyLiveConnectionTimestamp()
+                        > (this.dataSourceConfig.getTdsqlDirectProxyConnectMaxIdleTime() * 1000));
     }
 
     public void close() {

@@ -93,6 +93,12 @@ public class TdsqlDirectTopologyServer {
     }
 
     public void stopRefreshTopology() {
+        if (this.refreshTopologyTaskFuture.cancel(true)) {
+            logInfo("cancel refresh topo task successfully");
+        }
+        if (this.topologyRefreshExecutor.remove(this.refreshTopologyTaskFuture)) {
+            logInfo("remove refresh topo task successfully");
+        }
         this.topologyRefreshExecutor.shutdownNow();
     }
 
