@@ -47,13 +47,7 @@ public class TdsqlDirectTopologyServer {
     private final Map<String, Long> proxyBlacklist;
     private final ScheduledThreadPoolExecutor topologyRefreshExecutor;
     private final Executor netTimeoutExecutor;
-
-    public TdsqlDirectRefreshTopologyTask getRefreshTopologyTask() {
-        return refreshTopologyTask;
-    }
-
     private TdsqlDirectRefreshTopologyTask refreshTopologyTask;
-
     private RunnableScheduledFuture<?> refreshTopologyTaskFuture;
 
     /**
@@ -93,6 +87,13 @@ public class TdsqlDirectTopologyServer {
     }
 
     public void stopRefreshTopology() {
+        while(this.refreshTopologyTaskFuture.isDone()) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(10);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
         if (this.refreshTopologyTaskFuture.cancel(true)) {
             logInfo("cancel refresh topo task successfully");
         }
@@ -207,6 +208,10 @@ public class TdsqlDirectTopologyServer {
     public void addToBlacklist(String hostPortPair) {
         this.proxyBlacklist.put(hostPortPair,
                 System.currentTimeMillis() + this.dataSourceConfig.getTdsqlDirectProxyBlacklistTimeoutSeconds() * 1000);
+    }
+
+    public TdsqlDirectRefreshTopologyTask getRefreshTopologyTask() {
+        return refreshTopologyTask;
     }
 
     /**

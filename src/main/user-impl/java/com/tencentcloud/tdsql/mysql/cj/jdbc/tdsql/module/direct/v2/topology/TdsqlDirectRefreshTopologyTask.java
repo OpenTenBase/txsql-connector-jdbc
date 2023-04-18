@@ -36,10 +36,6 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
     private final List<String> unmodifiableHostPortList;
     private final Map<String, TdsqlDirectProxyConnectionHolder> unmodifiableLiveConnectionMap;
 
-    public Throwable getLastException() {
-        return lastException;
-    }
-
     private Throwable lastException;
 
     public TdsqlDirectRefreshTopologyTask(TdsqlDirectDataSourceConfig dataSourceConfig,
@@ -169,5 +165,9 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
             m.put(list.get(i), i);
         }
         return m;
+    }
+
+    public Throwable getLastException() {
+        return lastException;
     }
 }
