@@ -87,7 +87,7 @@ public class TdsqlDirectTopologyServer {
     }
 
     public void stopRefreshTopology() {
-        this.refreshTopologyTask.setIsClosed(false);
+        this.refreshTopologyTask.setIsClosed(true);
         if (this.refreshTopologyTaskFuture.cancel(true)) {
             logInfo("cancel refresh topo task successfully");
         }
