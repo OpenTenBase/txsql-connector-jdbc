@@ -50,10 +50,10 @@ public abstract class BaseTest {
      *
      */
     protected static final String URL_RW = "jdbc:mysql:direct://"
-        + "9.30.0.250:15012,"
+        + "9.30.2.116:15012,9.30.2.89:15012"
         + "/test?useSSL=false&tdsqlReadWriteMode=rw";
     protected static final String URL_RO = "jdbc:mysql:direct://"
-            + "9.30.0.250:15012,"
+            + "9.30.2.116:15012,9.30.2.89:15012"
             + "/test?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=12.9";
     protected static final String USER_RW = "qt4s";
     protected static final String PASS_RW = "g<m:7KNDF.L1<^1C";

@@ -1,10 +1,6 @@
 package tdsql.direct.v1;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -22,30 +18,35 @@ import tdsql.direct.v1.base.BaseTest;
  */
 public class ProxyTest extends BaseTest {
 
-    private static final String DB_URL = "jdbc:tdsql-mysql:direct://9.30.0.250:15012,9.30.2.116:15012,9.30.2.89:15012,9.30.2.94:15012/testdb"
+    private static final String DB_URL = "jdbc:tdsql-mysql:direct://9.30.2.116:15016,9.30.2.89:15016,9.30.2.94:15016/test"
             + "?useLocalSessionStates=true"
             + "&useUnicode=true"
             + "&characterEncoding=utf-8"
             + "&serverTimezone=Asia/Shanghai"
-            + "&tdsqlReadWriteMode=ro&tdsqlDirectMaxSlaveDelaySeconds=10&useSSL=false&tdsqlDirectReadWriteMode=ro&connectTimeout=20000";
+            + "&tdsqlDirectMaxSlaveDelaySeconds=10&useSSL=false&tdsqlDirectReadWriteMode=rw&connectTimeout=20000";
     private static final String USERNAME = "qt4s";
     private static final String PASSWORD = "g<m:7KNDF.L1<^1C";
 
     @Test
     @Disabled
     public void testOneProxyDown() throws SQLException, InterruptedException {
+        Connection conn = DriverManager.getConnection(DB_URL, USERNAME, PASSWORD);
+        Statement stmt = conn.createStatement();
         for (; ; ) {
-            Connection conn = DriverManager.getConnection(DB_URL, USERNAME, PASSWORD);
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery("select 1");
-            rs.next();
-            System.out.println(rs.getString(1));
-            rs.close();
-            stmt.close();
-            conn.close();
+            try{
+                ResultSet rs = stmt.executeQuery("select 1");
+                rs.next();
+                System.out.println(rs.getString(1));
+                rs.close();
 
-            TimeUnit.SECONDS.sleep(1);
+                TimeUnit.SECONDS.sleep(60);
+            } catch (Throwable e) {
+                e.printStackTrace();
+                break;
+            }
         }
+        stmt.close();
+        conn.close();
     }
 
     @Test
