@@ -29,29 +29,22 @@
 
 package com.tencentcloud.tdsql.mysql.cj.protocol.a;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import com.tencentcloud.tdsql.mysql.cj.Constants;
 import com.tencentcloud.tdsql.mysql.cj.Messages;
+import com.tencentcloud.tdsql.mysql.cj.NativeSession;
+import com.tencentcloud.tdsql.mysql.cj.Session;
 import com.tencentcloud.tdsql.mysql.cj.callback.MysqlCallbackHandler;
 import com.tencentcloud.tdsql.mysql.cj.callback.UsernameCallback;
+import com.tencentcloud.tdsql.mysql.cj.conf.*;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyDefinitions.SslMode;
-import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
-import com.tencentcloud.tdsql.mysql.cj.conf.RuntimeProperty;
+import com.tencentcloud.tdsql.mysql.cj.conf.url.LoadBalanceConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.ExceptionInterceptor;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.UnableToConnectException;
 import com.tencentcloud.tdsql.mysql.cj.exceptions.WrongArgumentException;
-import com.tencentcloud.tdsql.mysql.cj.protocol.AuthenticationPlugin;
-import com.tencentcloud.tdsql.mysql.cj.protocol.AuthenticationProvider;
-import com.tencentcloud.tdsql.mysql.cj.protocol.Protocol;
-import com.tencentcloud.tdsql.mysql.cj.protocol.ServerSession;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcPropertySet;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcPropertySetImpl;
+import com.tencentcloud.tdsql.mysql.cj.protocol.*;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.IntegerDataType;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringLengthDataType;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.NativeConstants.StringSelfDataType;
@@ -66,6 +59,9 @@ import com.tencentcloud.tdsql.mysql.cj.protocol.a.authentication.MysqlOldPasswor
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.authentication.Sha256PasswordPlugin;
 import com.tencentcloud.tdsql.mysql.cj.protocol.a.result.OkPacket;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.*;
 
 public class NativeAuthenticationProvider implements AuthenticationProvider<NativePacketPayload> {
     private static final int AUTH_411_OVERHEAD = 33;
@@ -656,9 +652,132 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
 
         // connection attributes
         if (((clientParam & NativeServerSession.CLIENT_CONNECT_ATTRS) != 0)) {
-            appendConnectionAttributes(last_sent, this.propertySet.getStringProperty(PropertyKey.connectionAttributes).getValue(), enc);
+            String connAttrs = this.propertySet.getStringProperty(PropertyKey.connectionAttributes).getValue();
+            if (this.propertySet.getBooleanProperty(PropertyKey.tdsqlSendClientInfoEnable).getValue()) {
+                connAttrs = getLoggableConnectionAttribute() + connAttrs;
+            }
+            appendConnectionAttributes(last_sent, connAttrs, enc);
         }
         return last_sent;
+    }
+
+    private String getLoggableConnectionAttribute() {
+        StringBuffer loggableConnectionAttribute = new StringBuffer();
+        loggableConnectionAttribute.append("tdsql_client_addr:");
+
+        PropertySet innerProperty = this.propertySet;
+
+        // 获取客户端ip和端口
+        try {
+            String localIp = this.protocol.getSocketConnection().getMysqlSocket().getLocalAddress().getHostAddress();
+            int localPort = this.protocol.getSocketConnection().getMysqlSocket().getLocalPort();
+            loggableConnectionAttribute.append(localIp + ":" + localPort + "={");
+        } catch (IOException e) {
+            // Ignore
+            e.printStackTrace();
+        }
+
+        // 获取连接
+        DatabaseUrlContainer dbUrl = protocol.getSession().getHostInfo().getOriginalUrl();
+        if (dbUrl instanceof ConnectionUrl) {
+            ConnectionUrl.Type type = ((ConnectionUrl) dbUrl).getType();
+            loggableConnectionAttribute.append("prefix:" + extractPrefix(type.getScheme()) + "; ");
+
+            switch (type) {
+                case SINGLE_CONNECTION:
+                    loggableConnectionAttribute.append("connectionType:single_connection; ");
+                    break;
+                case FAILOVER_CONNECTION:
+                case FAILOVER_DNS_SRV_CONNECTION:
+                    loggableConnectionAttribute.append("connectionType:failover_connection; ");
+                    break;
+                case LOADBALANCE_CONNECTION:
+                case LOADBALANCE_DNS_SRV_CONNECTION:
+                    // 直连在连接网关的时候其实是用的loadBalance，因此需要在loadBalance中判断一下
+                    if (((LoadBalanceConnectionUrl) dbUrl).isDirectConnection()) {
+                        loggableConnectionAttribute.append("connectionType:direction_connection; ");
+                        JdbcPropertySet directionProperties = new JdbcPropertySetImpl();
+                        directionProperties.initializeProperties(((LoadBalanceConnectionUrl) dbUrl).getPropertiesForDitection());
+                        innerProperty = directionProperties;
+                        break;
+                    }
+
+                    Properties props = ((ConnectionUrl) dbUrl).getConnectionArgumentsAsProperties();
+                    // 判断是否使用连接收敛的负载均衡算法
+                    if (props.containsKey(PropertyKey.tdsqlLoadBalanceStrategy.getKeyName())) {
+                        loggableConnectionAttribute.append("connectionType:tdsql_loadbanance_connection; ");
+                    } else {
+                        loggableConnectionAttribute.append("connectionType:loadbanance_connection; ");
+                    }
+                    break;
+                case REPLICATION_CONNECTION:
+                case REPLICATION_DNS_SRV_CONNECTION:
+                    loggableConnectionAttribute.append("connectionType:replication_conection; ");
+                    break;
+                case DIRECT_CONNECTION:
+                    // 当获取到是Direct connection的时候，其实不需要做任何操作，因为这个时候是对接数据借点了，不需要记录操作信息
+                    return "";
+            }
+        }
+
+        // 获取用户和数据库
+        loggableConnectionAttribute.append("user:" + protocol.getSession().getHostInfo().getUser() + "; ");
+        loggableConnectionAttribute.append("database:" + protocol.getSession().getHostInfo().getDatabase() + "; ");
+
+        // 获取密码字符集
+        if (innerProperty.getStringProperty(PropertyKey.passwordCharacterEncoding) != null &&
+                innerProperty.getStringProperty(PropertyKey.passwordCharacterEncoding).getValue() != null)
+            loggableConnectionAttribute.append("passwordCharacterEncoding:" + innerProperty.getStringProperty(PropertyKey.passwordCharacterEncoding).getValue() + "; ");
+
+        // 获取字符集
+        if (innerProperty.getStringProperty(PropertyKey.characterEncoding) != null &&
+                innerProperty.getStringProperty(PropertyKey.characterEncoding).getValue() != null)
+            loggableConnectionAttribute.append("characterEncoding:" + innerProperty.getStringProperty(PropertyKey.characterEncoding).getValue() + "; ");
+
+        // 获取时区
+        if (innerProperty.getStringProperty(PropertyKey.connectionTimeZone) != null &&
+                innerProperty.getStringProperty(PropertyKey.connectionTimeZone).getValue() != null)
+            loggableConnectionAttribute.append("connectionTimeZone:" + innerProperty.getStringProperty(PropertyKey.connectionTimeZone).getValue() + "; ");
+
+        // 获取句柄超时
+        if (innerProperty.getIntegerProperty(PropertyKey.socketTimeout) != null &&
+                innerProperty.getIntegerProperty(PropertyKey.socketTimeout).getValue() != null)
+            loggableConnectionAttribute.append("socketTimeout:" + innerProperty.getIntegerProperty(PropertyKey.socketTimeout).getValue() + "; ");
+
+        // 获取读写模式
+        if (innerProperty.getStringProperty(PropertyKey.tdsqlDirectReadWriteMode) != null &&
+                innerProperty.getStringProperty(PropertyKey.tdsqlDirectReadWriteMode).getValue() != null)
+            loggableConnectionAttribute.append("tdsqlDirectReadWriteMode:" + innerProperty.getStringProperty(PropertyKey.tdsqlDirectReadWriteMode).getValue() + "; ");
+
+        // 获取备库延迟阈值
+        if (innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds) != null &&
+                innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds).getValue() != null)
+            loggableConnectionAttribute.append("tdsqlDirectMaxSlaveDelaySeconds:" + innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds).getValue() + "; ");
+
+        // 获取是否读退主
+        if (innerProperty.getStringProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode) != null &&
+                innerProperty.getStringProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode).getValue() != null)
+            loggableConnectionAttribute.append("tdsqlDirectMasterCarryOptOfReadOnlyMode:" + innerProperty.getStringProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode).getValue() + "; ");
+
+        // 获取拓扑刷新时间
+        if (innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis) != null &&
+                innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis).getValue() != null)
+            loggableConnectionAttribute.append("tdsqlDirectTopoRefreshIntervalMillis:" + innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis).getValue() + "; ");
+
+        // 获取负载均衡算法
+        if (innerProperty.getStringProperty(PropertyKey.tdsqlLoadBalanceStrategy) != null &&
+                innerProperty.getStringProperty(PropertyKey.tdsqlLoadBalanceStrategy).getValue() != null)
+            loggableConnectionAttribute.append("tdsqlLoadBalanceStrategy:" + innerProperty.getStringProperty(PropertyKey.tdsqlLoadBalanceStrategy).getValue() + "; ");
+
+        loggableConnectionAttribute.append("}");
+
+        return loggableConnectionAttribute.toString();
+    }
+
+    private String extractPrefix(String scheme) {
+        String prefix = scheme.substring(5);
+        int endIndex = prefix.indexOf(":");
+        return prefix.substring(0, endIndex);
     }
 
     private NativePacketPayload createChangeUserPacket(ServerSession serverSession, String pluginName, NativePacketPayload authData) {

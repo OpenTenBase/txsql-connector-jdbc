@@ -171,7 +171,7 @@ public final class TdsqlDirectTopoServer {
         config.put(PropertyKey.loadBalanceAutoCommitStatementThreshold.getKeyName(), "1");
         config.put(PropertyKey.loadBalancePingTimeout.getKeyName(), "1000");
         config.put(PropertyKey.loadBalanceValidateConnectionOnSwapServer.getKeyName(), "true");
-        LoadBalanceConnectionUrl myConnUrl = new LoadBalanceConnectionUrl(connectionUrl.getHostsList(), config);
+        LoadBalanceConnectionUrl myConnUrl = LoadBalanceConnectionUrl.buildLoadBalanceConnectionUrlForDirect(connectionUrl.getHostsList(), config, this.connectionUrl.getConnectionArgumentsAsProperties());
         try {
             this.proxyConnection = LoadBalancedConnectionProxy.createProxyInstance(myConnUrl);
             if (this.proxyConnection.isClosed() || !this.proxyConnection.isValid(3)) {
