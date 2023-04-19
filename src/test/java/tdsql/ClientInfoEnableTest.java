@@ -9,13 +9,11 @@ import java.sql.SQLException;
 
 public class ClientInfoEnableTest {
 
-    private String proxy1 = "9.30.0.250:15012";
+    private String proxy2 = "9.30.2.116:15016";
 
-    private String proxy2 = "9.30.2.116:15012";
+    private String proxy3 = "9.30.2.89:15016";
 
-    private String proxy3 = "9.30.2.89:15012";
-
-    private String proxy4 = "9.30.2.94:15012";
+    private String proxy4 = "9.30.2.94:15016";
     public Connection getConn(String connUrl) {
         Connection conn = null;
         try {
@@ -53,25 +51,25 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testWithoutTdsqlSendClientInfoEnable() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql://" + proxy1 + "/test?connectionAttributes=tdsqlA:A,tdsql_B:B";
+        String connUrl = "jdbc:tdsql-mysql://" + proxy2 + "/test?";
         execute(connUrl);
     }
 
     @Test
     public void testWithFalseOpt() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql://" + proxy1 + "/test?tdsqlSendClientInfoEnable=false&connectionAttributes=tdsqlA:A,tdsql_B:B";
+        String connUrl = "jdbc:tdsql-mysql://" + proxy2 + "/test?tdsqlSendClientInfoEnable=false";
         execute(connUrl);
     }
 
     @Test
     public void testSingleConnectionWithoutOtherParams() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql://" + proxy1 + "/test?tdsqlSendClientInfoEnable=true&connectionAttributes=tdsqlA:A,tdsql_B:B";
+        String connUrl = "jdbc:tdsql-mysql://" + proxy2 + "/test?tdsqlSendClientInfoEnable=true";
         execute(connUrl);
     }
 
     @Test
     public void testSingleConnectionWithAllParams() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql://" + proxy1 + "/test?tdsqlSendClientInfoEnable=true&connectionAttributes=tdsqlA:A,tdsql_B:B" +
+        String connUrl = "jdbc:tdsql-mysql://" + proxy2 + "/test?tdsqlSendClientInfoEnable=true" +
                 "&passwordCharacterEncoding=utf-8" +
                 "&characterEncoding=utf-8" +
                 "&connectionTimeZone=Asia/Shanghai" +
@@ -81,8 +79,8 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testTdSqlLBConnectionWithoutOtherParams() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql:loadbalance://" + proxy1 + "," + proxy2 + "," + proxy3 + "," + proxy4 +
-                "/test?tdsqlSendClientInfoEnable=true&connectionAttributes=tdsqlA:A,tdsql_B:B" +
+        String connUrl = "jdbc:tdsql-mysql:loadbalance://" +  proxy2 + "," + proxy3 + "," + proxy4 +
+                "/test?tdsqlSendClientInfoEnable=true" +
                 "&tdsqlLoadBalanceStrategy=sed" +
                 "&tdsqlLoadBalanceWeightFactor=1,1,1,1" +
                 "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
@@ -93,8 +91,8 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testTdSqlLBConnectionWithAllParams() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql:loadbalance://" + proxy1 + "," + proxy2 + "," + proxy3 + "," + proxy4 +
-                "/test?tdsqlSendClientInfoEnable=true&connectionAttributes=tdsqlA:A,tdsql_B:B" +
+        String connUrl = "jdbc:tdsql-mysql:loadbalance://" + proxy2 + "," + proxy3 + "," + proxy4 +
+                "/test?tdsqlSendClientInfoEnable=true" +
                 "&tdsqlLoadBalanceStrategy=sed" +
                 "&tdsqlLoadBalanceWeightFactor=1,1,1,1" +
                 "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
@@ -109,8 +107,8 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testTdSqlDirectConnectionWithoutOtherParams() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql:direct://" + proxy1 +
-                "/test?tdsqlSendClientInfoEnable=true&connectionAttributes=tdsqlA:A,tdsql_B:B" +
+        String connUrl = "jdbc:tdsql-mysql:direct://" + proxy2 +
+                "/test?tdsqlSendClientInfoEnable=true" +
                 "&tdsqlDirectReadWriteMode=ro" +
                 "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true";
         execute(connUrl);
@@ -118,8 +116,8 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testTdSqlDirectConnectionWithAllParams() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql:direct://" + proxy1 +
-                "/test?tdsqlSendClientInfoEnable=true&connectionAttributes=tdsqlA:A,tdsql_B:B" +
+        String connUrl = "jdbc:tdsql-mysql:direct://" + proxy2 +
+                "/test?tdsqlSendClientInfoEnable=true" +
                 "&passwordCharacterEncoding=utf-8" +
                 "&characterEncoding=utf-8" +
                 "&connectionTimeZone=Asia/Shanghai" +
