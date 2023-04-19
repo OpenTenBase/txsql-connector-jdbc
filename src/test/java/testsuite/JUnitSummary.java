@@ -30,6 +30,8 @@
 package testsuite;
 
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -96,10 +98,18 @@ public class JUnitSummary implements TestExecutionListener {
                     break;
                 case FAILED:
                     println("   Failed: " + testIdentifier.getDisplayName());
+                    println("   Exception stack: " + getStckTrace(testExecutionResult.getThrowable().get()));
                     this.numFailedInTestSet.incrementAndGet();
                     break;
             }
         }
+    }
+
+    private String getStckTrace(Throwable e) {
+        final StringWriter sw = new StringWriter();
+        final PrintWriter pw = new PrintWriter(sw, true);
+        e.printStackTrace(pw);
+        return sw.getBuffer().toString();
     }
 
     private void println(String str) {

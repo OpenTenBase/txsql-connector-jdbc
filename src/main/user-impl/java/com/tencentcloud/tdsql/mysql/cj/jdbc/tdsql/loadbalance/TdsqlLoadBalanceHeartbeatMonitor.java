@@ -11,14 +11,8 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlThreadFactoryBuilder;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -69,7 +63,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         // 根据生成的DataSourceUuid，初始化第一次心跳检测完成计数器
         // 计数器的大小设置为该DataSource里面配置的IP地址的个数，每个IP地址心跳检测完成后，计数器递减
         String datasourceUuid = tdsqlLoadBalanceInfo.getDatasourceUuid();
-        Set<String> ipPortSet = TdsqlLoadBalanceInfo.parseDatasourceUuid(datasourceUuid);
+        Set<String> ipPortSet = tdsqlLoadBalanceInfo.getIpPortSet();
         // 取出DataSourceUuid中的IP和端口字符串列表，逐一判断
         for (String ipPortStr : ipPortSet) {
             if (firstCheckFinishedMap.containsKey(ipPortStr)) {
@@ -102,9 +96,9 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         }
     }
 
-    public List<CountDownLatch> getFirstCheckFinished(String datasourceUuid) {
+    public List<CountDownLatch> getFirstCheckFinished(Set<String> ipPortSet) {
         List<CountDownLatch> latchList = new ArrayList<>();
-        for (String ipPort : TdsqlLoadBalanceInfo.parseDatasourceUuid(datasourceUuid)) {
+        for (String ipPort : ipPortSet) {
             if (this.firstCheckFinishedMap.containsKey(ipPort)) {
                 latchList.add(this.firstCheckFinishedMap.get(ipPort));
             }
@@ -150,7 +144,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         public void run() {
             try {
                 logInfo("Start heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
-                int attemptCount = 0;
+                int attemptCount = 1;
 
                 // 设置建立心跳检测连接的超时时间为1秒，同时需要保留改IP地址设置的其它参数设置
                 Properties properties = tdsqlHostInfo.exposeAsProperties();
@@ -188,7 +182,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                         // 计算并比较心跳检测次数是否达到允许的最大次数
                         // 如果没有达到，则继续下次心跳检测
                         // 否则，将该IP地址加入黑名单并记录错误级别的日志，同时更新首次检测标识和计数器
-                        if (attemptCount + 1 > retries) {
+                        if (attemptCount > retries) {
                             // 加入黑名单
                             logError("Host heartbeat monitor failed. now attempts [" + attemptCount
                                     + "] equals max attempts [" + retries + "], try add to blacklist. HostInfo ["

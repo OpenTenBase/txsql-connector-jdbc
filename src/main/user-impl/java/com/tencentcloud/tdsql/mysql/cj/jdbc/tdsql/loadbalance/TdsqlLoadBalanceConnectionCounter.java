@@ -19,7 +19,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class TdsqlLoadBalanceConnectionCounter {
 
-    private boolean counterInitialized = false;
     /**
      * 保存了每一个DataSourceUuid与其连接计数器的映射关系
      */
@@ -38,23 +37,20 @@ public class TdsqlLoadBalanceConnectionCounter {
      * @param tdsqlLoadBalanceInfo {@link TdsqlLoadBalanceInfo} 负载均衡信息记录类对象
      */
     public synchronized void initialize(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) {
-        if (!this.counterInitialized) {
-            logInfo("Connection counter initializing.");
-            String datasourceUuid = tdsqlLoadBalanceInfo.getDatasourceUuid();
-            if (!this.counterDatasourceMap.containsKey(datasourceUuid)) {
-                TdsqlAtomicLongMap<TdsqlHostInfo> counter = TdsqlAtomicLongMap.create();
-                for (TdsqlHostInfo tdsqlHostInfo : tdsqlLoadBalanceInfo.getTdsqlHostInfoList()) {
-                    // 在本类中，所有的put方法，都从之前put一个Long类型修改为一个NodeMsg实例，
-                    // 因为isMaster字段在该功能中不重要，所以将其设为null
-                    counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
-                }
-                this.counterDatasourceMap.put(datasourceUuid, counter);
-                logInfo("New datasource add in counter [" + datasourceUuid + "], current counter ["
-                        + this.printCounter() + "]");
+        logInfo("Connection counter initializing.");
+        String datasourceUuid = tdsqlLoadBalanceInfo.getDatasourceUuid();
+        if (!this.counterDatasourceMap.containsKey(datasourceUuid)) {
+            TdsqlAtomicLongMap<TdsqlHostInfo> counter = TdsqlAtomicLongMap.create();
+            for (TdsqlHostInfo tdsqlHostInfo : tdsqlLoadBalanceInfo.getTdsqlHostInfoList()) {
+                // 在本类中，所有的put方法，都从之前put一个Long类型修改为一个NodeMsg实例，
+                // 因为isMaster字段在该功能中不重要，所以将其设为null
+                counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
             }
-            this.counterInitialized = true;
-            logInfo("Connection counter initialized, current counter [" + this.printCounter() + "]");
+            this.counterDatasourceMap.put(datasourceUuid, counter);
+            logInfo("New datasource add in counter [" + datasourceUuid + "], current counter ["
+                    + this.printCounter() + "]");
         }
+        logInfo("Connection counter initialized, current counter [" + this.printCounter() + "]");
     }
 
     /**

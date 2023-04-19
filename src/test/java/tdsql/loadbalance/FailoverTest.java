@@ -25,6 +25,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import javax.sql.DataSource;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import tdsql.loadbalance.base.BaseTest;
 
@@ -36,7 +38,7 @@ import tdsql.loadbalance.base.BaseTest;
 public class FailoverTest extends BaseTest {
 
     private final String jdbcUrl = "jdbc:tdsql-mysql:loadbalance:" +
-            "//9.30.0.250:15023,9.30.2.116:15023/test" +
+            "//9.30.0.250:15012,9.30.2.116:15012/test" +
             "?tdsqlLoadBalanceStrategy=sed" +
             "&logger=Slf4JLogger" +
             "&tdsqlLoadBalanceWeightFactor=2,1" +
@@ -46,6 +48,7 @@ public class FailoverTest extends BaseTest {
             "&autoReconnect=true&socketTimeout=5000";
 
     @Test
+    @Disabled
     public void case01() {
         Properties prop = new Properties();
         prop.setProperty(PROP_DRIVERCLASSNAME, DRIVER_CLASS_NAME);

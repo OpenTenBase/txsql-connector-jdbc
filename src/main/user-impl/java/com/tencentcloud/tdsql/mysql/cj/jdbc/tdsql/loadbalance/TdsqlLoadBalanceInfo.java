@@ -1,6 +1,8 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.loadbalance;
 
+import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlDataSourceUuidGenerator;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,6 +12,8 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
+
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
 
 /**
  * <p>TDSQL-MySQL独有的负载均衡信息记录类</p>
@@ -37,6 +41,10 @@ public class TdsqlLoadBalanceInfo {
     private static final String LEFT_CURLY_BRACES = "{";
     private static final String RIGHT_CURLY_BRACES = "}";
 
+    public void setDatasourceUuid(String datasourceUuid) {
+        this.datasourceUuid = datasourceUuid;
+    }
+
     public String getDatasourceUuid() {
         return datasourceUuid;
     }
@@ -53,32 +61,10 @@ public class TdsqlLoadBalanceInfo {
      *
      * @param tdsqlHostInfoList {@link TdsqlHostInfo}对象列表
      */
-    public void setTdsqlHostInfoList(List<TdsqlHostInfo> tdsqlHostInfoList) {
-        List<String> hostPortPairList = new ArrayList<>(tdsqlHostInfoList.size());
-        for (TdsqlHostInfo tdsqlHostInfo : tdsqlHostInfoList) {
-            hostPortPairList.add(tdsqlHostInfo.getHostPortPair());
-        }
-        Collections.sort(hostPortPairList);
-        StringJoiner ipPortDbJoiner = new StringJoiner(PLUS_MARK);
-        for (String hostPort : hostPortPairList) {
-            ipPortDbJoiner.add(hostPort);
-        }
-
-        // 继续拼装数据库名称
-        TdsqlHostInfo info = tdsqlHostInfoList.get(0);
-        ipPortDbJoiner.add(info.getDatabase());
-
-        // 继续拼装URL参数
-        StringJoiner propJoiner = new StringJoiner(AND_MARK, LEFT_CURLY_BRACES, RIGHT_CURLY_BRACES);
-        for (Entry<String, String> entry : info.getHostProperties().entrySet()) {
-            propJoiner.add(entry.getKey() + EQUAL_MARK + entry.getValue());
-        }
-
-        // 最终的UUID
-        String uuid = ipPortDbJoiner + QUESTION_MARK + propJoiner;
-
+    public void setTdsqlHostInfoList(List<TdsqlHostInfo> tdsqlHostInfoList, ConnectionUrl connectionUrl) {
         this.tdsqlHostInfoList = tdsqlHostInfoList;
-        this.datasourceUuid = uuid;
+        this.datasourceUuid = TdsqlDataSourceUuidGenerator.generateUuid(connectionUrl);
+        logInfo("current connection uuid: " + this.datasourceUuid);
 
         for (TdsqlHostInfo tdsqlHostInfo : this.tdsqlHostInfoList) {
             tdsqlHostInfo.setOwnerUuid(this.datasourceUuid);
@@ -130,25 +116,33 @@ public class TdsqlLoadBalanceInfo {
         this.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis = tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis;
     }
 
-    /**
-     * <p>
-     * 解析DataSourceUuid的值，获取其中的IP和端口列表
-     * </p>
-     *
-     * @param datasourceUuid DataSourceUuid
-     * @return IP和端口字符串列表
-     */
-    public static Set<String> parseDatasourceUuid(String datasourceUuid) {
-        String ipPortDbStr = datasourceUuid;
+//    /**
+//     * <p>
+//     * 解析DataSourceUuid的值，获取其中的IP和端口列表
+//     * </p>
+//     *
+//     * @param datasourceUuid DataSourceUuid
+//     * @return IP和端口字符串列表
+//     */
+//    public static Set<String> parseDatasourceUuid(String datasourceUuid) {
+//        String ipPortDbStr = datasourceUuid;
+//
+//        // 去掉URL参数
+//        if (datasourceUuid.contains(QUESTION_MARK)) {
+//            ipPortDbStr = datasourceUuid.substring(0, datasourceUuid.indexOf(QUESTION_MARK));
+//        }
+//
+//        // 去掉数据库名称
+//        String ipPortStr = ipPortDbStr.substring(0, ipPortDbStr.lastIndexOf(PLUS_MARK));
+//        return new LinkedHashSet<>(StringUtils.split(ipPortStr, "\\+", true));
+//    }
 
-        // 去掉URL参数
-        if (datasourceUuid.contains(QUESTION_MARK)) {
-            ipPortDbStr = datasourceUuid.substring(0, datasourceUuid.indexOf(QUESTION_MARK));
+    public Set<String> getIpPortSet() {
+        Set<String> ipPortSet = new LinkedHashSet<>();
+        for (TdsqlHostInfo hostInfo : this.getTdsqlHostInfoList()) {
+            ipPortSet.add(hostInfo.getHostPortPair());
         }
-
-        // 去掉数据库名称
-        String ipPortStr = ipPortDbStr.substring(0, ipPortDbStr.lastIndexOf(PLUS_MARK));
-        return new LinkedHashSet<>(StringUtils.split(ipPortStr, "\\+", true));
+        return ipPortSet;
     }
 
     @Override
