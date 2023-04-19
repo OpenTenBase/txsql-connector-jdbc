@@ -69,7 +69,7 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testSingleConnectionWithAllParams() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql://" + proxy2 + "/test?tdsqlSendClientInfoEnable=true" +
+        String connUrl = "jdbc:mysql://" + proxy2 + "/test?tdsqlSendClientInfoEnable=true" +
                 "&passwordCharacterEncoding=utf-8" +
                 "&characterEncoding=utf-8" +
                 "&connectionTimeZone=Asia/Shanghai" +
@@ -91,9 +91,9 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testTdSqlLBConnectionWithAllParams() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql:loadbalance://" + proxy2 + "," + proxy3 + "," + proxy4 +
+        String connUrl = "jdbc:mysql:loadbalance://" + proxy2 + "," + proxy3 + "," + proxy4 +
                 "/test?tdsqlSendClientInfoEnable=true" +
-                "&tdsqlLoadBalanceStrategy=sed" +
+                "&tdsqlLoadBalanceStrategy=lc" +
                 "&tdsqlLoadBalanceWeightFactor=1,1,1,1" +
                 "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
                 "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000" +
@@ -107,7 +107,7 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testTdSqlDirectConnectionWithoutOtherParams() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql:direct://" + proxy2 +
+        String connUrl = "jdbc:mysql:direct://" + proxy2 +
                 "/test?tdsqlSendClientInfoEnable=true" +
                 "&tdsqlDirectReadWriteMode=ro" +
                 "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true";
@@ -122,11 +122,12 @@ public class ClientInfoEnableTest {
                 "&characterEncoding=utf-8" +
                 "&connectionTimeZone=Asia/Shanghai" +
                 "&socketTimeout=10000" +
+                "&connectTimeout=1000" +
                 "&tdsqlDirectReadWriteMode=ro" +
                 "&tdsqlDirectMaxSlaveDelaySeconds=1800" +
                 "&tdsqlDirectMasterCarryOptOfReadOnlyMode=true" +
                 "&tdsqlDirectTopoRefreshIntervalMillis=1000" +
-                "&tdsqlLoadBalanceStrategy=sed";
+                "&tdsqlLoadBalanceStrategy=lc";
         execute(connUrl);
     }
 }

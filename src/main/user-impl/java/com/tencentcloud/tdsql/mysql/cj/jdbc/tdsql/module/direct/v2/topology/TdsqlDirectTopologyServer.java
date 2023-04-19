@@ -1,5 +1,6 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology;
 
+import static com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl.Type.DIRECT_CONNECTION;
 import static com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl.Type.SINGLE_CONNECTION;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
@@ -11,6 +12,7 @@ import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlConst.SLASH_M
 
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
+import com.tencentcloud.tdsql.mysql.cj.conf.DatabaseUrlContainer;
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
@@ -57,7 +59,7 @@ public class TdsqlDirectTopologyServer {
      */
     public TdsqlDirectTopologyServer(TdsqlDirectDataSourceConfig dataSourceConfig) {
         this.dataSourceConfig = dataSourceConfig;
-        this.proxyHostInfoList = this.rebuildHostInfoForProxy(dataSourceConfig.getTdsqlDirectProxyHostInfoList());
+        this.proxyHostInfoList = this.rebuildHostInfoForProxy(dataSourceConfig);
         this.liveProxyConnectionMap = new HashMap<>(this.proxyHostInfoList.size());
         this.proxyBlacklist = new HashMap<>();
         // 初始化刷新拓扑信息计划任务线程池
@@ -239,13 +241,13 @@ public class TdsqlDirectTopologyServer {
     /**
      * 为Proxy重建主机信息
      *
-     * @param hostInfoList 待重建的主机信息列表
+     * @param dataSourceConfig 待重建的主机信息列表
      * @return 重建后的主机信息列表
      */
-    private List<HostInfo> rebuildHostInfoForProxy(List<HostInfo> hostInfoList) {
-        List<HostInfo> proxyHostInfoList = new ArrayList<>(hostInfoList.size());
-        for (HostInfo hi : hostInfoList) {
-            String proxyUrl = SINGLE_CONNECTION.getScheme() + DOUBLE_SLASH_MARK + hi.getHostPortPair() + SLASH_MARK
+    private List<HostInfo> rebuildHostInfoForProxy(TdsqlDirectDataSourceConfig dataSourceConfig) {
+        List<HostInfo> proxyHostInfoList = new ArrayList<>(dataSourceConfig.getTdsqlDirectProxyHostInfoList().size());
+        for (HostInfo hi : dataSourceConfig.getTdsqlDirectProxyHostInfoList()) {
+            String proxyUrl = DIRECT_CONNECTION.getScheme() + DOUBLE_SLASH_MARK + hi.getHostPortPair() + SLASH_MARK
                     + hi.getDatabase();
             Properties prop = new Properties();
             prop.setProperty(PropertyKey.USER.getKeyName(), hi.getUser());
@@ -257,7 +259,12 @@ public class TdsqlDirectTopologyServer {
             prop.setProperty(PropertyKey.useSSL.getKeyName(), Boolean.FALSE.toString());
             prop.setProperty(PropertyKey.characterEncoding.getKeyName(), StandardCharsets.UTF_8.name());
             prop.setProperty(PropertyKey.connectionTimeZone.getKeyName(), DEFAULT_CONNECTION_TIME_ZONE);
-            HostInfo proxyHostInfo = ConnectionUrl.getConnectionUrlInstance(proxyUrl, prop).getMainHost();
+            prop.setProperty(PropertyKey.tdsqlSendClientInfoEnable.getKeyName(), Boolean.valueOf(dataSourceConfig.getTdsqlSendClientInfoEnable()).toString());
+
+            HostInfo proxyHost = ConnectionUrl.getConnectionUrlInstance(proxyUrl, prop).getMainHost();
+            HostInfo mainHost = dataSourceConfig.getConnectionUrl().getMainHost();
+            DatabaseUrlContainer originalUrl = mainHost.getOriginalUrl();
+            HostInfo proxyHostInfo = new HostInfo(originalUrl, proxyHost.getHost(), proxyHost.getPort(), mainHost.getUser(), mainHost.getPassword(), proxyHost.getHostProperties());
             proxyHostInfoList.add(proxyHostInfo);
         }
         return proxyHostInfoList;

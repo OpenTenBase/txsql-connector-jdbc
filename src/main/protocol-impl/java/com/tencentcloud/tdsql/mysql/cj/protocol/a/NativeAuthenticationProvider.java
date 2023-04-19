@@ -654,6 +654,9 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
         if (((clientParam & NativeServerSession.CLIENT_CONNECT_ATTRS) != 0)) {
             String connAttrs = this.propertySet.getStringProperty(PropertyKey.connectionAttributes).getValue();
             if (this.propertySet.getBooleanProperty(PropertyKey.tdsqlSendClientInfoEnable).getValue()) {
+                if (connAttrs == null) {
+                    connAttrs = "";
+                }
                 connAttrs = getLoggableConnectionAttribute() + connAttrs;
             }
             appendConnectionAttributes(last_sent, connAttrs, enc);
@@ -679,9 +682,11 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
 
         // 获取连接
         DatabaseUrlContainer dbUrl = protocol.getSession().getHostInfo().getOriginalUrl();
+        boolean isDirectConnect = false;
+        boolean needLoadBalance = false;
         if (dbUrl instanceof ConnectionUrl) {
             ConnectionUrl.Type type = ((ConnectionUrl) dbUrl).getType();
-            loggableConnectionAttribute.append("prefix:" + extractPrefix(type.getScheme()) + "; ");
+            loggableConnectionAttribute.append("prefix:" + extractPrefix(dbUrl.getDatabaseUrl()) + "; ");
 
             switch (type) {
                 case SINGLE_CONNECTION:
@@ -693,8 +698,10 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
                     break;
                 case LOADBALANCE_CONNECTION:
                 case LOADBALANCE_DNS_SRV_CONNECTION:
+                    needLoadBalance = true;
                     // 直连在连接网关的时候其实是用的loadBalance，因此需要在loadBalance中判断一下
                     if (((LoadBalanceConnectionUrl) dbUrl).isDirectConnection()) {
+                        isDirectConnect = true;
                         loggableConnectionAttribute.append("connectionType:direction_connection; ");
                         JdbcPropertySet directionProperties = new JdbcPropertySetImpl();
                         directionProperties.initializeProperties(((LoadBalanceConnectionUrl) dbUrl).getPropertiesForDitection());
@@ -715,8 +722,19 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
                     loggableConnectionAttribute.append("connectionType:replication_conection; ");
                     break;
                 case DIRECT_CONNECTION:
-                    // 当获取到是Direct connection的时候，其实不需要做任何操作，因为这个时候是对接数据借点了，不需要记录操作信息
-                    return "";
+                    // 当获取到是Direct 第一次
+                    boolean parallelCreateConnMode = innerProperty.getBooleanProperty(PropertyKey.tdsqlDirectParallelCreateConnMode).getValue();
+                    if (!parallelCreateConnMode) {
+                        // 既然不是并发建连，那这个连接是发往数据节点的，可以不用记录
+                        return "";
+                    }
+                    needLoadBalance = true;
+                    isDirectConnect = true;
+                    JdbcPropertySet directionProperties = new JdbcPropertySetImpl();
+                    directionProperties.initializeProperties( ((ConnectionUrl) dbUrl).getConnectionArgumentsAsProperties());
+                    innerProperty = directionProperties;
+                    loggableConnectionAttribute.append("connectionType:direction_connection; ");
+                    break;
             }
         }
 
@@ -744,28 +762,42 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
                 innerProperty.getIntegerProperty(PropertyKey.socketTimeout).getValue() != null)
             loggableConnectionAttribute.append("socketTimeout:" + innerProperty.getIntegerProperty(PropertyKey.socketTimeout).getValue() + "; ");
 
+        if (innerProperty.getIntegerProperty(PropertyKey.connectTimeout) != null &&
+                innerProperty.getIntegerProperty(PropertyKey.connectTimeout).getValue() != null)
+            loggableConnectionAttribute.append("connectTimeout:" + innerProperty.getIntegerProperty(PropertyKey.connectTimeout).getValue() + "; ");
+
         // 获取读写模式
-        if (innerProperty.getStringProperty(PropertyKey.tdsqlDirectReadWriteMode) != null &&
+        // 只有在直连模式下，该参数才应该生效
+        if (isDirectConnect &
+                innerProperty.getStringProperty(PropertyKey.tdsqlDirectReadWriteMode) != null &&
                 innerProperty.getStringProperty(PropertyKey.tdsqlDirectReadWriteMode).getValue() != null)
             loggableConnectionAttribute.append("tdsqlDirectReadWriteMode:" + innerProperty.getStringProperty(PropertyKey.tdsqlDirectReadWriteMode).getValue() + "; ");
 
         // 获取备库延迟阈值
-        if (innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds) != null &&
+        // 只有在直连模式下，该参数才应该生效
+        if (isDirectConnect &
+                innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds) != null &&
                 innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds).getValue() != null)
             loggableConnectionAttribute.append("tdsqlDirectMaxSlaveDelaySeconds:" + innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds).getValue() + "; ");
 
         // 获取是否读退主
-        if (innerProperty.getStringProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode) != null &&
-                innerProperty.getStringProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode).getValue() != null)
-            loggableConnectionAttribute.append("tdsqlDirectMasterCarryOptOfReadOnlyMode:" + innerProperty.getStringProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode).getValue() + "; ");
+        // 只有在直连模式下，该参数才应该生效
+        if (isDirectConnect &
+                innerProperty.getBooleanProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode) != null &&
+                innerProperty.getBooleanProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode).getValue() != null)
+            loggableConnectionAttribute.append("tdsqlDirectMasterCarryOptOfReadOnlyMode:" + innerProperty.getBooleanProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode).getValue() + "; ");
 
         // 获取拓扑刷新时间
-        if (innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis) != null &&
+        // 只有在直连模式下，该参数才应该生效
+        if (isDirectConnect &
+                innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis) != null &&
                 innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis).getValue() != null)
             loggableConnectionAttribute.append("tdsqlDirectTopoRefreshIntervalMillis:" + innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis).getValue() + "; ");
 
         // 获取负载均衡算法
-        if (innerProperty.getStringProperty(PropertyKey.tdsqlLoadBalanceStrategy) != null &&
+        // 需要区分直连和非直连模式
+        if (needLoadBalance &
+                innerProperty.getStringProperty(PropertyKey.tdsqlLoadBalanceStrategy) != null &&
                 innerProperty.getStringProperty(PropertyKey.tdsqlLoadBalanceStrategy).getValue() != null)
             loggableConnectionAttribute.append("tdsqlLoadBalanceStrategy:" + innerProperty.getStringProperty(PropertyKey.tdsqlLoadBalanceStrategy).getValue() + "; ");
 

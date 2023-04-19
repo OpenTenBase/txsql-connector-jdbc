@@ -45,6 +45,16 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
     private Integer tdsqlDirectReconnectProxyIntervalTimeSeconds;
     private Integer tdsqlDirectProxyConnectMaxIdleTime;
     private Integer tdsqlConnectionTimeOut;
+
+    public Boolean getTdsqlSendClientInfoEnable() {
+        return tdsqlSendClientInfoEnable;
+    }
+
+    public void setTdsqlSendClientInfoEnable(Boolean tdsqlSendClientInfoEnable) {
+        this.tdsqlSendClientInfoEnable = tdsqlSendClientInfoEnable;
+    }
+
+    private Boolean tdsqlSendClientInfoEnable;
     private List<HostInfo> tdsqlDirectProxyHostInfoList;
     private Properties tdsqlDirectOriginalPropertiesWithoutDirectMode;
     private ConnectionUrl connectionUrl;
@@ -209,6 +219,10 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
                             new Object[]{tdsqlDirectProxyConnectMaxIdleTime}));
         }
 
+        Boolean tdsqlSendClientInfoEnable = jdbcPropertySet.getBooleanProperty(
+                PropertyKey.tdsqlSendClientInfoEnable).getValue();
+        this.setTdsqlSendClientInfoEnable(tdsqlSendClientInfoEnable);
+
         this.setTdsqlDirectProxyConnectMaxIdleTime(tdsqlDirectProxyConnectMaxIdleTime);
 
         Integer connectionTimeout = jdbcPropertySet.getIntegerProperty(PropertyKey.connectTimeout).getValue();
@@ -244,6 +258,7 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
         props.remove(PropertyKey.tdsqlDirectTopoRefreshStmtTimeoutSeconds.getKeyName());
         props.remove(PropertyKey.tdsqlDirectProxyBlacklistTimeoutSeconds.getKeyName());
         props.remove(PropertyKey.tdsqlDirectReconnectProxyIntervalTimeSeconds.getKeyName());
+        props.remove(PropertyKey.tdsqlSendClientInfoEnable.getKeyName());
         return props;
     }
 
