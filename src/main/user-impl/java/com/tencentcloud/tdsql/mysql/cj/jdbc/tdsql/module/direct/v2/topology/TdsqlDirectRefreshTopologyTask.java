@@ -1,5 +1,6 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logDebug;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.TDSQL_DIRECT_REFRESH_TOPOLOGY_SQL;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.TDSQL_DIRECT_TOPOLOGY_COLUMN_CLUSTER_NAME;
@@ -130,7 +131,7 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
                     continue;
                 }
             }
-            logInfo(this.dataSourceUuid,
+            logDebug(this.dataSourceUuid,
                     Messages.getString("TdsqlDirectRefreshTopologyMessage.ChoiceOneProxy", new Object[]{hostPortSpec}));
             return connectionHolder;
         }

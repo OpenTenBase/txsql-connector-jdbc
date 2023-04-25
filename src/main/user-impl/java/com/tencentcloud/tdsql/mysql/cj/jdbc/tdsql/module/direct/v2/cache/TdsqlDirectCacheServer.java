@@ -110,7 +110,7 @@ public class TdsqlDirectCacheServer {
         // 主库、备库均无变化
         if (masterResult.isNoChange() && slaveResultSet.isNoChange()) {
             this.latestComparedTimeMillis = System.currentTimeMillis();
-            TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+            TdsqlLoggerFactory.logDebug(this.dataSourceUuid,
                     Messages.getString("TdsqlDirectCacheTopologyMessage.PrintCachedTopologyInfo",
                             new Object[]{this.cachedTopologyInfo.printPretty()}));
             return;
@@ -127,7 +127,7 @@ public class TdsqlDirectCacheServer {
 
                 if (!slaveResultSet.isNoChange()) {
                     this.cachedTopologyInfo.updateSlaveSet(slaveTopologyInfoSet);
-                    TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+                    TdsqlLoggerFactory.logDebug(this.dataSourceUuid,
                             Messages.getString("TdsqlDirectCacheTopologyMessage.SlaveChangedInRwMode"));
                     break;
                 }

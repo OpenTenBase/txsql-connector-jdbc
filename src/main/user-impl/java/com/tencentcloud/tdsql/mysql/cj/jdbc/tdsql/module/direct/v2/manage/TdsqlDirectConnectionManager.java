@@ -318,7 +318,7 @@ public class TdsqlDirectConnectionManager {
         this.lock.lock();
         try {
             if (!this.liveConnectionMap.containsKey(directHostInfo.getHostPortPair())) {
-                logInfo("新增数据源host：" + directHostInfo.getHostPortPair());
+                logInfo("create new live connection host：" + directHostInfo.getHostPortPair());
                 this.liveConnectionMap.put(directHostInfo.getHostPortPair(), new ArrayList<>());
             }
             this.liveConnectionMap.get(directHostInfo.getHostPortPair()).add(jdbcConnection);

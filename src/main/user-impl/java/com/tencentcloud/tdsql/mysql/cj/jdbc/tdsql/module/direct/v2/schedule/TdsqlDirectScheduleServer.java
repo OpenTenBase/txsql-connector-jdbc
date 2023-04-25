@@ -3,6 +3,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule;
 import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.AbstractTdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionCounter;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlScheduleServer;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum;
@@ -83,6 +84,9 @@ public class TdsqlDirectScheduleServer implements
                                 new Object[]{this.masterCounter.getTdsqlHostInfo(), master}));
             }
 
+            TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+                    Messages.getString("TdsqlDirectScheduleTopologyException.AddMaster",
+                            new Object[]{master}));
             this.masterCounter = new TdsqlDirectConnectionCounter(master);
         } finally {
             this.rwLock.writeLock().unlock();
@@ -119,6 +123,9 @@ public class TdsqlDirectScheduleServer implements
                                 new Object[]{this.masterCounter.getTdsqlHostInfo(), oldMaster}));
             }
 
+            TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+                    Messages.getString("TdsqlDirectScheduleTopologyException.UpdateMaster",
+                            new Object[]{oldMaster, newMaster}));
             this.masterCounter = new TdsqlDirectConnectionCounter(newMaster);
         } finally {
             this.rwLock.writeLock().unlock();
@@ -157,7 +164,10 @@ public class TdsqlDirectScheduleServer implements
                         Messages.getString("TdsqlDirectScheduleTopologyException.RepeatedAddSlave",
                                 new Object[]{slave}));
             }
-            logInfo("Add new slave through addSlave, host:" + slave.getHostPortPair());
+            TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+                    Messages.getString("TdsqlDirectScheduleTopologyException.AddSlave",
+                            new Object[]{"addSlave", slave}));
+
             this.slaveCounterSet.add(new TdsqlDirectConnectionCounter(slave));
         } finally {
             this.rwLock.writeLock().unlock();
@@ -174,10 +184,9 @@ public class TdsqlDirectScheduleServer implements
         this.rwLock.writeLock().lock();
         try {
             if (this.slaveCounterSet.removeIf(counter -> counter.getTdsqlHostInfo().getHostPortPair().equals(slave.getHostPortPair())))
-                logInfo("remove slave successfully, host:" + slave.getHostPortPair());
-            else {
-                logInfo("remove slave failed, host:" + slave.getHostPortPair());
-            }
+                TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+                        Messages.getString("TdsqlDirectScheduleTopologyException.RemoveSlave",
+                                new Object[]{"removeSlave", slave}));
         } finally {
             this.rwLock.writeLock().unlock();
         }
@@ -205,18 +214,20 @@ public class TdsqlDirectScheduleServer implements
                     break;
                 }
             }
-//            if (toBeRemoved == null) {
-//                throw TdsqlExceptionFactory.createException(TdsqlDirectScheduleTopologyException.class,
-//                        Messages.getString("TdsqlDirectScheduleTopologyException.NotEqualsOldSlave",
-//                                new Object[]{oldSlave}));
-//            }
             if (toBeRemoved != null) {
                 logInfo("remove slave through updateSlave, host:" + oldSlave.getHostPortPair());
+                TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+                        Messages.getString("TdsqlDirectScheduleTopologyException.RemoveSlave",
+                                new Object[]{"updateSlave", oldSlave}));
                 this.slaveCounterSet.remove(toBeRemoved);
-                logInfo("Add new slave through updateSlave, host:" + newSlave.getHostPortPair());
+                TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+                        Messages.getString("TdsqlDirectScheduleTopologyException.AddSlave",
+                                new Object[]{"updateSlave", newSlave}));
                 this.slaveCounterSet.add(new TdsqlDirectConnectionCounter(newSlave, toBeRemoved.getCount()));
             } else {
-                logInfo("Add new slave through updateSlave, host:" + newSlave.getHostPortPair());
+                TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+                        Messages.getString("TdsqlDirectScheduleTopologyException.AddSlave",
+                                new Object[]{"updateSlave", newSlave}));
                 this.slaveCounterSet.add(new TdsqlDirectConnectionCounter(newSlave, new LongAdder()));
             }
 

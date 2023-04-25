@@ -48,6 +48,12 @@ public final class TdsqlLoggerFactory {
         }
     }
 
+    public static void logDebug(String datasourceUuid, Object msg) {
+        if (log != null && log.isDebugEnabled()) {
+            log.logDebug(printThreadId() + printDatasourceUuid(datasourceUuid) + msg);
+        }
+    }
+
     public static void logDebug(String datasourceUuid, Object msg, Throwable thrown) {
         if (log != null && log.isDebugEnabled()) {
             log.logDebug(printThreadId() + printDatasourceUuid(datasourceUuid) + msg, thrown);

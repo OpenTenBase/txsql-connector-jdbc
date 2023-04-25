@@ -48,7 +48,7 @@ public class TdsqlDirectTopologyCacheCompareResult {
          * @return 比较结果
          */
         public static MasterResult noChange(String dataSourceUuid) {
-            TdsqlLoggerFactory.logInfo(dataSourceUuid,
+            TdsqlLoggerFactory.logDebug(dataSourceUuid,
                     Messages.getString("TdsqlDirectCacheTopologyMessage.TopologyInfoNoChanged",
                             new Object[]{"MASTER"}));
             return NO_CHANGE_MASTER;
@@ -155,7 +155,7 @@ public class TdsqlDirectTopologyCacheCompareResult {
          * @return 比较结果
          */
         public static SlaveResult noChange(String dataSourceUuid) {
-            TdsqlLoggerFactory.logInfo(dataSourceUuid,
+            TdsqlLoggerFactory.logDebug(dataSourceUuid,
                     Messages.getString("TdsqlDirectCacheTopologyMessage.TopologyInfoNoChanged",
                             new Object[]{"SLAVES"}));
             return NO_CHANGE_SLAVE;
