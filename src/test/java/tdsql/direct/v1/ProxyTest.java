@@ -23,7 +23,7 @@ public class ProxyTest extends BaseTest {
             + "&useUnicode=true"
             + "&characterEncoding=utf-8"
             + "&serverTimezone=Asia/Shanghai"
-            + "&tdsqlDirectMaxSlaveDelaySeconds=10&useSSL=false&tdsqlDirectReadWriteMode=rw&connectTimeout=20000";
+            + "&tdsqlDirectMaxSlaveDelaySeconds=10&useSSL=false&tdsqlDirectReadWriteMode=rw&connectTimeout=20000&logger=Slf4JLogger";
     private static final String USERNAME = "qt4s";
     private static final String PASSWORD = "g<m:7KNDF.L1<^1C";
 

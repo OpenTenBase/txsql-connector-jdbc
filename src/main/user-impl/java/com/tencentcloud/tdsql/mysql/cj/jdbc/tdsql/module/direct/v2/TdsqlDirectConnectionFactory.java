@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
 
 /**
@@ -161,22 +162,29 @@ public class TdsqlDirectConnectionFactory {
 
         @Override
         public void run() {
-            for(Map.Entry<String, TdsqlDirectDataSource> dataSourceEntry : TdsqlDirectConnectionFactory.directDataSourceMap.entrySet()) {
-                TdsqlDirectDataSource dataSource = dataSourceEntry.getValue();
-                if (!dataSource.shouldBeClosed()) {
-                    continue;
+            try {
+                for(Map.Entry<String, TdsqlDirectDataSource> dataSourceEntry : TdsqlDirectConnectionFactory.directDataSourceMap.entrySet()) {
+                    TdsqlDirectDataSource dataSource = dataSourceEntry.getValue();
+                    if (!dataSource.shouldBeClosed()) {
+                        continue;
+                    }
+                    Lock writeLock = dataSource.getWriteLock();
+                    writeLock.lock();
+                    try {
+                        if (!dataSource.shouldBeClosed()) {
+                            writeLock.unlock();
+                            continue;
+                        }
+                        logInfo("remove data source:" + dataSource.getDataSourceUuid());
+                        TdsqlDirectConnectionFactory.directDataSourceMap.remove(dataSourceEntry.getKey());
+                        dataSource.setActiveState(false);
+                    } finally {
+                        writeLock.unlock();
+                    }
+                    dataSource.close();
                 }
-                Lock writeLock = dataSource.getWriteLock();
-                writeLock.lock();
-                if (!dataSource.shouldBeClosed()) {
-                    writeLock.unlock();
-                    continue;
-                }
-                logInfo("remove data source:" + dataSource.getDataSourceUuid());
-                TdsqlDirectConnectionFactory.directDataSourceMap.remove(dataSourceEntry.getKey());
-                dataSource.setActiveState(false);
-                writeLock.unlock();
-                dataSource.close();
+            } catch (Throwable e) {
+                logError(e.getMessage(), e);
             }
         }
     }
