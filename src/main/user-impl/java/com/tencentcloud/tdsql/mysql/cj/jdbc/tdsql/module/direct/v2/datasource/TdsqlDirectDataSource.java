@@ -151,6 +151,9 @@ public class TdsqlDirectDataSource {
     }
 
     public boolean shouldBeClosed() {
+        if (this.getConnectionManager() == null) {
+            return false;
+        }
         return (this.getConnectionManager().getLiveConnectionMap().size() == 0 &
                 this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() != 0 &
                 System.currentTimeMillis() - this.getConnectionManager().getLastEmptyLiveConnectionTimestamp()
