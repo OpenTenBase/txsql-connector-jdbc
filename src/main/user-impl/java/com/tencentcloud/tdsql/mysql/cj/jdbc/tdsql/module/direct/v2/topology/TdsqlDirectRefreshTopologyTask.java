@@ -141,7 +141,7 @@ public class TdsqlDirectRefreshTopologyTask implements Runnable {
 
     private void refreshTopology(JdbcConnection connection) {
         try (Statement stmt = connection.createStatement()) {
-            stmt.setQueryTimeout(this.topoServer.getDataSourceConfig().getTdsqlDirectTopoRefreshStmtTimeoutSeconds());
+//            stmt.setQueryTimeout(this.topoServer.getDataSourceConfig().getTdsqlDirectTopoRefreshStmtTimeoutSeconds());
             try (ResultSet rs = stmt.executeQuery(TDSQL_DIRECT_REFRESH_TOPOLOGY_SQL)) {
                 while (rs.next()) {
                     String clusterName = rs.getString(TDSQL_DIRECT_TOPOLOGY_COLUMN_CLUSTER_NAME);
