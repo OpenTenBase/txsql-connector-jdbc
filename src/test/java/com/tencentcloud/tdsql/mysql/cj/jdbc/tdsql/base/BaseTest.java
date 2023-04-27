@@ -1,16 +1,15 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.base;
 
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 import java.sql.*;
 import java.util.Properties;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RO;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RW;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.RO;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.RW;
 
 public abstract class BaseTest {
     /**
@@ -41,7 +40,7 @@ public abstract class BaseTest {
         Class.forName(DRIVER_CLASS_NAME);
     }
 
-    protected Connection getConnection(TdsqlDirectReadWriteMode mode, String user) throws SQLException {
+    protected Connection getConnection(TdsqlDirectReadWriteModeEnum mode, String user) throws SQLException {
         Properties props = new Properties();
         if (USER.equalsIgnoreCase(user)) {
             props.setProperty(PropertyKey.USER.getKeyName(), USER);
@@ -54,7 +53,7 @@ public abstract class BaseTest {
         return connection;
     }
 
-    protected Connection getConnection(TdsqlDirectReadWriteMode mode, Properties properties) throws SQLException {
+    protected Connection getConnection(TdsqlDirectReadWriteModeEnum mode, Properties properties) throws SQLException {
         Properties props = new Properties();
         if (RO.equals(mode)) {
             props.setProperty(PropertyKey.USER.getKeyName(), USER);

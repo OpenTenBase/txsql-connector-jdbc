@@ -1,14 +1,14 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.base;
 
 import com.tencentcloud.tdsql.mysql.cj.exceptions.CJException;
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 
 import java.sql.*;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RO;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectReadWriteMode.RW;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.RO;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.RW;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -66,34 +66,34 @@ public class WriteAndReadTest extends BaseTest{
 
 
 
-    private void dropDatabase(TdsqlDirectReadWriteMode mode, String user) throws SQLException {
+    private void dropDatabase(TdsqlDirectReadWriteModeEnum mode, String user) throws SQLException {
         try (Connection conn = getConnection(mode, user);
              Statement stmt = conn.createStatement()) {
             stmt.executeUpdate(DROP_DATABASE_IF_EXISTS);
         }
     }
 
-    private void createDatabase(TdsqlDirectReadWriteMode mode, String user) throws SQLException {
+    private void createDatabase(TdsqlDirectReadWriteModeEnum mode, String user) throws SQLException {
         try (Connection conn = getConnection(mode, user);
              Statement stmt = conn.createStatement()) {
             stmt.executeUpdate(CREATE_DATABASE_IF_NOT_EXISTS);
         }
     }
 
-    private void dropTable(TdsqlDirectReadWriteMode mode, String user) throws SQLException {
+    private void dropTable(TdsqlDirectReadWriteModeEnum mode, String user) throws SQLException {
         try (Connection conn = getConnection(mode, user);
              Statement stmt = conn.createStatement()) {
             stmt.executeUpdate(DROP_TABLE_IF_EXISTS);
         }
     }
 
-    private void createTable(TdsqlDirectReadWriteMode mode, String user) throws SQLException {
+    private void createTable(TdsqlDirectReadWriteModeEnum mode, String user) throws SQLException {
         try (Connection conn = getConnection(mode, user);
              Statement stmt = conn.createStatement()) {
             stmt.executeUpdate(CREATE_TABLE_IF_NOT_EXISTS);
         }
     }
-    private void insert(TdsqlDirectReadWriteMode mode, String user) throws SQLException {
+    private void insert(TdsqlDirectReadWriteModeEnum mode, String user) throws SQLException {
         try (Connection conn = getConnection(mode, user);
              PreparedStatement psmt = conn.prepareStatement(INSERT)) {
             psmt.setString(1, "a");
@@ -110,7 +110,7 @@ public class WriteAndReadTest extends BaseTest{
         }
     }
 
-    private void update(TdsqlDirectReadWriteMode mode, String user) throws SQLException {
+    private void update(TdsqlDirectReadWriteModeEnum mode, String user) throws SQLException {
         try (Connection conn = getConnection(mode, user);
              PreparedStatement psmt = conn.prepareStatement(UPDATE)) {
             psmt.setString(1, "z");
@@ -119,7 +119,7 @@ public class WriteAndReadTest extends BaseTest{
         }
     }
 
-    private void delete(TdsqlDirectReadWriteMode mode, String user) throws SQLException {
+    private void delete(TdsqlDirectReadWriteModeEnum mode, String user) throws SQLException {
         try (Connection conn = getConnection(mode, user);
              PreparedStatement psmt = conn.prepareStatement(DELETE)) {
             psmt.setInt(1, 6);
@@ -127,7 +127,7 @@ public class WriteAndReadTest extends BaseTest{
         }
     }
 
-    private void select(TdsqlDirectReadWriteMode mode, String user) throws SQLException {
+    private void select(TdsqlDirectReadWriteModeEnum mode, String user) throws SQLException {
         try (Connection conn = getConnection(mode, user);
              PreparedStatement psmt = conn.prepareStatement(SELECT);
              ResultSet rs = psmt.executeQuery();) {

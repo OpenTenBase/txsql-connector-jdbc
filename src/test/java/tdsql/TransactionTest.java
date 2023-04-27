@@ -21,12 +21,12 @@ public class TransactionTest {
         try {
             Class.forName("com.tencentcloud.tdsql.mysql.cj.jdbc.Driver");
 
-            String proxyUrl = "jdbc:tdsql-mysql://9.30.1.207:15006/db1";
+            String proxyUrl = "jdbc:tdsql-mysql://9.30.2.89:15012/test";
             if (props != null && !"".equals(props.trim())) {
                 proxyUrl += "?" + props;
             }
             try {
-                conn = DriverManager.getConnection(proxyUrl, "joseph", "Aaaaaaaa1!");
+                conn = DriverManager.getConnection(proxyUrl, "qt4s", "g<m:7KNDF.L1<^1C");
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -38,7 +38,7 @@ public class TransactionTest {
     }
 
     public static void main(String[] args) throws SQLException {
-        Connection conn = getConn("useServerPrepStmts=true&cachePrepStmts=true");
+        Connection conn = getConn("tdsqlSendClientInfoEnable=true&connectionAttributes=tdsqlA:A,tdsql_B:B");
 
         PreparedStatement psmt = conn.prepareStatement("select ?");
         psmt.setInt(1, 1);

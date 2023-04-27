@@ -42,6 +42,11 @@ import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
 
 public class LoadBalanceConnectionUrl extends ConnectionUrl {
+
+    // 直连在连接网关的时候其实是用的loadBalance，因此需要在loadBalance中判断一下
+    boolean isDirectConnection = false;
+
+    Properties propertiesForDitection;
     /**
      * Constructs an instance of {@link LoadBalanceConnectionUrl}, performing all the required initializations and validations. A load-balanced connection
      * cannot deal with multiple hosts with same host:port.
@@ -86,6 +91,13 @@ public class LoadBalanceConnectionUrl extends ConnectionUrl {
         injectPerTypeProperties(this.properties);
         setupPropertiesTransformer(); // This is needed if new hosts come to be spawned in this connection URL.
         hosts.stream().map(this::fixHostInfo).forEach(this.hosts::add); // Fix the hosts info based on the new properties before adding them.
+    }
+
+    public static LoadBalanceConnectionUrl buildLoadBalanceConnectionUrlForDirect(List<HostInfo> hosts, Map<String, String> properties, Properties propertiesForDirect) {
+        LoadBalanceConnectionUrl connectionUrl = new LoadBalanceConnectionUrl(hosts, properties);
+        connectionUrl.isDirectConnection = true;
+        connectionUrl.propertiesForDitection = propertiesForDirect;
+        return connectionUrl;
     }
 
     /**
@@ -133,5 +145,13 @@ public class LoadBalanceConnectionUrl extends ConnectionUrl {
      */
     public List<HostInfo> getHostInfoListFromHostPortPairs(Collection<String> hostPortPairs) {
         return hostPortPairs.stream().map(this::getHostOrSpawnIsolated).collect(Collectors.toList());
+    }
+
+    public boolean isDirectConnection() {
+        return this.isDirectConnection;
+    }
+
+    public Properties getPropertiesForDitection() {
+        return this.propertiesForDitection;
     }
 }

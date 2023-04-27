@@ -1,6 +1,6 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util;
 
-import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.direct.TdsqlDirectLoggerFactory;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 
 /**
  * <p>
@@ -26,6 +26,6 @@ public abstract class AbstractTdsqlCaughtRunnable implements Runnable {
     public abstract void caughtAndRun();
 
     private void exceptionHandler(Exception e) {
-        TdsqlDirectLoggerFactory.logError(e.getMessage(), e);
+        TdsqlLoggerFactory.logError(e.getMessage(), e);
     }
 }

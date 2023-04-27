@@ -5,14 +5,14 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * <p>TDSQL连接信息类</p>
+ * <p>TDSQL专属，连接信息类</p>
  *
  * @author dorianzhang@tencent.com
  */
 public final class TdsqlHostInfo extends HostInfo {
 
     private String ownerUuid;
-    private final TdsqlConnectionMode connectionMode;
+    private final TdsqlConnectionModeEnum connectionMode;
     private final String host;
     private final int port;
     private final String user;
@@ -26,7 +26,7 @@ public final class TdsqlHostInfo extends HostInfo {
     public TdsqlHostInfo(HostInfo hostInfo) {
         super(hostInfo.getOriginalUrl(), hostInfo.getHost(), hostInfo.getPort(), hostInfo.getUser(),
                 hostInfo.getPassword(), hostInfo.getHostProperties());
-        this.connectionMode = TdsqlConnectionMode.UNKNOWN;
+        this.connectionMode = TdsqlConnectionModeEnum.UNKNOWN;
         this.host = hostInfo.getHost();
         this.port = hostInfo.getPort();
         this.user = hostInfo.getUser();
@@ -35,7 +35,7 @@ public final class TdsqlHostInfo extends HostInfo {
         this.database = hostInfo.getDatabase();
     }
 
-    public TdsqlHostInfo(HostInfo hostInfo, TdsqlConnectionMode connectionMode) {
+    public TdsqlHostInfo(HostInfo hostInfo, TdsqlConnectionModeEnum connectionMode) {
         super(hostInfo.getOriginalUrl(), hostInfo.getHost(), hostInfo.getPort(), hostInfo.getUser(),
                 hostInfo.getPassword(), hostInfo.getHostProperties());
         this.connectionMode = connectionMode;
@@ -55,7 +55,7 @@ public final class TdsqlHostInfo extends HostInfo {
         this.ownerUuid = ownerUuid;
     }
 
-    public TdsqlConnectionMode getConnectionMode() {
+    public TdsqlConnectionModeEnum getConnectionMode() {
         return connectionMode;
     }
 

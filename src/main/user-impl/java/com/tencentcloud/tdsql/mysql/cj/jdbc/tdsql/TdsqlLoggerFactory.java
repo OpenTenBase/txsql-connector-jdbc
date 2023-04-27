@@ -3,13 +3,14 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertySet;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcPropertySetImpl;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.TdsqlDirectDataSourceConfig;
 import com.tencentcloud.tdsql.mysql.cj.log.Log;
 import com.tencentcloud.tdsql.mysql.cj.log.LogFactory;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * <p>TDSQL日志工厂类</p>
+ * <p>TDSQL专属，日志工厂类</p>
  *
  * @author dorianzhang@tencent.com
  */
@@ -33,17 +34,7 @@ public final class TdsqlLoggerFactory {
         properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatIntervalTimeMillis.getKeyName());
         properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatMaxErrorRetries.getKeyName());
         properties.remove(PropertyKey.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis.getKeyName());
-        properties.remove(PropertyKey.tdsqlDirectReadWriteMode.getKeyName());
-        properties.remove(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds.getKeyName());
-        properties.remove(PropertyKey.tdsqlDirectTopoRefreshIntervalMillis.getKeyName());
-        properties.remove(PropertyKey.tdsqlDirectTopoRefreshConnTimeoutMillis.getKeyName());
-        properties.remove(PropertyKey.tdsqlDirectTopoRefreshStmtTimeoutSeconds.getKeyName());
-        properties.remove(PropertyKey.tdsqlDirectCloseConnTimeoutMillis.getKeyName());
-        properties.remove(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode.getKeyName());
-        properties.remove(PropertyKey.tdsqlDirectHeartbeatMonitorEnable.getKeyName());
-        properties.remove(PropertyKey.tdsqlDirectHeartbeatIntervalTimeMillis.getKeyName());
-        properties.remove(PropertyKey.tdsqlDirectHeartbeatMaxErrorRetries.getKeyName());
-        properties.remove(PropertyKey.tdsqlDirectHeartbeatErrorRetryIntervalTimeMillis.getKeyName());
+        properties = TdsqlDirectDataSourceConfig.removeAllDirectModeProperties(properties);
         properties.remove(PropertyKey.tdsqlQueryAttributesEnable.getKeyName());
         PropertySet propertySet = new JdbcPropertySetImpl();
         propertySet.initializeProperties(properties);
@@ -57,9 +48,27 @@ public final class TdsqlLoggerFactory {
         }
     }
 
+    public static void logDebug(String datasourceUuid, Object msg) {
+        if (log != null && log.isDebugEnabled()) {
+            log.logDebug(printThreadId() + printDatasourceUuid(datasourceUuid) + msg);
+        }
+    }
+
+    public static void logDebug(String datasourceUuid, Object msg, Throwable thrown) {
+        if (log != null && log.isDebugEnabled()) {
+            log.logDebug(printThreadId() + printDatasourceUuid(datasourceUuid) + msg, thrown);
+        }
+    }
+
     public static void logInfo(Object msg) {
         if (log != null && log.isInfoEnabled()) {
             log.logInfo(printThreadId() + msg);
+        }
+    }
+
+    public static void logInfo(String datasourceUuid, Object msg) {
+        if (log != null && log.isInfoEnabled()) {
+            log.logInfo(printThreadId() + printDatasourceUuid(datasourceUuid) + msg);
         }
     }
 
@@ -69,15 +78,39 @@ public final class TdsqlLoggerFactory {
         }
     }
 
+    public static void logWarn(String datasourceUuid, Object msg) {
+        if (log != null && log.isWarnEnabled()) {
+            log.logWarn(printThreadId() + printDatasourceUuid(datasourceUuid) + msg);
+        }
+    }
+
+    public static void logWarn(String datasourceUuid, Object msg, Throwable thrown) {
+        if (log != null && log.isWarnEnabled()) {
+            log.logWarn(printThreadId() + printDatasourceUuid(datasourceUuid) + msg, thrown);
+        }
+    }
+
     public static void logError(Object msg) {
         if (log != null && log.isErrorEnabled()) {
             log.logError(printThreadId() + msg);
         }
     }
 
+    public static void logError(String datasourceUuid, String msg) {
+        if (log != null && log.isErrorEnabled()) {
+            log.logError(printThreadId() + printDatasourceUuid(datasourceUuid) + msg);
+        }
+    }
+
     public static void logError(Object msg, Throwable thrown) {
         if (log != null && log.isErrorEnabled()) {
             log.logError(printThreadId() + msg, thrown);
+        }
+    }
+
+    public static void logError(String datasourceUuid, String msg, Throwable thrown) {
+        if (log != null && log.isErrorEnabled()) {
+            log.logError(printThreadId() + printDatasourceUuid(datasourceUuid) + msg, thrown);
         }
     }
 
@@ -89,5 +122,9 @@ public final class TdsqlLoggerFactory {
 
     private static String printThreadId() {
         return "[TID: " + Thread.currentThread().getId() + "] ";
+    }
+
+    private static String printDatasourceUuid(String datasourceUuid) {
+        return "[DS UUID: " + datasourceUuid + "] ";
     }
 }

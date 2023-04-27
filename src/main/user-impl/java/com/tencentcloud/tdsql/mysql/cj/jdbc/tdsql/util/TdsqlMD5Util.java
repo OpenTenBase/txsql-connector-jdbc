@@ -6,7 +6,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /**
- * <p>TDSQL专属的普通字符串转换为16位MD5哈希字符串工具类</p>
+ * <p>TDSQL专属，普通字符串转换为16进制32位MD5哈希字符串工具类</p>
  *
  * @author dorianzhang@tencent.com
  */
