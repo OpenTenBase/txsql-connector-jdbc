@@ -1,8 +1,5 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logError;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
-
 import com.tencentcloud.tdsql.mysql.cj.conf.HostInfo;
 import com.tencentcloud.tdsql.mysql.cj.conf.PropertyKey;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.ConnectionImpl;
@@ -16,6 +13,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.*;
 
 /**
  * <p>TDSQL-MySQL独有的，负载均衡心跳检测监视器类</p>
@@ -75,14 +74,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
 
         // 判断IP地址列表中的IP地址是否已经加入过心跳检测任务，避免相同的IP地址重复加入
         for (TdsqlHostInfo tdsqlHostInfo : tdsqlLoadBalanceInfo.getTdsqlHostInfoList()) {
-            boolean hasMonitored = false;
-            for (TdsqlHostInfo monitoredInfo : monitoredTdsqlHostInfoSet) {
-                if (monitoredInfo.getHostPortPair().equalsIgnoreCase(tdsqlHostInfo.getHostPortPair())) {
-                    hasMonitored = true;
-                    break;
-                }
-            }
-            if (hasMonitored) {
+            if (monitoredTdsqlHostInfoSet.contains(tdsqlHostInfo)) {
                 continue;
             }
             this.heartbeatMonitor.scheduleWithFixedDelay(new HeartbeatMonitorTask(tdsqlHostInfo,
@@ -92,7 +84,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                     tdsqlLoadBalanceInfo.getTdsqlLoadBalanceHeartbeatIntervalTimeMillis(), TimeUnit.MILLISECONDS);
             this.monitoredTdsqlHostInfoSet.add(tdsqlHostInfo);
             logInfo("Add new host [" + tdsqlHostInfo.getHostPortPair() + "] to heartbeat monitor. [ds: "
-                    + datasourceUuid + ", host:" + tdsqlHostInfo.getHostPortPair() + "]");
+                    + datasourceUuid + ", user:" + tdsqlHostInfo.getUser() + "]");
         }
     }
 
@@ -158,7 +150,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                         tdsqlHostInfo.getPort(), tdsqlHostInfo.getUser(), tdsqlHostInfo.getPassword(), map);
 
                 for (int i = 0; i <= retries; i++) {
-                    logInfo("Start heartbeat monitor check, now attempts [" + attemptCount + "]. HostInfo ["
+                    logDebug("Start heartbeat monitor check, now attempts [" + attemptCount + "]. HostInfo ["
                             + tdsqlHostInfo.getHostPortPair() + "]");
                     try (JdbcConnection connection = ConnectionImpl.getInstance(heartbeatHostInfo);
                             Statement stmt = connection.createStatement()) {
@@ -176,7 +168,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                             this.firstCheckFinishedMap.get(tdsqlHostInfo.getHostPortPair()).countDown();
                         }
                         // 心跳检测成功记录调试级别日志，退出当前循环后，等待下次调度
-                        logInfo("Success heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
+                        logDebug("Success heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
                         break;
                     } catch (SQLException e) {
                         // 计算并比较心跳检测次数是否达到允许的最大次数
@@ -198,7 +190,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                         } else {
                             // 心跳检测失败处理逻辑，程序执行到这里有可能是建立连接失败、超时，或执行心跳检测SQL失败、超时。
                             // 无论是上述哪种情况，都需要记录错误级别日志
-                            logError("Host heartbeat monitor failed and try again, now attempts [" + attemptCount
+                            logInfo("Host heartbeat monitor failed and try again, now attempts [" + attemptCount
                                     + "], max attempts [" + retries + "]. HostInfo [" + tdsqlHostInfo.getHostPortPair()
                                     + "]", e);
                             // 间隔一段时间后再进行下一次尝试

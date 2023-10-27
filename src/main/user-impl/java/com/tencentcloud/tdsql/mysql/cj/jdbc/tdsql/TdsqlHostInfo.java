@@ -22,6 +22,7 @@ public final class TdsqlHostInfo extends HostInfo {
     private int weightFactor;
     private boolean alive;
     private Long delay;
+    long heartbeatIntervalTime;
 
     public TdsqlHostInfo(HostInfo hostInfo) {
         super(hostInfo.getOriginalUrl(), hostInfo.getHost(), hostInfo.getPort(), hostInfo.getUser(),
@@ -101,5 +102,13 @@ public final class TdsqlHostInfo extends HostInfo {
     @Override
     public int hashCode() {
         return Objects.hash(connectionMode, host, port, user, password, database, hostProperties);
+    }
+
+    public void setHeartbeatIntervalTime(long heartbeatIntervalTime) {
+        this.heartbeatIntervalTime = heartbeatIntervalTime;
+    }
+
+    public long getHeartbeatIntervalTime() {
+        return heartbeatIntervalTime;
     }
 }

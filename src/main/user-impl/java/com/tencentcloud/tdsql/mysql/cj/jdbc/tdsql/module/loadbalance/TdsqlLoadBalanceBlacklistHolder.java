@@ -1,13 +1,14 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logWarn;
-
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.*;
 
 /**
  * <p>TDSQL-MySQL专属的，负载均衡黑名单寄存器类</p>
@@ -20,7 +21,8 @@ public class TdsqlLoadBalanceBlacklistHolder {
     /**
      * 保存加入黑名单的IP地址信息集合
      */
-    private final Set<TdsqlHostInfo> blacklist = new HashSet<>();
+//    private final Set<TdsqlHostInfo> blacklist = new HashSet<>();
+    private final Map<TdsqlHostInfo, Long> globalBlackList = new HashMap<>();
     private final ReentrantReadWriteLock blacklistLock = new ReentrantReadWriteLock();
 
     private TdsqlLoadBalanceBlacklistHolder() {
@@ -39,9 +41,12 @@ public class TdsqlLoadBalanceBlacklistHolder {
         }
         this.blacklistLock.readLock().lock();
         try {
-            Set<String> cloneSet = new HashSet<>(this.blacklist.size());
-            for (TdsqlHostInfo tdsqlHostInfo : this.blacklist) {
-                cloneSet.add(tdsqlHostInfo.getHostPortPair());
+            Set<String> cloneSet = new HashSet<>(this.globalBlackList.size());
+            for (Map.Entry<TdsqlHostInfo, Long> tdsqlHostInfo : this.globalBlackList.entrySet()) {
+                if (System.currentTimeMillis() > tdsqlHostInfo.getValue()){
+                    continue;
+                }
+                cloneSet.add(tdsqlHostInfo.getKey().getHostPortPair());
             }
             return Collections.unmodifiableSet(cloneSet);
         } finally {
@@ -63,16 +68,19 @@ public class TdsqlLoadBalanceBlacklistHolder {
         try {
             // 如果黑名单中还没有该IP地址信息，则加入
             // 同时移除该IP地址在全局连接计数器中的计数器，并记录信息级别的日志
-            if (!this.blacklist.contains(tdsqlHostInfo)) {
-                this.blacklist.add(tdsqlHostInfo);
+            if (!this.globalBlackList.containsKey(tdsqlHostInfo)) {
+                this.globalBlackList.put(tdsqlHostInfo, System.currentTimeMillis() + tdsqlHostInfo.getHeartbeatIntervalTime() * 5);
                 logInfo("Add host [" + tdsqlHostInfo.getHostPortPair()
                         + "] to blacklist success and try remove it in counter, current blacklist [" + printBlacklist()
                         + "]");
-                TdsqlLoadBalanceConnectionCounter.getInstance().removeCounter(tdsqlHostInfo);
+                TdsqlLoadBalanceConnectionCounter.getInstance().resetCounter(tdsqlHostInfo);
             } else {
-                logWarn("Add host [" + tdsqlHostInfo.getHostPortPair()
-                        + "] to blacklist failed, because this host is already in blacklist , current blacklist ["
-                        + printBlacklist() + "]");
+                if (globalBlackList.get(tdsqlHostInfo) < (System.currentTimeMillis() + tdsqlHostInfo.getHeartbeatIntervalTime() * 5)) {
+                    this.globalBlackList.put(tdsqlHostInfo, System.currentTimeMillis() + tdsqlHostInfo.getHeartbeatIntervalTime() * 5);
+                    logDebug("Update host [" + tdsqlHostInfo.getHostPortPair()
+                            + "] to blacklist, current blacklist ["
+                            + printBlacklist() + "]");
+                }
             }
         } finally {
             this.blacklistLock.writeLock().unlock();
@@ -91,14 +99,13 @@ public class TdsqlLoadBalanceBlacklistHolder {
 
         this.blacklistLock.writeLock().lock();
         try {
-            if (this.blacklist.contains(tdsqlHostInfo)) {
-                this.blacklist.remove(tdsqlHostInfo);
+            if (this.globalBlackList.containsKey(tdsqlHostInfo)) {
+                this.globalBlackList.remove(tdsqlHostInfo);
                 logInfo("Remove host [" + tdsqlHostInfo.getHostPortPair()
                         + "] from blacklist success and try reset it in counter, current blacklist [" + printBlacklist()
                         + "]");
-                TdsqlLoadBalanceConnectionCounter.getInstance().resetCounter(tdsqlHostInfo);
             } else {
-                logInfo("Don't need to remove host [" + tdsqlHostInfo.getHostPortPair()
+                logDebug("Don't need to remove host [" + tdsqlHostInfo.getHostPortPair()
                         + "] from blacklist, because its not in blacklist, current blacklist [" + printBlacklist()
                         + "]");
             }
@@ -118,12 +125,33 @@ public class TdsqlLoadBalanceBlacklistHolder {
             return false;
         }
 
+        Long expireTime;
+
         this.blacklistLock.readLock().lock();
         try {
-            return this.blacklist.contains(tdsqlHostInfo);
+            expireTime = this.globalBlackList.get(tdsqlHostInfo);
         } finally {
             this.blacklistLock.readLock().unlock();
         }
+
+        if (expireTime != null) {
+            if (System.currentTimeMillis() <= expireTime) {
+                return true;
+            }
+            this.blacklistLock.writeLock().lock();
+            try {
+                if (this.globalBlackList.get(tdsqlHostInfo) != null && System.currentTimeMillis() > this.globalBlackList.get(tdsqlHostInfo)) {
+                    logInfo("Remove host [" + tdsqlHostInfo.getHostPortPair()
+                            + "] as its state has not been updated for a long time)");
+                    this.removeBlacklist(tdsqlHostInfo);
+                    return false;
+                }
+            } finally {
+                this.blacklistLock.writeLock().unlock();
+            }
+        }
+        return false;
+
     }
 
     public boolean isBlacklistEnabled() {

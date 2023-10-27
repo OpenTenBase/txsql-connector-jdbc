@@ -132,11 +132,10 @@ public final class TdsqlLoadBalanceConnectionFactory {
                     }
                 }
             }
-            logInfo("All host in current datasource has finished first heartbeat checked!");
-            if (TdsqlLoadBalanceBlacklistHolder.getInstance().isBlacklistEnabled()) {
-                logInfo("Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
-                        .printBlacklist() + "]");
-            }
+        }
+        if (TdsqlLoadBalanceBlacklistHolder.getInstance().isBlacklistEnabled()) {
+            logInfo("Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
+                    .printBlacklist() + "]");
         }
 
         // 根据全局连接计数器，执行负载均衡算法策略，选择出一个需要建立数据库连接的IP地址
@@ -175,18 +174,11 @@ public final class TdsqlLoadBalanceConnectionFactory {
             return connection;
         } catch (SQLException e) {
             // 如果建立数据库连接失败，记录日志和堆栈、抛出异常
-            if (tdsqlLoadBalanceInfo.isTdsqlLoadBalanceHeartbeatMonitorEnable()) {
-                // 如果开启了心跳检测，则黑名单也就开启了，将该失败的IP地址加入黑名单
-                // 保证这个IP地址在心跳检测成功之前，不再被调度到
-                logError("Could not create connection to database server [" + choice.getHostPortPair()
-                        + "], try add to blacklist.", e);
-                TdsqlLoadBalanceBlacklistHolder.getInstance().addBlacklist(choice);
-            } else {
-                // 同时将重置该失败的IP地址的连接计数器
-                logError("Could not create connection to database server [" + choice.getHostPortPair()
-                        + "], remove its counter.", e);
-                TdsqlLoadBalanceConnectionCounter.getInstance().resetCounter(choice);
-            }
+            // 如果开启了心跳检测，则黑名单也就开启了，将该失败的IP地址加入黑名单
+            // 保证这个IP地址在心跳检测成功之前，不再被调度到
+            logError("Could not create connection to database server [" + choice.getHostPortPair()
+                    + "], try add to blacklist.", e);
+            TdsqlLoadBalanceBlacklistHolder.getInstance().addBlacklist(choice);
             throw e;
         }
     }
@@ -287,10 +279,6 @@ public final class TdsqlLoadBalanceConnectionFactory {
             }
             boolean tdsqlLoadBalanceHeartbeatMonitor = Boolean.parseBoolean(tdsqlLoadBalanceHeartbeatMonitorStr);
             tdsqlLoadBalanceInfo.setTdsqlLoadBalanceHeartbeatMonitorEnable(tdsqlLoadBalanceHeartbeatMonitor);
-            // 如果主动关闭了心跳检测，则不再启用黑名单
-            if (!tdsqlLoadBalanceHeartbeatMonitor) {
-                TdsqlLoadBalanceBlacklistHolder.getInstance().setBlacklistEnabled(false);
-            }
         } catch (Exception e) {
             String errMessage =
                     Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceHeartbeatMonitorEnable",

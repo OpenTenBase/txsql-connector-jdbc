@@ -44,6 +44,8 @@ public class TdsqlLoadBalanceConnectionCounter {
             for (TdsqlHostInfo tdsqlHostInfo : tdsqlLoadBalanceInfo.getTdsqlHostInfoList()) {
                 // 在本类中，所有的put方法，都从之前put一个Long类型修改为一个NodeMsg实例，
                 // 因为isMaster字段在该功能中不重要，所以将其设为null
+                long heartbeatIntervalTime = tdsqlLoadBalanceInfo.getTdsqlLoadBalanceHeartbeatIntervalTimeMillis();
+                tdsqlHostInfo.setHeartbeatIntervalTime(heartbeatIntervalTime);
                 counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
             }
             this.counterDatasourceMap.put(datasourceUuid, counter);
@@ -66,10 +68,19 @@ public class TdsqlLoadBalanceConnectionCounter {
                 return null;
             }
             TdsqlAtomicLongMap<TdsqlHostInfo> map = this.counterDatasourceMap.get(datasourceUuid);
-            if (map == null || map.isEmpty()) {
+            if (map == null) {
                 return null;
             }
-            return map;
+            TdsqlAtomicLongMap<TdsqlHostInfo> filteredCounter = TdsqlAtomicLongMap.create();
+            map.asMap().forEach((k, v) -> {
+                if (!TdsqlLoadBalanceBlacklistHolder.getInstance().inBlacklist(k)) {
+                    filteredCounter.put(k, v);
+                }
+            });
+            if (filteredCounter.isEmpty()) {
+                return null;
+            }
+            return filteredCounter;
         } finally {
             this.counterLock.readLock().unlock();
         }
@@ -177,15 +188,11 @@ public class TdsqlLoadBalanceConnectionCounter {
         try {
             TdsqlAtomicLongMap<TdsqlHostInfo> counter = this.counterDatasourceMap.get(tdsqlHostInfo.getOwnerUuid());
             // 如果主机已加入黑名单，则不能再对其进行操作
-            TdsqlLoadBalanceBlacklistHolder blacklistHolder = TdsqlLoadBalanceBlacklistHolder.getInstance();
-            if (blacklistHolder.inBlacklist(tdsqlHostInfo)) {
-                logWarn("Host [" + tdsqlHostInfo.getHostPortPair()
-                        + "] in blacklist, don't need decrement, current counter [" + this.printCounter() + "]");
-            } else {
-                counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
-                logInfo("Reset counter to 0 success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
-                        + this.printCounter() + "]");
-            }
+            //TdsqlLoadBalanceBlacklistHolder blacklistHolder = TdsqlLoadBalanceBlacklistHolder.getInstance();
+            counter.put(tdsqlHostInfo, new NodeMsg(0L, null));
+            logInfo("Reset counter to 0 success [" + tdsqlHostInfo.getHostPortPair() + "], current counter ["
+                    + this.printCounter() + "]");
+
         } finally {
             this.counterLock.writeLock().unlock();
         }
