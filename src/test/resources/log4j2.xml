@@ -33,6 +33,11 @@
             <AppenderRef ref="MyFile"/>
             <AppenderRef ref="Console"/>
         </AsyncLogger>
+        <!--异步日志 additivity防止重复日志-->
+        <AsyncLogger name="net.schmizz" level="ERROR" additivity="false">
+            <AppenderRef ref="MyFile"/>
+            <AppenderRef ref="Console"/>
+        </AsyncLogger>
         <!--全局日志 level日志级别-->
         <Root level="trace">
             <AppenderRef ref="MyFile"/>

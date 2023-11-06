@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
+import testsuite.util.InstanceInfo;
 
 /**
  * <p></p>
@@ -38,14 +39,15 @@ import org.junit.jupiter.api.TestInfo;
 public class BaseTest {
 
     protected static final String DRIVER_CLASS_NAME = "com.mysql.cj.jdbc.Driver";
-    protected static final String PROXY_21 = "9.30.0.250:15012";
-    protected static final String PROXY_22 = "9.30.2.116:15012";
-    protected static final String PROXY_23 = "9.30.2.89:15012";
-    protected static final String PROXY_24 = "9.30.2.94:15012";
+    protected static final String PROXY_1 = "9.30.2.116:15018";
+    protected static final String PROXY_2 = "9.30.2.89:15018";
+    protected static final String PROXY_3 = "9.30.2.94:15018";
 
+    protected static final String IDC_USER = "root";
 
+    protected static final String IDC_PASS = "Azaqpvrk#ov#10391356";
 
-    protected static final String[] PROXY_ARRAY = {PROXY_21, PROXY_22, PROXY_23, PROXY_24};
+    protected static final String[] PROXY_ARRAY = {PROXY_1, PROXY_2, PROXY_3};
     protected static final String DB_MYSQL = "test";
     protected static final String LB_URL_PROPS = "?useLocalSessionStates=true"
             + "&useUnicode=true"
@@ -58,9 +60,10 @@ public class BaseTest {
             + "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000"
             + "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1";
     protected static final String LB_URL =
-            "jdbc:mysql:loadbalance://" + PROXY_21 + "," + PROXY_22 + "," + PROXY_23 + "," + PROXY_24 + "/"
+            "jdbc:mysql:loadbalance://" + PROXY_1 + "," + PROXY_2 + "," + PROXY_3 + "/"
                     + DB_MYSQL + LB_URL_PROPS;
     protected static final String USER = "qt4s";
+    protected static final String USER_RO = "";
     protected static final String PASS = "g<m:7KNDF.L1<^1C";
 
     @BeforeEach
@@ -72,6 +75,17 @@ public class BaseTest {
         System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
         Class.forName(DRIVER_CLASS_NAME);
+    }
+
+    protected InstanceInfo produceInstanceInfo() {
+        String[] proxyIpList = new String[PROXY_ARRAY.length];
+        int[] proxyPortList = new int[PROXY_ARRAY.length];
+        for (int i = 0; i < PROXY_ARRAY.length; i++) {
+            String[] ipPort = PROXY_ARRAY[i].split(":");
+            proxyIpList[i] = ipPort[0];
+            proxyPortList[i] = Integer.parseInt(ipPort[1]);
+        }
+        return new InstanceInfo(proxyIpList, proxyPortList);
     }
 
     protected DataSource createMysqlDataSource() {

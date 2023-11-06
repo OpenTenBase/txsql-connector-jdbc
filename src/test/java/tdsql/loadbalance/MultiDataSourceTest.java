@@ -29,7 +29,7 @@ public class MultiDataSourceTest extends BaseTest {
     public void testMultiHikari() {
         this.testMultiHikari(new String[]{
                 "jdbc:tdsql-mysql:loadbalance:" +
-                        "//9.30.0.250:15012,9.30.2.116:15012/test" +
+                        "//" + PROXY_1 + "," + PROXY_2 + "/test" +
                         "?tdsqlLoadBalanceStrategy=sed" +
                         "&logger=Slf4JLogger" +
                         "&tdsqlLoadBalanceWeightFactor=1,1" +
@@ -39,7 +39,7 @@ public class MultiDataSourceTest extends BaseTest {
                         "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
                         "&autoReconnect=true",
                 "jdbc:tdsql-mysql:loadbalance:" +
-                        "//9.30.2.89:15012,9.30.2.94:15012/qt4s" +
+                        "//" + PROXY_1 + "," + PROXY_3 + "/qt4s" +
                         "?tdsqlLoadBalanceStrategy=sed" +
                         "&logger=Slf4JLogger" +
                         "&tdsqlLoadBalanceWeightFactor=2,1" +
@@ -56,7 +56,7 @@ public class MultiDataSourceTest extends BaseTest {
     public void testMultiDruid() throws Exception {
         this.testMultiDruid(new String[]{
                 "jdbc:tdsql-mysql:loadbalance:" +
-                        "//9.30.0.250:15012,9.30.2.116:15012/test" +
+                        "//" + PROXY_1 + "," + PROXY_2 + "/test" +
                         "?tdsqlLoadBalanceStrategy=sed" +
                         "&logger=Slf4JLogger" +
                         "&tdsqlLoadBalanceWeightFactor=1,1" +
@@ -66,7 +66,7 @@ public class MultiDataSourceTest extends BaseTest {
                         "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
                         "&autoReconnect=true",
                 "jdbc:tdsql-mysql:loadbalance:" +
-                        "//9.30.0.250:15012,9.30.2.116:15012/qt4s" +
+                        "//" + PROXY_1 + "," + PROXY_3 + "/qt4s" +
                         "?tdsqlLoadBalanceStrategy=sed" +
                         "&logger=Slf4JLogger" +
                         "&tdsqlLoadBalanceWeightFactor=2,1" +
@@ -83,7 +83,7 @@ public class MultiDataSourceTest extends BaseTest {
     public void testMultiAtomikos() throws SQLException, InterruptedException {
         this.testMultiAtomikos(new String[]{
                 "jdbc:tdsql-mysql:loadbalance:" +
-                        "//9.30.0.250:15023,9.30.2.116:15012/test" +
+                        "//" + PROXY_1 + "," + PROXY_2 + "/test" +
                         "?tdsqlLoadBalanceStrategy=sed" +
                         "&logger=Slf4JLogger" +
                         "&tdsqlLoadBalanceWeightFactor=1,1" +
@@ -93,7 +93,7 @@ public class MultiDataSourceTest extends BaseTest {
                         "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
                         "&autoReconnect=true",
                 "jdbc:tdsql-mysql:loadbalance:" +
-                        "//9.30.0.250:15023,9.30.2.116:15012/qt4s" +
+                        "//" + PROXY_1 + "," + PROXY_3 + "/qt4s" +
                         "?tdsqlLoadBalanceStrategy=sed" +
                         "&logger=Slf4JLogger" +
                         "&tdsqlLoadBalanceWeightFactor=2,1" +
@@ -112,8 +112,8 @@ public class MultiDataSourceTest extends BaseTest {
             ds1 = (HikariDataSource) super.createHikariDataSource();
             ds2 = (HikariDataSource) super.createHikariDataSource();
         } else if (jdbcUrl.length == 2) {
-            ds1 = (HikariDataSource) super.createHikariDataSource(jdbcUrl[0], "qt4s", "g<m:7KNDF.L1<^1C");
-            ds2 = (HikariDataSource) super.createHikariDataSource(jdbcUrl[1], "qt4s", "g<m:7KNDF.L1<^1C");
+            ds1 = (HikariDataSource) super.createHikariDataSource(jdbcUrl[0], USER, PASS);
+            ds2 = (HikariDataSource) super.createHikariDataSource(jdbcUrl[1], USER, PASS);
         }
 
         try {
@@ -154,8 +154,8 @@ public class MultiDataSourceTest extends BaseTest {
             ds1 = (DruidDataSource) super.createDruidDataSource();
             ds2 = (DruidDataSource) super.createDruidDataSource();
         } else if (jdbcUrl.length == 2) {
-            ds1 = (DruidDataSource) super.createDruidDataSource(jdbcUrl[0], "qt4s", "g<m:7KNDF.L1<^1C");
-            ds2 = (DruidDataSource) super.createDruidDataSource(jdbcUrl[1], "qt4s", "g<m:7KNDF.L1<^1C");
+            ds1 = (DruidDataSource) super.createDruidDataSource(jdbcUrl[0], USER, PASS);
+            ds2 = (DruidDataSource) super.createDruidDataSource(jdbcUrl[1], USER, PASS);
         }
 
         try {
@@ -192,8 +192,8 @@ public class MultiDataSourceTest extends BaseTest {
             ds1 = (AtomikosDataSourceBean) super.createAtomikosDataSource("ds1");
             ds2 = (AtomikosDataSourceBean) super.createAtomikosDataSource("ds2");
         } else if (jdbcUrl.length == 2) {
-            ds1 = (AtomikosDataSourceBean) super.createAtomikosDataSource("ds1", jdbcUrl[0], "qt4s", "g<m:7KNDF.L1<^1C");
-            ds2 = (AtomikosDataSourceBean) super.createAtomikosDataSource("ds2", jdbcUrl[1], "qt4s", "g<m:7KNDF.L1<^1C");
+            ds1 = (AtomikosDataSourceBean) super.createAtomikosDataSource("ds1", jdbcUrl[0], USER, PASS);
+            ds2 = (AtomikosDataSourceBean) super.createAtomikosDataSource("ds2", jdbcUrl[1], USER, PASS);
         }
 
         assertNotNull(ds1);

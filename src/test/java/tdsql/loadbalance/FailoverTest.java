@@ -38,7 +38,7 @@ import tdsql.loadbalance.base.BaseTest;
 public class FailoverTest extends BaseTest {
 
     private final String jdbcUrl = "jdbc:tdsql-mysql:loadbalance:" +
-            "//9.30.0.250:15012,9.30.2.116:15012/test" +
+            "//" + PROXY_1 + "," + PROXY_2 + "/test" +
             "?tdsqlLoadBalanceStrategy=sed" +
             "&logger=Slf4JLogger" +
             "&tdsqlLoadBalanceWeightFactor=2,1" +
@@ -53,8 +53,8 @@ public class FailoverTest extends BaseTest {
         Properties prop = new Properties();
         prop.setProperty(PROP_DRIVERCLASSNAME, DRIVER_CLASS_NAME);
         prop.setProperty(PROP_URL, jdbcUrl);
-        prop.setProperty(PROP_USERNAME, "qt4s");
-        prop.setProperty(PROP_PASSWORD, "g<m:7KNDF.L1<^1C");
+        prop.setProperty(PROP_USERNAME, USER);
+        prop.setProperty(PROP_PASSWORD, PASS);
         prop.setProperty(PROP_INITIALSIZE, "20");
         prop.setProperty(PROP_MINIDLE, "10");
         prop.setProperty(PROP_MAXACTIVE, "20");
@@ -69,17 +69,6 @@ public class FailoverTest extends BaseTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
-        //        HikariConfig config = new HikariConfig();
-        //        config.setDriverClassName(DRIVER_CLASS_NAME);
-        //        config.setJdbcUrl(jdbcUrl);
-        //        config.setUsername("qt4s");
-        //        config.setPassword("g<m:7KNDF.L1<^1C");
-        //        config.setMinimumIdle(20);
-        //        config.setMaximumPoolSize(20);
-        //        config.setMaxLifetime(30000);
-        //        HikariDataSource ds = new HikariDataSource(config);
-        //        HikariPoolMXBean bean = ds.getHikariPoolMXBean();
 
         ThreadPoolExecutor executorService = new ThreadPoolExecutor(100, 100, 0, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>());
