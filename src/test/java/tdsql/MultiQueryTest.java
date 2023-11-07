@@ -13,12 +13,12 @@ public class MultiQueryTest {
         try {
             Class.forName("com.tencentcloud.tdsql.mysql.cj.jdbc.Driver");
 
-            String proxyUrl = "jdbc:tdsql-mysql://9.135.1.199:15013/dorianzhang";
+            String proxyUrl = "jdbc:tdsql-mysql://9.30.2.116:15018/test";
             if (props != null && !"".equals(props.trim())) {
                 proxyUrl += "?" + props;
             }
             try {
-                conn = DriverManager.getConnection(proxyUrl, "test", "test");
+                conn = DriverManager.getConnection(proxyUrl, "qt4s", "g<m:7KNDF.L1<^1C");
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -30,14 +30,14 @@ public class MultiQueryTest {
     }
 
     public static void main(String[] args) throws SQLException {
-//        StatementTest.case01();
-//        StatementTest.case02();
-//        StatementTest.case03();
-//        StatementTest.case04();
+        StatementTest.case01();
+        StatementTest.case02();
+        StatementTest.case03();
+        StatementTest.case04();
         PrepareStatementTest.case01();
-//        PrepareStatementTest.case02();
-//        PrepareStatementTest.case03();
-//        PrepareStatementTest.case04();
+        PrepareStatementTest.case02();
+        PrepareStatementTest.case03();
+        PrepareStatementTest.case04();
     }
 
     public static class StatementTest {
@@ -161,7 +161,7 @@ public class MultiQueryTest {
          */
         private static void case04() throws SQLException {
             // allowMultiQueries=true
-            Connection conn = getConn("rewriteBatchedStatements=true&allowMultiQueries=true");
+            Connection conn = getConn("rewriteBatchedStatements=true&allowMultiQueries=TRUE");
             PreparedStatement psmt = conn.prepareStatement("update test_1 set username = ? where id = 1;");
 
             psmt.setString(1, "111");
