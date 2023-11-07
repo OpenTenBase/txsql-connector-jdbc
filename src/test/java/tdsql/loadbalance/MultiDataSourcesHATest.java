@@ -27,7 +27,7 @@ public class MultiDataSourcesHATest extends BaseTest {
             + "&tdsqlLoadBalanceWeightFactor=1,1"
             + "&tdsqlLoadBalanceHeartbeatMonitorEnable=true"
             + "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000"
-            + "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1&logger=NullLogger";
+            + "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1";
 
     private static final String DB_URL2 = "jdbc:tdsql-mysql:loadbalance://" +
             PROXY_1 + "," + PROXY_3 + "/test"
@@ -35,7 +35,7 @@ public class MultiDataSourcesHATest extends BaseTest {
             + "&tdsqlLoadBalanceWeightFactor=1,1"
             + "&tdsqlLoadBalanceHeartbeatMonitorEnable=true"
             + "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000"
-            + "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1&logger=NullLogger";
+            + "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1";
 
     private InstanceInfo instanceInfo = produceInstanceInfo();
 
