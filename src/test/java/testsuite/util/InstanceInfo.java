@@ -72,10 +72,18 @@ public class InstanceInfo {
         return proxyPortList;
     }
 
-    int getConNumberOnEcheNodes(String ip, int port, String[] proxyList,DbConfig dbConfig) throws IOException {
+    int getConNumberOnEacheNode(String ip, int port, String[] proxyList, DbConfig dbConfig) throws IOException {
         String localip = InetAddress.getLocalHost().getHostAddress();
         String result = SshClient.getDefaultHostSshClient().sendCmd(String.format("mysql -h%s  -P%d -uqt4s -p'g<m:7KNDF.L1<^1C' -e \"show processlist;\" |grep %s|grep %s|grep %s|grep -v \"%s\""
                 , ip, port, dbConfig.getUser(), dbConfig.getDb_name(), localip, String.join("\\|", proxyList)));
+        return (int) Arrays.stream(result.split("\n")).filter(s -> s.trim().length() > 0).count();
+    }
+
+    public int getConNumberOnEacheProxy(String ip, int port, String idcUser, String idcPasswd, String user, String passwd, String dbName) throws IOException {
+        String localip = InetAddress.getLocalHost().getHostAddress();
+        SshClient sshClient = new SshClient(ip,idcUser,idcPasswd);
+        String result = sshClient.sendCmd(String.format("mysql -h%s  -P%d -u%s -p'%s' -e \"show processlist;\" |grep %s|grep %s|grep %s|grep %s"
+                , ip, port, user, passwd, user, dbName, localip, ip));
         return (int) Arrays.stream(result.split("\n")).filter(s -> s.trim().length() > 0).count();
     }
 
@@ -85,7 +93,7 @@ public class InstanceInfo {
         int port = getMasterDbinfo().getPort();
         String[] proxy = getProxyIpList();
         if (!dbConfig.ifIpOffline(ip))
-            connectMap.put(ip, getConNumberOnEcheNodes(ip, port, proxy, dbConfig));
+            connectMap.put(ip, getConNumberOnEacheNode(ip, port, proxy, dbConfig));
         else
             connectMap.put(ip, 0);
 
@@ -96,7 +104,7 @@ public class InstanceInfo {
                 connectMap.put(ip, 0);
                 continue;
             }
-            connectMap.put(ip, getConNumberOnEcheNodes(ip, port, proxy, dbConfig));
+            connectMap.put(ip, getConNumberOnEacheNode(ip, port, proxy, dbConfig));
         }
         //logger.info("getConnectionNumber:" + connectMap);
         return connectMap;

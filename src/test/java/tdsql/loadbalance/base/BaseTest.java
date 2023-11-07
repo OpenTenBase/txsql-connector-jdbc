@@ -13,23 +13,33 @@ import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_USERNAME;
 import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_VALIDATIONQUERY;
 import static com.alibaba.druid.pool.DruidDataSourceFactory.createDataSource;
 
+import com.alibaba.druid.pool.DruidDataSource;
 import com.atomikos.jdbc.AtomikosDataSourceBean;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlDataSource;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.MysqlXADataSource;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+
+import java.io.IOException;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.sql.DataSource;
+
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
+import tdsql.loadbalance.MultiDataSourcesHATest;
 import testsuite.util.InstanceInfo;
+import testsuite.util.InstanceOp;
+import testsuite.util.Undo;
 
 /**
  * <p></p>
@@ -88,9 +98,60 @@ public class BaseTest {
         return new InstanceInfo(proxyIpList, proxyPortList);
     }
 
+    /**
+     * 因为在开启异步检测线程的时候可能导致proxy有额外线程连接，因此可以不计算total connection num
+     *
+     * @param connNum
+     */
+    protected void validateLoadbalance(List<Integer> connNum) {
+        int min, max;
+        min = -1;
+        max = -1;
+        for (Integer num : connNum) {
+            if (min == -1)
+                min = num;
+            else if (min > num)
+                min = num;
+
+            if (max == -1)
+                max = num;
+            else if (max < num) {
+                max = num;
+            }
+        }
+
+        if (max - min > 2) {
+            Assertions.fail("the connection algorithm is not balance! connection num" + connNum);
+        }
+    }
+
+    protected void validateLoadbalance(List<Integer> connNum, int totalConn) {
+        int min, max, sum = 0;
+        min = -1;
+        max = -1;
+        for (Integer num : connNum) {
+            sum += num;
+            if (min == -1)
+                min = num;
+            else if (min > num)
+                min = num;
+
+            if (max == -1)
+                max = num;
+            else if (max < num) {
+                max = num;
+            }
+        }
+
+        Assertions.assertEquals(totalConn, sum, "total connection number is not equal");
+        if (max - min > 2) {
+            Assertions.fail("the connection algorithm is not balance! connection num" + connNum);
+        }
+    }
+
     protected DataSource createMysqlDataSource() {
         MysqlDataSource ds = new MysqlDataSource();
-        ds.setURL(LB_URL);
+                                    ds.setURL(LB_URL);
         ds.setUser(USER);
         ds.setPassword(PASS);
         return ds;
@@ -143,6 +204,42 @@ public class BaseTest {
         return this.createDruidDataSource(LB_URL);
     }
 
+    protected ThreadPoolExecutor initThreadPool(int coreSize, int maxSize) {
+        return new ThreadPoolExecutor(coreSize,
+                maxSize,
+                0L,
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(),
+                new AbortPolicy());
+    }
+
+    private static class AbortPolicy implements RejectedExecutionHandler {
+
+        @Override
+        public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
+            System.out.println("Task " + r.toString() + " rejected from " + e.toString());
+        }
+    }
+
+    protected DruidDataSource initDruidDataSource(String url) throws SQLException {
+        DruidDataSource ds = new DruidDataSource();
+        ds.setUrl(url);
+        ds.setUsername(USER);
+        ds.setPassword(PASS);
+        ds.setDriverClassName(DRIVER_CLASS_NAME);
+        ds.setInitialSize(10);
+        ds.setMaxActive(10);
+        ds.setMinIdle(10);
+        ds.setValidationQuery("select 1");
+        ds.setTimeBetweenEvictionRunsMillis(30000);
+        ds.setTestWhileIdle(true);
+        ds.setPhyTimeoutMillis(10000);
+        ds.setTestOnBorrow(true);
+        ds.setMaxWait(5000);
+        ds.init();
+        return ds;
+    }
+
     protected DataSource createAtomikosDataSource(String uniqueResourceName, String jdbcUrl, String username,
             String password) throws SQLException {
         MysqlXADataSource mysqlXADataSource = new MysqlXADataSource();
@@ -178,6 +275,52 @@ public class BaseTest {
         return this.createAtomikosDataSource("ds1");
     }
 
+    protected List<QueryTask> createQueryTasks(DataSource dataSource, String datasourceName, ThreadPoolExecutor executor, int taskCnt) throws InterruptedException {
+        List<QueryTask> queryTasks = new ArrayList<>();
+        for (int i = 0; i < taskCnt; i++) {
+            TimeUnit.MILLISECONDS.sleep(100);
+            QueryTask queryTask = new QueryTask("query-" + datasourceName + "-" + i, datasourceName, "select 1", dataSource);
+            queryTasks.add(queryTask);
+            executor.execute( queryTask);
+        }
+        return queryTasks;
+    }
+
+    protected boolean validateQueryTask(List<QueryTask> queryTasks) {
+        AtomicBoolean beginStatus = new AtomicBoolean(true);
+        queryTasks.forEach(v -> {
+            if (!v.getStatus()) {
+                beginStatus.set(false);
+                System.out.println("Task: " + v.getTaskName() + ", datasource: " + v.getDsName() + " is in faileed status!");
+            }
+        });
+        return beginStatus.get();
+    }
+
+    protected void recoverAllProxy(InstanceInfo instanceInfo) throws IOException {
+        InstanceOp instanceOp = new InstanceOp(instanceInfo);
+        for (String ip : instanceInfo.getProxyIpList()) {
+            instanceOp.recoverPortFailed(ip, instanceInfo.getProxyPort(ip), IDC_USER, IDC_PASS);
+        }
+    }
+
+    protected Undo faioverOneProxy(InstanceInfo instanceInfo) throws IOException {
+        InstanceOp instanceOp = new InstanceOp(instanceInfo);
+        String failIp = instanceInfo.getProxyIpList()[0];
+        System.out.println("close ip port: " + failIp + ":" + instanceInfo.getProxyPort(failIp));
+        return instanceOp.setPortFailed(failIp, instanceInfo.getProxyPort(failIp), IDC_USER, IDC_PASS);
+    }
+
+    protected List<Undo> failoverAllProxy(InstanceInfo instanceInfo) throws IOException {
+        List<Undo> undoList = new ArrayList<>();
+        InstanceOp instanceOp = new InstanceOp(instanceInfo);
+        for (String ip : instanceInfo.getProxyIpList()) {
+            System.out.println("close ip port: " + ip + ":" + instanceInfo.getProxyPort(ip));
+            undoList.add(instanceOp.setPortFailed(ip, instanceInfo.getProxyPort(ip), IDC_USER, IDC_PASS));
+        }
+        return undoList;
+    }
+
     protected void warmUp(DataSource dataSource, int threadCnt, int taskCnt, int waitSec) {
         try {
             ExecutorService pool = Executors.newFixedThreadPool(threadCnt);
@@ -202,6 +345,85 @@ public class BaseTest {
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
+        }
+    }
+
+    protected static class QueryTask implements Runnable {
+        public String getTaskName() {
+            return taskName;
+        }
+
+        public String getDsName() {
+            return dsName;
+        }
+
+        private String taskName;
+        private String dsName;
+        private String querySQL;
+
+        private DataSource dataSource;
+
+        public boolean getStatus() {
+            return status;
+        }
+
+        private boolean status;
+
+        public QueryTask(String taskName, String dsName, String querySQL, DataSource dataSource) {
+            this.taskName = taskName;
+            this.dsName = dsName;
+            this.querySQL = querySQL;
+            this.dataSource = dataSource;
+        }
+
+        @Override
+        public void run() {
+            int i = 0;
+            while(true) {
+                i++;
+                Connection conn = null;
+                Statement stmt = null;
+                ResultSet rs = null;
+                try {
+                    conn = dataSource.getConnection();
+                    stmt = conn.createStatement();
+                    rs = stmt.executeQuery(querySQL);
+
+                    try {
+                        TimeUnit.SECONDS.sleep(1);
+                    } catch (InterruptedException e) {
+                        break;
+                    }
+                    status = true;
+                    System.out.println("TaskName: " + taskName + " has finished task " + i + "th time!");
+                } catch (Throwable e) {
+                    status = false;
+                    System.out.println("TaskName: " + taskName + " occurred exception! datasource name: " + dsName
+                            + ", exception: " + e.getMessage());
+                } finally {
+                    if (conn != null) {
+                        try {
+                            conn.close();
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    if (stmt != null) {
+                        try {
+                            stmt.close();
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    if (rs != null) {
+                        try {
+                            rs.close();
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            }
         }
     }
 }

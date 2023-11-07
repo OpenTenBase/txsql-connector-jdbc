@@ -1,34 +1,20 @@
 package tdsql.loadbalance;
 
-import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_DRIVERCLASSNAME;
-import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_INITIALSIZE;
-import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_MAXACTIVE;
-import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_MINIDLE;
-import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_PASSWORD;
-import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_PHY_TIMEOUT_MILLIS;
-import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_TESTONBORROW;
-import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_TESTONRETURN;
-import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_TESTWHILEIDLE;
-import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_URL;
-import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_USERNAME;
-import static com.alibaba.druid.pool.DruidDataSourceFactory.PROP_VALIDATIONQUERY;
-
 import com.alibaba.druid.pool.DruidDataSource;
-import com.tencentcloud.tdsql.mysql.cj.exceptions.CJCommunicationsException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.time.LocalTime;
-import java.util.Properties;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+
+import java.io.IOException;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import javax.sql.DataSource;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import tdsql.loadbalance.base.BaseTest;
+import testsuite.util.InstanceInfo;
+import testsuite.util.InstanceOp;
+import testsuite.util.Undo;
 
 /**
  * <p></p>
@@ -37,88 +23,161 @@ import tdsql.loadbalance.base.BaseTest;
  */
 public class FailoverTest extends BaseTest {
 
+    private final  String dbName = "test";
     private final String jdbcUrl = "jdbc:tdsql-mysql:loadbalance:" +
-            "//" + PROXY_1 + "," + PROXY_2 + "/test" +
+            "//" + PROXY_1 + "," + PROXY_2 + "," + PROXY_3 + "/" + dbName +
             "?tdsqlLoadBalanceStrategy=sed" +
             "&logger=Slf4JLogger" +
-            "&tdsqlLoadBalanceWeightFactor=2,1" +
+            "&tdsqlLoadBalanceWeightFactor=1,1,1" +
             "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
-            "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1500" +
+            "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000" +
             "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
-            "&autoReconnect=true&socketTimeout=5000";
+            "&socketTimeout=5000";
 
+    private InstanceInfo instanceInfo = produceInstanceInfo();
+
+    /**
+     *
+     *
+     * @throws IOException
+     * @throws SQLException
+     * @throws InterruptedException
+     */
     @Test
-    @Disabled
-    public void case01() {
-        Properties prop = new Properties();
-        prop.setProperty(PROP_DRIVERCLASSNAME, DRIVER_CLASS_NAME);
-        prop.setProperty(PROP_URL, jdbcUrl);
-        prop.setProperty(PROP_USERNAME, USER);
-        prop.setProperty(PROP_PASSWORD, PASS);
-        prop.setProperty(PROP_INITIALSIZE, "20");
-        prop.setProperty(PROP_MINIDLE, "10");
-        prop.setProperty(PROP_MAXACTIVE, "20");
-        prop.setProperty(PROP_TESTONBORROW, "false");
-        prop.setProperty(PROP_TESTONRETURN, "false");
-        prop.setProperty(PROP_TESTWHILEIDLE, "true");
-        prop.setProperty(PROP_VALIDATIONQUERY, "select 1");
-        prop.setProperty(PROP_PHY_TIMEOUT_MILLIS, "10000");
-        final DruidDataSource ds;
-        try {
-            ds = (DruidDataSource) createDruidDataSource(prop);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+    public void testOneProxyFailed() throws IOException, SQLException, InterruptedException {
+        InstanceOp instanceOp = new InstanceOp(instanceInfo);
+        for (String ip : instanceInfo.getProxyIpList()) {
+            instanceOp.recoverPortFailed(ip, instanceInfo.getProxyPort(ip), IDC_USER, IDC_PASS);
         }
 
-        ThreadPoolExecutor executorService = new ThreadPoolExecutor(100, 100, 0, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>());
+        List<Connection> connList = getConnection(jdbcUrl, 15);
+        TimeUnit.SECONDS.sleep(10);
+        System.out.println("validate connection number in proxies!");
+        List<Integer> connNumList = new ArrayList<>();
+        for (String ip : instanceInfo.getProxyIpList()) {
+            connNumList.add(instanceInfo.getConNumberOnEacheProxy(ip, instanceInfo.getProxyPort(ip), IDC_USER, IDC_PASS, USER, PASS, "test"));
+        }
+        validateLoadbalance(connNumList);
+        System.out.println("PASS");
+        String faileIp = instanceInfo.getProxyIpList()[0];
+        System.out.println("start fail one proxy, ip:" + faileIp);
+        Undo undo = null;
+        try {
+            undo = instanceOp.setPortFailed(faileIp, instanceInfo.getProxyPort(faileIp), IDC_USER, IDC_PASS);
 
-        ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
-        scheduledThreadPoolExecutor.scheduleAtFixedRate(
-                () -> System.out.println(
-                        "Time: " + LocalTime.now() + ", Active Size: " + executorService.getActiveCount()
-                                + ", Pool size: " + executorService.getPoolSize() + ", Task count: "
-                                + executorService.getTaskCount()
-                                + ", queue Size: " + executorService.getQueue().size() + ", ds Active: "
-                                + ds.getActiveCount() + ", ds create: " + ds.getCreateCount() + ", ds connect: "
-                                + ds.getConnectCount()
-                        //                        + "active: " + bean.getActiveConnections() + ", total: " + bean.getTotalConnections() + ", idle: " + bean.getIdleConnections()
-                ), 0, 1000, TimeUnit.MILLISECONDS);
-
-        while (true) {
-            try {
-                executorService.submit(new QueryTask(ds));
-                TimeUnit.MILLISECONDS.sleep(2);
-            } catch (Throwable e) {
-                System.err.println("1. ===== " + e.getMessage());
+            TimeUnit.SECONDS.sleep(10);
+            System.out.println("validate new connection number in proxies!");
+            connList.addAll(getConnection(jdbcUrl, 6));
+            TimeUnit.SECONDS.sleep(5);
+            System.out.println("validate connection number in proxies!");
+            connNumList.clear();
+            for (String ip : instanceInfo.getProxyIpList()) {
+                if (ip.equals(faileIp)) {
+                    continue;
+                }
+                connNumList.add(instanceInfo.getConNumberOnEacheProxy(ip, instanceInfo.getProxyPort(ip), IDC_USER, IDC_PASS, USER, PASS, "test"));
             }
+            validateLoadbalance(connNumList);
+            undo.undo();
+            undo = null;
+            System.out.println("recover failed proxy!");
+            TimeUnit.SECONDS.sleep(10);
+            connList.addAll(getConnection(jdbcUrl, 8));
+
+            TimeUnit.SECONDS.sleep(5);
+            System.out.println("validate connection number in proxies!");
+            connNumList.clear();
+            for (String ip : instanceInfo.getProxyIpList()) {
+                connNumList.add(instanceInfo.getConNumberOnEacheProxy(ip, instanceInfo.getProxyPort(ip), IDC_USER, IDC_PASS, USER, PASS, "test"));
+            }
+            validateLoadbalance(connNumList);
+        } finally {
+            if (undo != null) {
+                undo.undo();
+            }
+        }
+
+    }
+
+    @Test
+    public void testAllProxyFailed() throws IOException, SQLException, InterruptedException {
+        InstanceOp instanceOp = new InstanceOp(instanceInfo);
+        for (String ip : instanceInfo.getProxyIpList()) {
+            instanceOp.recoverPortFailed(ip, instanceInfo.getProxyPort(ip), IDC_USER, IDC_PASS);
+        }
+
+        DruidDataSource ds1 = initDruidDataSource(jdbcUrl);
+        int threadNum = 5;
+        ThreadPoolExecutor executor = initThreadPool(threadNum, threadNum);
+
+        List<Undo> undoList = new ArrayList<>();
+        List<BaseTest.QueryTask> queryTasks = new ArrayList<>();
+        try {
+            for (int i = 0; i < threadNum; i++) {
+                TimeUnit.MILLISECONDS.sleep(100);
+                BaseTest.QueryTask queryTask = new BaseTest.QueryTask("query-" + i, "ds1", "select 1", ds1);
+                queryTasks.add(queryTask);
+                executor.execute( queryTask);
+            }
+
+            try {
+                TimeUnit.SECONDS.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            AtomicBoolean beginStatus = new AtomicBoolean(true);
+            queryTasks.forEach(v -> {
+                if (!v.getStatus()) {
+                    beginStatus.set(false);
+                    System.out.println("Task: " + v.getTaskName() + ", datasource: " + v.getDsName() + " is in faileed status!");
+                }
+            });
+            if (!beginStatus.get()) {
+                throw new RuntimeException("Not all query tasks is in successful status!");
+            }
+
+            for (String ip : instanceInfo.getProxyIpList()) {
+                System.out.println("close ip port: " + ip + ":" + instanceInfo.getProxyPort(ip));
+                undoList.add(instanceOp.setPortFailed(ip, instanceInfo.getProxyPort(ip), IDC_USER, IDC_PASS));
+            }
+            try {
+                TimeUnit.SECONDS.sleep(20);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("recover all ip port: ");
+            undoList.forEach(v -> {v.undo();});
+            undoList.clear();
+            try {
+                TimeUnit.SECONDS.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            AtomicBoolean finalStatus = new AtomicBoolean(true);
+            queryTasks.forEach(v -> {
+                if (!v.getStatus()) {
+                    finalStatus.set(false);
+                    System.out.println("Task: " + v.getTaskName() + ", datasource: " + v.getDsName() + " has not recovered!");
+                }
+            });
+            if (!finalStatus.get()) {
+                throw new RuntimeException("Not all query tasks recoverd from failed!");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            executor.shutdownNow();
+            undoList.forEach(v -> {v.undo();});
+            ds1.close();
         }
     }
 
-    private static class QueryTask implements Runnable {
-
-        private final DataSource ds;
-
-        public QueryTask(DataSource ds) {
-            this.ds = ds;
+    private List<Connection> getConnection(String jdbcUrl, int num) throws SQLException {
+        List<Connection> conns = new ArrayList<>();
+        for (int i = 0; i < num; i++) {
+            conns.add(DriverManager.getConnection(jdbcUrl, USER, PASS));
         }
-
-        @Override
-        public void run() {
-            try (Connection conn = ds.getConnection();
-                    Statement stmt = conn.createStatement()) {
-                conn.setAutoCommit(false);
-                ResultSet rs = stmt.executeQuery("select count(*) from t_user;");
-                while (rs.next()) {
-                    TimeUnit.MILLISECONDS.sleep(100);
-                }
-                conn.commit();
-            } catch (Throwable e) {
-                if (!(e instanceof CJCommunicationsException)) {
-                    System.out.println("2. ===== " + e.getMessage());
-                    e.printStackTrace();
-                }
-            }
-        }
+        return conns;
     }
 }
