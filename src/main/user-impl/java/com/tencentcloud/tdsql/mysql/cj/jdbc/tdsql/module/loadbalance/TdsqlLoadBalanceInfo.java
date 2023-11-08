@@ -3,17 +3,12 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.util.TdsqlDataSourceUuidGenerator;
-import com.tencentcloud.tdsql.mysql.cj.util.StringUtils;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import java.util.StringJoiner;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logDebug;
 
 /**
  * <p>TDSQL-MySQL独有的负载均衡信息记录类</p>
@@ -33,13 +28,6 @@ public class TdsqlLoadBalanceInfo {
     private int tdsqlLoadBalanceHeartbeatIntervalTimeMillis;
     private int tdsqlLoadBalanceHeartbeatMaxErrorRetries;
     private int tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis;
-
-    private static final String QUESTION_MARK = "?";
-    private static final String PLUS_MARK = "+";
-    private static final String AND_MARK = "&";
-    private static final String EQUAL_MARK = "=";
-    private static final String LEFT_CURLY_BRACES = "{";
-    private static final String RIGHT_CURLY_BRACES = "}";
 
     public void setDatasourceUuid(String datasourceUuid) {
         this.datasourceUuid = datasourceUuid;
@@ -64,7 +52,7 @@ public class TdsqlLoadBalanceInfo {
     public void setTdsqlHostInfoList(List<TdsqlHostInfo> tdsqlHostInfoList, ConnectionUrl connectionUrl) {
         this.tdsqlHostInfoList = tdsqlHostInfoList;
         this.datasourceUuid = TdsqlDataSourceUuidGenerator.generateUuid(connectionUrl);
-        logInfo("current connection uuid: " + this.datasourceUuid);
+        logDebug("current connection uuid: " + this.datasourceUuid);
 
         for (TdsqlHostInfo tdsqlHostInfo : this.tdsqlHostInfoList) {
             tdsqlHostInfo.setOwnerUuid(this.datasourceUuid);
@@ -115,27 +103,6 @@ public class TdsqlLoadBalanceInfo {
             int tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis) {
         this.tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis = tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis;
     }
-
-//    /**
-//     * <p>
-//     * 解析DataSourceUuid的值，获取其中的IP和端口列表
-//     * </p>
-//     *
-//     * @param datasourceUuid DataSourceUuid
-//     * @return IP和端口字符串列表
-//     */
-//    public static Set<String> parseDatasourceUuid(String datasourceUuid) {
-//        String ipPortDbStr = datasourceUuid;
-//
-//        // 去掉URL参数
-//        if (datasourceUuid.contains(QUESTION_MARK)) {
-//            ipPortDbStr = datasourceUuid.substring(0, datasourceUuid.indexOf(QUESTION_MARK));
-//        }
-//
-//        // 去掉数据库名称
-//        String ipPortStr = ipPortDbStr.substring(0, ipPortDbStr.lastIndexOf(PLUS_MARK));
-//        return new LinkedHashSet<>(StringUtils.split(ipPortStr, "\\+", true));
-//    }
 
     public Set<String> getIpPortSet() {
         Set<String> ipPortSet = new LinkedHashSet<>();

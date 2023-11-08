@@ -1,6 +1,5 @@
 package tdsql.loadbalance;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -8,9 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.alibaba.druid.pool.DruidDataSource;
 import com.atomikos.jdbc.AtomikosDataSourceBean;
 import com.zaxxer.hikari.HikariDataSource;
-import com.zaxxer.hikari.HikariPoolMXBean;
-
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
@@ -22,7 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import tdsql.loadbalance.base.BaseTest;
 import testsuite.util.InstanceInfo;
-import testsuite.util.InstanceOp;
 import testsuite.util.Undo;
 
 import javax.sql.DataSource;
@@ -46,9 +41,8 @@ public class MultiDataSourceTest extends BaseTest {
                         "&tdsqlLoadBalanceWeightFactor=1,1" +
                         "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
                         "&tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis=100" +
-                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=3000" +
-                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
-                        "&autoReconnect=true",
+                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000" +
+                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1",
                 "jdbc:tdsql-mysql:loadbalance:" +
                         "//" + PROXY_1 + "," + PROXY_3 + "/qt4s" +
                         "?tdsqlLoadBalanceStrategy=sed" +
@@ -56,9 +50,8 @@ public class MultiDataSourceTest extends BaseTest {
                         "&tdsqlLoadBalanceWeightFactor=2,1" +
                         "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
                         "&tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis=100" +
-                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=3000" +
-                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
-                        "&autoReconnect=true"
+                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000" +
+                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1"
         });
     }
 
@@ -73,9 +66,8 @@ public class MultiDataSourceTest extends BaseTest {
                         "&tdsqlLoadBalanceWeightFactor=1,1" +
                         "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
                         "&tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis=100" +
-                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=3000" +
-                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
-                        "&autoReconnect=true",
+                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000" +
+                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1",
                 "jdbc:tdsql-mysql:loadbalance:" +
                         "//" + PROXY_1 + "," + PROXY_3 + "/qt4s" +
                         "?tdsqlLoadBalanceStrategy=sed" +
@@ -83,9 +75,8 @@ public class MultiDataSourceTest extends BaseTest {
                         "&tdsqlLoadBalanceWeightFactor=2,1" +
                         "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
                         "&tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis=100" +
-                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=3000" +
-                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
-                        "&autoReconnect=true"
+                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000" +
+                        "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1"
         });
     }
 
@@ -100,7 +91,7 @@ public class MultiDataSourceTest extends BaseTest {
                         "&tdsqlLoadBalanceWeightFactor=1,1" +
                         "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
                         "&tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis=100" +
-                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=3000" +
+                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000" +
                         "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
                         "&autoReconnect=true",
                 "jdbc:tdsql-mysql:loadbalance:" +
@@ -110,7 +101,7 @@ public class MultiDataSourceTest extends BaseTest {
                         "&tdsqlLoadBalanceWeightFactor=2,1" +
                         "&tdsqlLoadBalanceHeartbeatMonitorEnable=true" +
                         "&tdsqlLoadBalanceHeartbeatErrorRetryIntervalTimeMillis=100" +
-                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=3000" +
+                        "&tdsqlLoadBalanceHeartbeatIntervalTimeMillis=1000" +
                         "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
                         "&autoReconnect=true"
         });
@@ -139,9 +130,10 @@ public class MultiDataSourceTest extends BaseTest {
 
         Undo undo = null;
         List<Undo> undoList = null;
+        ThreadPoolExecutor executor = null;
         try {
             int threadNum = 5;
-            ThreadPoolExecutor executor = initThreadPool(threadNum * 2, threadNum * 2);
+            executor = initThreadPool(threadNum * 2, threadNum * 2);
             List<QueryTask> queryTasks = createQueryTasks(ds1, "ds1", executor, threadNum);
             queryTasks.addAll(createQueryTasks(ds2, "ds2", executor, threadNum));
 
@@ -175,6 +167,9 @@ public class MultiDataSourceTest extends BaseTest {
                 throw new RuntimeException("Not all query tasks is in successful status! All proxies were failed, and then recovered!");
             }
         } finally {
+            if (executor != null) {
+                executor.shutdownNow();
+            }
             if (undo != null) {
                 undo.undo();
             }

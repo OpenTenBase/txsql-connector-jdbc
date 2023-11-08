@@ -69,14 +69,14 @@ public class TdsqlLoadBalanceBlacklistHolder {
             // 如果黑名单中还没有该IP地址信息，则加入
             // 同时移除该IP地址在全局连接计数器中的计数器，并记录信息级别的日志
             if (!this.globalBlackList.containsKey(tdsqlHostInfo)) {
-                this.globalBlackList.put(tdsqlHostInfo, System.currentTimeMillis() + tdsqlHostInfo.getHeartbeatIntervalTime() * 5);
+                this.globalBlackList.put(tdsqlHostInfo, System.currentTimeMillis() + tdsqlHostInfo.getHeartbeatIntervalTime() * 10);
                 logInfo("Add host [" + tdsqlHostInfo.getHostPortPair()
                         + "] to blacklist success and try remove it in counter, current blacklist [" + printBlacklist()
                         + "]");
                 TdsqlLoadBalanceConnectionCounter.getInstance().resetCounter(tdsqlHostInfo);
             } else {
-                if (globalBlackList.get(tdsqlHostInfo) < (System.currentTimeMillis() + tdsqlHostInfo.getHeartbeatIntervalTime() * 5)) {
-                    this.globalBlackList.put(tdsqlHostInfo, System.currentTimeMillis() + tdsqlHostInfo.getHeartbeatIntervalTime() * 5);
+                if (globalBlackList.get(tdsqlHostInfo) < (System.currentTimeMillis() + tdsqlHostInfo.getHeartbeatIntervalTime() * 10)) {
+                    this.globalBlackList.put(tdsqlHostInfo, System.currentTimeMillis() + tdsqlHostInfo.getHeartbeatIntervalTime() * 10);
                     logDebug("Update host [" + tdsqlHostInfo.getHostPortPair()
                             + "] to blacklist, current blacklist ["
                             + printBlacklist() + "]");

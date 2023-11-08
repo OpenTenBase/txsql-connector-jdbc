@@ -29,7 +29,7 @@
     </Appenders>
     <Loggers>
         <!--异步日志 additivity防止重复日志-->
-        <AsyncLogger name="com.tencentcloud" level="trace" additivity="false">
+        <AsyncLogger name="com.tencentcloud" level="ERROR" additivity="false">
             <AppenderRef ref="MyFile"/>
             <AppenderRef ref="Console"/>
         </AsyncLogger>
@@ -39,7 +39,7 @@
             <AppenderRef ref="Console"/>
         </AsyncLogger>
         <!--全局日志 level日志级别-->
-        <Root level="trace">
+        <Root level="INFO">
             <AppenderRef ref="MyFile"/>
             <AppenderRef ref="Console"/>
         </Root>

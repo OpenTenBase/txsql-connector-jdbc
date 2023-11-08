@@ -1,5 +1,6 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logDebug;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logWarn;
 
@@ -37,9 +38,9 @@ public class TdsqlLoadBalanceConnectionCounter {
      * @param tdsqlLoadBalanceInfo {@link TdsqlLoadBalanceInfo} 负载均衡信息记录类对象
      */
     public synchronized void initialize(TdsqlLoadBalanceInfo tdsqlLoadBalanceInfo) {
-        logInfo("Connection counter initializing.");
         String datasourceUuid = tdsqlLoadBalanceInfo.getDatasourceUuid();
         if (!this.counterDatasourceMap.containsKey(datasourceUuid)) {
+            logInfo("A new datasource connection counter is initializing.");
             TdsqlAtomicLongMap<TdsqlHostInfo> counter = TdsqlAtomicLongMap.create();
             for (TdsqlHostInfo tdsqlHostInfo : tdsqlLoadBalanceInfo.getTdsqlHostInfoList()) {
                 // 在本类中，所有的put方法，都从之前put一个Long类型修改为一个NodeMsg实例，
@@ -52,7 +53,7 @@ public class TdsqlLoadBalanceConnectionCounter {
             logInfo("New datasource add in counter [" + datasourceUuid + "], current counter ["
                     + this.printCounter() + "]");
         }
-        logInfo("Connection counter initialized, current counter [" + this.printCounter() + "]");
+        logDebug("Connection counter initialized, current counter [" + this.printCounter() + "]");
     }
 
     /**

@@ -63,7 +63,7 @@ public final class TdsqlLoadBalanceConnectionFactory {
     public JdbcConnection createConnection(ConnectionUrl connectionUrl) throws SQLException {
         // 设置专属负载均衡模式标识
         tdsqlLoadBalanceMode = true;
-        logDebug("Receive one of create load balance request. [" + connectionUrl + "]");
+        logDebug("Receive one of create load balance request. [" + connectionUrl.safeToString() + "]");
         Properties props = connectionUrl.getConnectionArgumentsAsProperties();
 
         List<HostInfo> hostsList = connectionUrl.getHostsList();
@@ -143,10 +143,10 @@ public final class TdsqlLoadBalanceConnectionFactory {
                 .getCounter(tdsqlLoadBalanceInfo.getDatasourceUuid());
         // 如果全局连接计数器是空的，则记录严重错误级别的日志，并提前抛出异常提醒用户
         if (counter == null || counter.isEmpty()) {
-            String errMessage = "Could not create connection to database server.";
+            String errMessage = "Could not create connection to database server."
+                    + "Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]"
+                    + "Current counter:" + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter();
             logFatal(errMessage);
-            logFatal("Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
-                    .printBlacklist() + "]");
             throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE,
                     null);
         }
@@ -160,7 +160,8 @@ public final class TdsqlLoadBalanceConnectionFactory {
         // 这种情况出现的概率较小，我们会记录严重错误级别的日志，并提前抛出异常提醒用户
         if (choice == null) {
             String errMessage = "Could not create connection to database server. "
-                    + "LoadBalanced Strategy not choice any hosts.";
+                    + "LoadBalanced Strategy not choice any hosts.Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]"
+                    + "Current counter:" + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter();
             logFatal(errMessage);
             throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE,
                     null);

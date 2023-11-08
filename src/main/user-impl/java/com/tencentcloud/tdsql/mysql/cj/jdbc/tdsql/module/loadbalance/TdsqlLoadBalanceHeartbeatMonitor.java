@@ -135,7 +135,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         @Override
         public void run() {
             try {
-                logInfo("Start heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
+                logDebug("Start heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
                 int attemptCount = 1;
 
                 // 设置建立心跳检测连接的超时时间为1秒，同时需要保留改IP地址设置的其它参数设置

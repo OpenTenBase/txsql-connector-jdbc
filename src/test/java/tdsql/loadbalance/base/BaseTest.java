@@ -235,7 +235,7 @@ public class BaseTest {
         ds.setTestWhileIdle(true);
         ds.setPhyTimeoutMillis(10000);
         ds.setTestOnBorrow(true);
-        ds.setMaxWait(5000);
+        ds.setMaxWait(3000);
         ds.init();
         return ds;
     }
@@ -390,7 +390,7 @@ public class BaseTest {
                     rs = stmt.executeQuery(querySQL);
 
                     try {
-                        TimeUnit.SECONDS.sleep(1);
+                        TimeUnit.MILLISECONDS.sleep(100);
                     } catch (InterruptedException e) {
                         break;
                     }
@@ -398,12 +398,15 @@ public class BaseTest {
                     System.out.println("TaskName: " + taskName + " has finished task " + i + "th time!");
                 } catch (Throwable e) {
                     status = false;
+                    if (e.getMessage() == null) {
+                        e.printStackTrace();
+                    }
                     System.out.println("TaskName: " + taskName + " occurred exception! datasource name: " + dsName
                             + ", exception: " + e.getMessage());
                 } finally {
-                    if (conn != null) {
+                    if (rs != null) {
                         try {
-                            conn.close();
+                            rs.close();
                         } catch (SQLException e) {
                             throw new RuntimeException(e);
                         }
@@ -415,9 +418,9 @@ public class BaseTest {
                             throw new RuntimeException(e);
                         }
                     }
-                    if (rs != null) {
+                    if (conn != null) {
                         try {
-                            rs.close();
+                            conn.close();
                         } catch (SQLException e) {
                             throw new RuntimeException(e);
                         }
