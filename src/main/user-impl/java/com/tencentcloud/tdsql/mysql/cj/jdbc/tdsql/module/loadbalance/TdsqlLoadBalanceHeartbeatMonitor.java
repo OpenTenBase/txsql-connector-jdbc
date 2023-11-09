@@ -38,7 +38,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
     /**
      * 保存每个DataSource的第一次心跳检测计数器，它需要多个线程间可见
      */
-    private volatile Map<String, CountDownLatch> firstCheckFinishedMap;
+    private volatile Map<TdsqlHostInfo, CountDownLatch> firstCheckFinishedMap;
 
     private static final String HEARTBEAT_SQL = "SELECT 1;";
 
@@ -62,14 +62,12 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         // 根据生成的DataSourceUuid，初始化第一次心跳检测完成计数器
         // 计数器的大小设置为该DataSource里面配置的IP地址的个数，每个IP地址心跳检测完成后，计数器递减
         String datasourceUuid = tdsqlLoadBalanceInfo.getDatasourceUuid();
-        Set<String> ipPortSet = tdsqlLoadBalanceInfo.getIpPortSet();
         // 取出DataSourceUuid中的IP和端口字符串列表，逐一判断
-        for (String ipPortStr : ipPortSet) {
-            if (firstCheckFinishedMap.containsKey(ipPortStr)) {
+        for (TdsqlHostInfo tdsqlHostInfo : tdsqlLoadBalanceInfo.getTdsqlHostInfoList()) {
+            if (firstCheckFinishedMap.containsKey(tdsqlHostInfo)) {
                 continue;
             }
-            this.firstCheckFinishedMap.put(ipPortStr, new CountDownLatch(1));
-            logInfo("Found new host [" + ipPortStr + "] in [" + datasourceUuid + "]");
+            this.firstCheckFinishedMap.put(tdsqlHostInfo, new CountDownLatch(1));
         }
 
         // 判断IP地址列表中的IP地址是否已经加入过心跳检测任务，避免相同的IP地址重复加入
@@ -88,11 +86,11 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         }
     }
 
-    public List<CountDownLatch> getFirstCheckFinished(Set<String> ipPortSet) {
+    public List<CountDownLatch> getFirstCheckFinished(List<TdsqlHostInfo> tdsqlHostInfos) {
         List<CountDownLatch> latchList = new ArrayList<>();
-        for (String ipPort : ipPortSet) {
-            if (this.firstCheckFinishedMap.containsKey(ipPort)) {
-                latchList.add(this.firstCheckFinishedMap.get(ipPort));
+        for (TdsqlHostInfo hostInfo : tdsqlHostInfos) {
+            if (this.firstCheckFinishedMap.containsKey(hostInfo)) {
+                latchList.add(this.firstCheckFinishedMap.get(hostInfo));
             }
         }
         return latchList;
@@ -118,14 +116,14 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
         /**
          * 每个DataSource的第一次心跳检测计数器的引用
          */
-        private final Map<String, CountDownLatch> firstCheckFinishedMap;
+        private final Map<TdsqlHostInfo, CountDownLatch> firstCheckFinishedMap;
         /**
          * 标识线程是否是第一次执行该任务
          */
         private boolean isFirstCheck = true;
 
         public HeartbeatMonitorTask(TdsqlHostInfo tdsqlHostInfo, int retries, int retryIntervalMs,
-                Map<String, CountDownLatch> firstCheckFinishedMap) {
+                Map<TdsqlHostInfo, CountDownLatch> firstCheckFinishedMap) {
             this.tdsqlHostInfo = tdsqlHostInfo;
             this.retries = retries;
             this.retryIntervalMs = retryIntervalMs;
@@ -165,7 +163,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                         // 并根据该IP地址所属的DataSourceUuid，获取到第一次心跳检测计数器，对其进行更新
                         if (this.isFirstCheck) {
                             this.isFirstCheck = false;
-                            this.firstCheckFinishedMap.get(tdsqlHostInfo.getHostPortPair()).countDown();
+                            this.firstCheckFinishedMap.get(tdsqlHostInfo).countDown();
                         }
                         // 心跳检测成功记录调试级别日志，退出当前循环后，等待下次调度
                         logDebug("Success heartbeat monitor check [" + tdsqlHostInfo.getHostPortPair() + "]");
@@ -185,7 +183,7 @@ public class TdsqlLoadBalanceHeartbeatMonitor {
                             // 并根据该IP地址所属的DataSourceUuid，获取到第一次心跳检测计数器，对其进行更新
                             if (this.isFirstCheck) {
                                 this.isFirstCheck = false;
-                                this.firstCheckFinishedMap.get(tdsqlHostInfo.getHostPortPair()).countDown();
+                                this.firstCheckFinishedMap.get(tdsqlHostInfo).countDown();
                             }
                         } else {
                             // 心跳检测失败处理逻辑，程序执行到这里有可能是建立连接失败、超时，或执行心跳检测SQL失败、超时。

@@ -105,7 +105,7 @@ public final class TdsqlLoadBalanceConnectionFactory {
             // 这时，如果IP地址无法建立数据库连接，则该IP地址会被加入黑名单
             // 同时，该IP地址会在全局连接计数器中被移除，被移除的IP地址在之后的负载均衡算法策略中不会被调度
             List<CountDownLatch> latchList = TdsqlLoadBalanceHeartbeatMonitor.getInstance()
-                    .getFirstCheckFinished(tdsqlLoadBalanceInfo.getIpPortSet());
+                    .getFirstCheckFinished(tdsqlLoadBalanceInfo.getTdsqlHostInfoList());
             for (CountDownLatch latch : latchList) {
                 if (latch.getCount() != 0L) {
                     try {
