@@ -27,8 +27,24 @@ import org.junit.jupiter.api.BeforeAll;
  */
 public class TdsqlDirectBaseTest {
 
-    protected static final String DEFAULT_URL_RW = "jdbc:mysql:direct://9.30.0.250:15012,9.30.2.116:15012,9.30.2.89:15012,9.30.2.94:15012/qt4s?tdsqlDirectReadWriteMode=rw";
-    protected static final String DEFAULT_URL_RO = "jdbc:mysql:direct://9.30.0.250:15012,9.30.2.116:15012,9.30.2.89:15012,9.30.2.94:15012/qt4s?tdsqlDirectReadWriteMode=ro";
+    protected static final String DRIVER_CLASS_NAME = "com.mysql.cj.jdbc.Driver";
+    protected static final String PROXY_1 = "9.30.2.116:15018";
+    protected static final String PROXY_2 = "9.30.2.89:15018";
+    protected static final String PROXY_3 = "9.30.2.94:15018";
+
+    protected static final String IDC_USER = "root";
+
+    protected static final String IDC_PASS = "Azaqpvrk#ov#10391356";
+
+    protected static final String[] PROXY_ARRAY = {PROXY_1, PROXY_2, PROXY_3};
+
+    protected static final String DB_MYSQL = "test";
+    protected static final String USER = "qt4s";
+    protected static final String USER_RO = "";
+    protected static final String PASS = "g<m:7KNDF.L1<^1C";
+
+    protected static final String DEFAULT_URL_RW = "jdbc:mysql:direct://" + PROXY_1 + "," + PROXY_2 + "," + PROXY_3 + "/qt4s?tdsqlDirectReadWriteMode=rw";
+    protected static final String DEFAULT_URL_RO = "jdbc:mysql:direct://" + PROXY_1 + "," + PROXY_2 + "," + PROXY_3 + "/qt4s?tdsqlDirectReadWriteMode=ro";
     protected static final String DEFAULT_CLUSTER_NAME = "test-cluster-name";
     protected static final TdsqlDirectReadWriteModeEnum DEFAULT_RW_MODE = RW;
     protected static final Boolean DEFAULT_MASTER_AS_SLAVE = false;
@@ -40,6 +56,11 @@ public class TdsqlDirectBaseTest {
     protected final Properties defaultProperties;
     protected final String defaultDataSourceUuid;
     protected final HostInfo defaultMainHost;
+
+    protected int getPort() {
+        String[] ipPort = PROXY_1.split(":");
+        return Integer.parseInt(ipPort[1]);
+    }
 
     public TdsqlDirectBaseTest() {
         this.defaultProperties = new Properties();
