@@ -154,6 +154,12 @@ public class TdsqlDirectDataSource {
         if (this.getConnectionManager() == null) {
             return false;
         }
+
+        if (this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() == 0 &
+                System.currentTimeMillis() - this.getConnectionManager().getCreateTime() > (this.dataSourceConfig.getTdsqlConnectionTimeOut() * 5)) {
+            return true;
+        }
+
         return (this.getConnectionManager().getLiveConnectionMap().size() == 0 &
                 this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() != 0 &
                 System.currentTimeMillis() - this.getConnectionManager().getLastEmptyLiveConnectionTimestamp()

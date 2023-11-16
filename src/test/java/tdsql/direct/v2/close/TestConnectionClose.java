@@ -64,7 +64,7 @@ public class TestConnectionClose extends TdsqlDirectBaseTest {
         }
         Thread.sleep(50000);
         int count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort() + "|grep  ESTABLISHED |wc -l").trim());
-        System.out.println("count:" + count);
+        Assertions.assertTrue(count == 0);
     }
 
     @Test
@@ -109,7 +109,9 @@ public class TestConnectionClose extends TdsqlDirectBaseTest {
         }
         count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort() + "|grep  ESTABLISHED |wc -l").trim());
         Assertions.assertTrue(count >=1);
-        Thread.sleep(25000);
+        Thread.sleep(50000);
+        count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort() + "|grep  ESTABLISHED |wc -l").trim());
+        Assertions.assertTrue(count == 0);
     }
 
     @Test
@@ -121,7 +123,7 @@ public class TestConnectionClose extends TdsqlDirectBaseTest {
         } catch (Throwable e) {
             // do nothing
         }
-        Thread.sleep(50000);
+        Thread.sleep(3000 * 6);
         Assertions.assertEquals(0, countTopoRefreshThreads());
     }
 
