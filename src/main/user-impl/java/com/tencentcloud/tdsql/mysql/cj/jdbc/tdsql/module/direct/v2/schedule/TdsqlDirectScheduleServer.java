@@ -209,11 +209,13 @@ public class TdsqlDirectScheduleServer implements
 
             TdsqlDirectConnectionCounter toBeRemoved = null;
             for (TdsqlDirectConnectionCounter counter : this.slaveCounterSet) {
+                // 是否需要像remove slave一样，改变compare方式
                 if (counter.getTdsqlHostInfo().equals(oldSlave)) {
                     toBeRemoved = counter;
                     break;
                 }
             }
+            // 考虑是否需要加锁更新
             if (toBeRemoved != null) {
                 logInfo("remove slave through updateSlave, host:" + oldSlave.getHostPortPair());
                 TdsqlLoggerFactory.logInfo(this.dataSourceUuid,

@@ -1016,6 +1016,13 @@ public class PropertyDefinitions {
                         "1.5.0",
                         CATEGORY_HA,
                         Integer.MIN_VALUE),
+                new IntegerPropertyDefinition(PropertyKey.tdsqlDirectSurvivorModeTimeMills,
+                        0,
+                        RUNTIME_NOT_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.tdsqlDirectSurvivorModeTimeMills"),
+                        "1.5.1",
+                        CATEGORY_HA,
+                        Integer.MIN_VALUE),
 
                 // Enable Query Attributes
                 new BooleanPropertyDefinition(PropertyKey.tdsqlQueryAttributesEnable,
