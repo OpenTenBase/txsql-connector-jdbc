@@ -144,8 +144,8 @@ public final class TdsqlHostInfo extends HostInfo {
             for (Map.Entry<K, V> entry : entrySet()) {
                 K key = entry.getKey();
                 V value = entry.getValue();
-                result = 31 * result + (key == null ? 0 : key.hashCode());
-                result = 31 * result + (value == null ? 0 : value.hashCode());
+                result = result + (key == null ? 0 : key.hashCode());
+                result = result + (value == null ? 0 : value.hashCode());
             }
             return result;
         }
