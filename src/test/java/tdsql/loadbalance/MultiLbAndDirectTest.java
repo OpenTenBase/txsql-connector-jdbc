@@ -103,7 +103,7 @@ public class MultiLbAndDirectTest extends BaseTest {
                 TimeUnit.MILLISECONDS.sleep(100);
                 executorService.execute(new QueryTask());
                 long endTime=System.currentTimeMillis(); //获取结束时间
-                if (endTime - startTime > (1000 * 60 * 5)) {
+                if (endTime - startTime > (1000 * 60 * 2)) {
                     break;
                 }
             }

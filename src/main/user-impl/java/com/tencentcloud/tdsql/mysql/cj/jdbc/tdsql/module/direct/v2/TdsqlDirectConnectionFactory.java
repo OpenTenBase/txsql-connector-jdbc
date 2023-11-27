@@ -53,7 +53,7 @@ public class TdsqlDirectConnectionFactory {
             if (dataSource == null) {
                 readLock = directDataSource.getReadLock();
                 readLock.lock();
-                logInfo("create new datasource：" + connectionUrl.toString());
+                logInfo("create new datasource：" + connectionUrl.safeToString());
                 directDataSource.initialize(connectionUrl);
                 break;
             } else {

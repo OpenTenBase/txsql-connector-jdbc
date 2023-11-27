@@ -2,7 +2,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.strategy.v1;
 
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionModeEnum.DIRECT;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionModeEnum.LOAD_BALANCE;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logDebug;
 
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance.TdsqlLoadBalanceConnectionCounter;
@@ -52,12 +52,12 @@ public final class TdsqlLcBalanceStrategy implements TdsqlLoadBalanceStrategy {
                             .collect(Collectors.toList()));
             int minIndex = countList.indexOf(Collections.min(countList));
             TdsqlHostInfo choice = tdsqlHostInfoList.get(minIndex);
-            logInfo("[" + choice.getOwnerUuid() + "] Lc algorithm choice: " + choice.getHostPortPair());
+            logDebug("[" + choice.getOwnerUuid() + "] Lc algorithm choice: " + choice.getHostPortPair());
             if (LOAD_BALANCE.equals(choice.getConnectionMode())) {
-                logInfo("[" + choice.getOwnerUuid() + "] Current counter: "
+                logDebug("[" + choice.getOwnerUuid() + "] Current counter: "
                         + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter());
             } else if (DIRECT.equals(choice.getConnectionMode())) {
-                logInfo("[" + choice.getOwnerUuid() + "] Current counter: " + scheduleQueue);
+                logDebug("[" + choice.getOwnerUuid() + "] Current counter: " + scheduleQueue);
             }
             return choice;
         } finally {

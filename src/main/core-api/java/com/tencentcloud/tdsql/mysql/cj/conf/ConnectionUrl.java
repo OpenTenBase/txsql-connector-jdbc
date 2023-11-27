@@ -831,4 +831,19 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
                 this.originalDatabase, this.properties, this.propertiesTransformer));
         return asStr.toString();
     }
+
+    public String safeToString() {
+        StringBuilder asStr = new StringBuilder(super.toString());
+        asStr.append(String.format(" :: {type: \"%s\", hosts: %s, database: \"%s\", properties: %s, propertiesTransformer: %s}", this.type, this.hosts,
+                this.originalDatabase, safeMarshalProperties(), this.propertiesTransformer));
+        return asStr.toString();
+    }
+
+    private String safeMarshalProperties() {
+        Map<String, String> copy = new HashMap<>(properties);
+        if (copy.containsKey("password")) {
+            copy.remove("password");
+        }
+        return copy.toString();
+    }
 }

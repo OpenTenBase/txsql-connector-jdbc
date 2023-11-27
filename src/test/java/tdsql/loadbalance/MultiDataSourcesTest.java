@@ -85,7 +85,7 @@ public class MultiDataSourcesTest extends BaseTest {
         System.out.println("Start build first connection:");
         Connection conn1 = getConn(url1, USER, PASS);
         System.out.println("Start build Second connection:");
-        Connection conn2 = getConn(url1, "qt4s_ro", PASS);
+        Connection conn2 = getConn(url1, "test", PASS);
         conn1.createStatement().execute("select 1");
         conn2.createStatement().execute("select 1");
         conn1.close();
