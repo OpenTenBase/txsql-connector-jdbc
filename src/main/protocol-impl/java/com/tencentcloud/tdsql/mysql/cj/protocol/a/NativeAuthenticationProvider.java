@@ -730,7 +730,7 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
                         // 既然不是并发建连，那这个连接是发往数据节点的，可以不用记录
                         return "";
                     }
-                    //needLoadBalance = true;
+                    needLoadBalance = true;
                     isDirectConnect = true;
                     JdbcPropertySet directionProperties = new JdbcPropertySetImpl();
                     directionProperties.initializeProperties( ((ConnectionUrl) dbUrl).getConnectionArgumentsAsProperties());
@@ -787,7 +787,7 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
         if (isDirectConnect &
                 innerProperty.getBooleanProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode) != null &&
                 innerProperty.getBooleanProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode).getValue() != null)
-            loggableConnectionAttribute.append(",MasterCarryOptOfReadOnlyMode:" + innerProperty.getBooleanProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode).getValue());
+            loggableConnectionAttribute.append(",MasterCarryOnReadOnlyMode:" + innerProperty.getBooleanProperty(PropertyKey.tdsqlDirectMasterCarryOptOfReadOnlyMode).getValue());
 
         // 获取拓扑刷新时间
         // 只有在直连模式下，该参数才应该生效
