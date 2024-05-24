@@ -44,7 +44,7 @@ public class TdsqlDirectConnectionFactory {
         directModeCalled = true;
 
         String dataSourceUuid = TdsqlDataSourceUuidGenerator.generateUuid(connectionUrl);
-        TdsqlDirectDataSource directDataSource = new TdsqlDirectDataSource(dataSourceUuid);
+        TdsqlDirectDataSource directDataSource = new TdsqlDirectDataSource(dataSourceUuid, connectionUrl);
 
         int tryNum = 100;
         Lock readLock = null;
@@ -54,7 +54,7 @@ public class TdsqlDirectConnectionFactory {
                 readLock = directDataSource.getReadLock();
                 readLock.lock();
                 logInfo("create new datasource：" + connectionUrl.safeToString());
-                directDataSource.initialize(connectionUrl);
+                directDataSource.initialize();
                 break;
             } else {
                 readLock = dataSource.getReadLock();

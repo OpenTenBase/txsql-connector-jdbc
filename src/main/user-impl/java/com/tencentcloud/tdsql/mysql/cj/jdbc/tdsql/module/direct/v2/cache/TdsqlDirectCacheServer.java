@@ -161,7 +161,7 @@ public class TdsqlDirectCacheServer {
      */
     public boolean waitForFirstFinished() {
         try {
-            if (!this.finishedFirstCache.await(this.dataSourceConfig.getTdsqlConnectionTimeOut(), TimeUnit.MILLISECONDS)) {
+            if (!this.finishedFirstCache.await(this.dataSourceConfig.getDatasourceInitTimeout(), TimeUnit.MILLISECONDS)) {
                 if (this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException() != null) {
                     throw  TdsqlExceptionFactory.logException(this.dataSourceUuid,
                             TdsqlDirectCacheTopologyException.class,

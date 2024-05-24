@@ -22,6 +22,7 @@ public class TdsqlDirectConst {
     public static final Integer MINIMUM_TDSQL_DIRECT_RECONNECT_PROXY_INTERVAL_TIME_SECONDS = 30;
     public static final Integer MAXIMUM_TDSQL_DIRECT_RECONNECT_PROXY_INTERVAL_TIME_SECONDS = 60 * 10;
     public static final Integer DEFAULT_TDSQL_DIRECT_PROXY_CONNECT_MAX_IDLE_TIME_SECONDS = 60;
+    public static final Integer DEFAULT_TDSQL_DIRECT_INIT_CONN_TIMEOUT_MILLS = 60000;
     public static final Integer MAXIMUM_TDSQL_DIRECT_PROXY_CONNECT_MAX_IDLE_TIME_SECONDS = 60 * 60;
     public static final Integer MINIMUM_TDSQL_DIRECT_PROXY_CONNECT_MAX_IDLE_TIME_SECONDS = 30;
     public static final String DEFAULT_CONNECTION_TIME_ZONE = "GMT+8";
