@@ -297,6 +297,7 @@ public enum PropertyKey {
     tdsqlDirectProxyBlacklistTimeoutSeconds("tdsqlDirectProxyBlacklistTimeoutSeconds", true),
     tdsqlDirectReconnectProxyIntervalTimeSeconds("tdsqlDirectReconnectProxyIntervalTimeSeconds", true),
     tdsqlDirectProxyConnectMaxIdleTime("tdsqlDirectProxyConnectMaxIdleTime", true),
+    tdsqlDirectInitDatasourceTimeout("tdsqlDirectInitDatasourceTimeout", true),
 
     tdsqlDirectParallelCreateConnMode("tdsqlDirectParallelCreateConnMode", true),
 
