@@ -1616,5 +1616,9 @@
         </move>
     </target>
 
-
+    <replace file="src/main/resources/com/tencentcloud/tdsql/mysql/cj/LocalizedErrorMessages.properties">
+        <replacefilter
+                token="TDSQL-DEVELOP-VERSION"
+                value="${com.tencentcloud.tdsql.mysql.cj.build.driver.version.major}.${com.tencentcloud.tdsql.mysql.cj.build.driver.version.minor}.${com.tencentcloud.tdsql.mysql.cj.build.driver.version.subminor}"/>
+    </replace>
 </project>

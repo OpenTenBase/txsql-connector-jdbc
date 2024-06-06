@@ -59,6 +59,12 @@ public class TdsqlDirectConnectionManager {
 
     private long lastEmptyLiveConnectionTimestamp = 0;
 
+    public long getCreateTime() {
+        return createTime;
+    }
+
+    private long createTime;
+
     /**
      * 构造方法
      *
@@ -70,6 +76,7 @@ public class TdsqlDirectConnectionManager {
         this.liveConnectionMap = new ConcurrentHashMap<>();
         this.slaveBlacklist = new HashMap<>();
         this.lock = new ReentrantLock();
+        this.createTime = System.currentTimeMillis();
         // 只读模式需要初始化负载均衡策略算法类实例
         if (RO.equals(dataSourceConfig.getTdsqlDirectReadWriteMode())) {
             this.algorithm = TdsqlLoadBalanceStrategyFactory.getInstance(

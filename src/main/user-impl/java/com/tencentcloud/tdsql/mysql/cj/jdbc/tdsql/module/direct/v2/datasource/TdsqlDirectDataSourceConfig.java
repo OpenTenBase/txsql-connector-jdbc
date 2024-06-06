@@ -44,6 +44,7 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
     private Integer tdsqlDirectProxyBlacklistTimeoutSeconds;
     private Integer tdsqlDirectReconnectProxyIntervalTimeSeconds;
     private Integer tdsqlDirectProxyConnectMaxIdleTime;
+    private Integer tdsqlDirectSurvivorModeTime;
     private Integer tdsqlConnectionTimeOut;
 
     public Boolean getTdsqlSendClientInfoEnable() {
@@ -252,11 +253,24 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
                             new Object[]{tdsqlDirectProxyConnectMaxIdleTime}));
         }
 
+        Integer tdsqlDirectSurvivorModeTime = jdbcPropertySet.getIntegerProperty(
+                PropertyKey.tdsqlDirectSurvivorModeTimeMills).getValue();
+        if (tdsqlDirectSurvivorModeTime == 0) {
+            tdsqlDirectSurvivorModeTime = tdsqlDirectTopoRefreshIntervalMillis * 10;
+        }
+        if (tdsqlDirectSurvivorModeTime < tdsqlDirectTopoRefreshIntervalMillis) {
+            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlInvalidConnectionPropertyException.class,
+                    Messages.getString("ConnectionProperties.badValueForTdsqlDirectTdsqlDirectSurvivorModeTimeMills",
+                            new Object[]{tdsqlDirectSurvivorModeTime, tdsqlDirectTopoRefreshIntervalMillis}));
+        }
+
         Boolean tdsqlSendClientInfoEnable = jdbcPropertySet.getBooleanProperty(
                 PropertyKey.tdsqlSendClientInfoEnable).getValue();
         this.setTdsqlSendClientInfoEnable(tdsqlSendClientInfoEnable);
 
         this.setTdsqlDirectProxyConnectMaxIdleTime(tdsqlDirectProxyConnectMaxIdleTime);
+
+        this.setTdsqlDirectSurvivorModeTime(tdsqlDirectSurvivorModeTime);
 
         Integer connectionTimeout = jdbcPropertySet.getIntegerProperty(PropertyKey.connectTimeout).getValue();
         if (connectionTimeout == 0) {
@@ -461,6 +475,15 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
     public Integer getTdsqlConnectionTimeOut() {
         return tdsqlConnectionTimeOut;
     }
+
+    public Integer getTdsqlDirectSurvivorModeTime() {
+        return tdsqlDirectSurvivorModeTime;
+    }
+
+    public void setTdsqlDirectSurvivorModeTime(Integer tdsqlDirectSurvivorModeTime) {
+        this.tdsqlDirectSurvivorModeTime = tdsqlDirectSurvivorModeTime;
+    }
+
 
     @Override
     public boolean equals(Object o) {

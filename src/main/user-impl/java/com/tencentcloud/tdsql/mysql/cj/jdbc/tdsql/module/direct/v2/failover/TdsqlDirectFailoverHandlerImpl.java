@@ -159,6 +159,11 @@ public class TdsqlDirectFailoverHandlerImpl implements TdsqlDirectFailoverHandle
      */
     private void handleSlaveAttributeChange(
             Map<TdsqlDirectSlaveTopologyInfo, TdsqlDirectSlaveTopologyInfo> attributeChangedMap) {
+        if (attributeChangedMap.isEmpty()) {
+            TdsqlLoggerFactory.logWarn(this.dataSourceUuid,
+                    Messages.getString("TdsqlDirectHandleFailoverMessage.AttrChangeSlaveSetIsEmpty"));
+            return;
+        }
         // 过滤
         DoFilterMapResult doFilterMapResult = this.doSlaveFilterMap(attributeChangedMap);
         Map<TdsqlDirectSlaveTopologyInfo, TdsqlDirectSlaveTopologyInfo> validMap = doFilterMapResult.getValidMap();
@@ -176,12 +181,6 @@ public class TdsqlDirectFailoverHandlerImpl implements TdsqlDirectFailoverHandle
                 this.dataSourceConfig.getScheduleServer().removeSlave(directHostInfo);
                 this.dataSourceConfig.getConnectionManager().asyncCloseAllConnection(directHostInfo);
             }
-        }
-
-        if (validMap.isEmpty()) {
-            TdsqlLoggerFactory.logWarn(this.dataSourceUuid,
-                    Messages.getString("TdsqlDirectHandleFailoverMessage.AttrChangeSlaveSetIsEmpty"));
-            return;
         }
 
         // 属性变化备库更新调度

@@ -682,6 +682,9 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
             e.printStackTrace();
         }
 
+        // 获取驱动版本信息
+        loggableConnectionAttribute.append("version:" + Messages.getString("TdsqlDriverVersion") + "; ");
+
         // 获取连接
         DatabaseUrlContainer dbUrl = protocol.getSession().getHostInfo().getOriginalUrl();
         boolean isDirectConnect = false;

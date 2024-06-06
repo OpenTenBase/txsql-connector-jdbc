@@ -70,7 +70,7 @@ public class TdsqlDirectCacheServer {
         this.survivedChecker = new ScheduledThreadPoolExecutor(1, new TdsqlThreadFactoryBuilder().setDaemon(true)
                 .setNameFormat("SurvivedCheck-" + this.dataSourceUuid.substring(24, 32)).build());
         this.survivedChecker.scheduleWithFixedDelay(new TdsqlDirectSurvivedCheckTask(this), 0L,
-                this.dataSourceConfig.getTdsqlDirectTopoRefreshIntervalMillis(), TimeUnit.MILLISECONDS);
+                this.dataSourceConfig.getTdsqlDirectSurvivorModeTime(), TimeUnit.MILLISECONDS);
     }
 
     public void closeSurvivedChecker() {
@@ -338,12 +338,12 @@ public class TdsqlDirectCacheServer {
                 }
 
                 // 配置的刷新拓扑间隔时间
-                Integer intervalMillis = this.cacheServer.dataSourceConfig.getTdsqlDirectTopoRefreshIntervalMillis();
+                Integer intervalMillis = this.cacheServer.dataSourceConfig.getTdsqlDirectSurvivorModeTime();
 
                 // 如果连续三次没有缓存，进入幸存模式
                 long currentTime = System.currentTimeMillis();
                 this.cacheServer.isSurvived =
-                        currentTime - this.cacheServer.latestComparedTimeMillis > intervalMillis * 3L;
+                        (currentTime - this.cacheServer.latestComparedTimeMillis) > intervalMillis;
 
                 if (this.cacheServer.isSurvived) {
                     TdsqlLoggerFactory.logWarn(this.cacheServer.dataSourceUuid,
