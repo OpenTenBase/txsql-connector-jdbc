@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_INIT_CONN_TIMEOUT_MILLS;
+
 /**
  * <p>TDSQL专属，直连模式数据源配置信息类</p>
  *
@@ -68,7 +70,7 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
 
     public int getDatasourceInitTimeout() {
         if (this.tdsqlDirectInitConnTimeout == null) {
-            return 0;
+            return DEFAULT_TDSQL_DIRECT_INIT_CONN_TIMEOUT_MILLS;
         }
         return this.tdsqlDirectInitConnTimeout;
     }
