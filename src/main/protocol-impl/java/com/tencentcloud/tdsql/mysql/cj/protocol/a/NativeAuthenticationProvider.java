@@ -683,7 +683,7 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
         }
 
         // 获取驱动版本信息
-        loggableConnectionAttribute.append("version:" + Messages.getString("TdsqlDriverVersion") + "; ");
+        loggableConnectionAttribute.append(",version:" + Messages.getString("TdsqlDriverVersion") + ",");
 
         // 获取连接
         DatabaseUrlContainer dbUrl = protocol.getSession().getHostInfo().getOriginalUrl();
@@ -763,18 +763,22 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
 
         // 获取句柄超时
         if (innerProperty.getIntegerProperty(PropertyKey.socketTimeout) != null &&
-                innerProperty.getIntegerProperty(PropertyKey.socketTimeout).getValue() != null)
+                innerProperty.getIntegerProperty(PropertyKey.socketTimeout).getValue() != null &&
+                innerProperty.getIntegerProperty(PropertyKey.socketTimeout).getValue() != 0)
             loggableConnectionAttribute.append(",socketTimeout:" + innerProperty.getIntegerProperty(PropertyKey.socketTimeout).getValue());
 
         if (innerProperty.getIntegerProperty(PropertyKey.connectTimeout) != null &&
-                innerProperty.getIntegerProperty(PropertyKey.connectTimeout).getValue() != null)
+                innerProperty.getIntegerProperty(PropertyKey.connectTimeout).getValue() != null &&
+                innerProperty.getIntegerProperty(PropertyKey.connectTimeout).getValue() != 0)
             loggableConnectionAttribute.append(",connectTimeout:" + innerProperty.getIntegerProperty(PropertyKey.connectTimeout).getValue());
 
         if (innerProperty.getBooleanProperty(PropertyKey.rewriteBatchedStatements) != null &&
-                innerProperty.getBooleanProperty(PropertyKey.rewriteBatchedStatements).getValue() != null)
+                innerProperty.getBooleanProperty(PropertyKey.rewriteBatchedStatements).getValue() != null &&
+                innerProperty.getBooleanProperty(PropertyKey.rewriteBatchedStatements).getValue())
             loggableConnectionAttribute.append(",rewriteBatchedStatements:" + innerProperty.getBooleanProperty(PropertyKey.rewriteBatchedStatements).getValue());
 
         if (innerProperty.getBooleanProperty(PropertyKey.allowMultiQueries) != null &&
+                innerProperty.getBooleanProperty(PropertyKey.allowMultiQueries).getValue() &&
                 innerProperty.getBooleanProperty(PropertyKey.allowMultiQueries).getValue())
             loggableConnectionAttribute.append(",allowMultiQueries:" + innerProperty.getBooleanProperty(PropertyKey.allowMultiQueries).getValue());
 
@@ -796,7 +800,8 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
         // 只有在直连模式下，该参数才应该生效
         if (isDirectConnect && readOnly &&
                 innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds) != null &&
-                innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds).getValue() != null)
+                innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds).getValue() != null &&
+                innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds).getValue() != 0)
             loggableConnectionAttribute.append(",maxSlaveDelay:" + innerProperty.getIntegerProperty(PropertyKey.tdsqlDirectMaxSlaveDelaySeconds).getValue());
 
         // 获取是否读退主
