@@ -166,7 +166,7 @@ public class TdsqlDirectCacheServer {
                     throw  TdsqlExceptionFactory.logException(this.dataSourceUuid,
                             TdsqlDirectCacheTopologyException.class,
                             Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheTimeoutCauseBy",
-                                    new Object[]{this.dataSourceConfig.getTdsqlConnectionTimeOut(),
+                                    new Object[]{this.dataSourceConfig.getDatasourceInitTimeout(),
                                             this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException().getMessage()}),
                             this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException());
                 }

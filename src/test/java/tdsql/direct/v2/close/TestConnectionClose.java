@@ -14,15 +14,19 @@ import java.sql.Statement;
 
 public class TestConnectionClose extends TdsqlDirectBaseTest {
     protected static final String DRIVER_CLASS_NAME = "com.mysql.cj.jdbc.Driver";
+    static String PROXY_1 = "9.30.2.199:15080";
+    static String PROXY_2 = "9.30.2.87:15080";
 
     protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
-            + PROXY_1 + "," + PROXY_2 + "," + PROXY_3
-            + "/test?useSSL=false&tdsqlReadWriteMode=rw";
+            + PROXY_1 + "," + PROXY_2
+            + "/mysql?useSSL=false&tdsqlReadWriteMode=rw";
     protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
-            + PROXY_1 + "," + PROXY_2 + "," + PROXY_3
-            + "/test?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=50";
-    protected static final String USER_RO = "qt4s_ro";
-    protected static final String PASS_RO = "g<m:7KNDF.L1<^1C";
+            + PROXY_1 + "," + PROXY_2
+            + "/mysql?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=50";
+    protected static final String USER = "test1234";
+    protected static final String PASS = "test1234";
+    protected static final String USER_RO = "test1234";
+    protected static final String PASS_RO = "test1234";
 
     @BeforeAll
     public static void init() throws ClassNotFoundException {
@@ -63,7 +67,7 @@ public class TestConnectionClose extends TdsqlDirectBaseTest {
             throw new RuntimeException(e);
         }
         Thread.sleep(50000);
-        int count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort() + "|grep  ESTABLISHED |wc -l").trim());
+        int count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort(PROXY_1) + "|grep  ESTABLISHED |wc -l").trim());
         Assertions.assertTrue(count == 0);
     }
 
@@ -77,7 +81,7 @@ public class TestConnectionClose extends TdsqlDirectBaseTest {
             throw new RuntimeException(e);
         }
         Thread.sleep(50000);
-        int count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort() + "|grep  ESTABLISHED |wc -l").trim());
+        int count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort(PROXY_1) + "|grep  ESTABLISHED |wc -l").trim());
         Assertions.assertEquals(0, count);
         try (Connection conn = DriverManager.getConnection(url, USER, PASS);
              Statement stmt = conn.createStatement()) {
@@ -85,7 +89,7 @@ public class TestConnectionClose extends TdsqlDirectBaseTest {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort() + "|grep  ESTABLISHED |wc -l").trim());
+        count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort(PROXY_1) + "|grep  ESTABLISHED |wc -l").trim());
         Assertions.assertTrue(count >=1);
     }
 
@@ -99,7 +103,7 @@ public class TestConnectionClose extends TdsqlDirectBaseTest {
             throw new RuntimeException(e);
         }
         Thread.sleep(30000);
-        int count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort() + "|grep  ESTABLISHED |wc -l").trim());
+        int count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort(PROXY_1) + "|grep  ESTABLISHED |wc -l").trim());
         Assertions.assertTrue(count >=1);
         try (Connection conn = DriverManager.getConnection(url, USER, PASS);
              Statement stmt = conn.createStatement()) {
@@ -107,16 +111,33 @@ public class TestConnectionClose extends TdsqlDirectBaseTest {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort() + "|grep  ESTABLISHED |wc -l").trim());
+        count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort(PROXY_1) + "|grep  ESTABLISHED |wc -l").trim());
         Assertions.assertTrue(count >=1);
         Thread.sleep(50000);
-        count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort() + "|grep  ESTABLISHED |wc -l").trim());
+        count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort(PROXY_1) + "|grep  ESTABLISHED |wc -l").trim());
         Assertions.assertTrue(count == 0);
     }
 
     @Test
+    public void testCloseProxyConnectionWithRightConnectionInfo() throws InterruptedException {
+        String url = URL_RO + "&tdsqlDirectProxyConnectMaxIdleTime=40&tdsqlDirectInitDatasourceTimeout=3000";
+        try (Connection conn = DriverManager.getConnection(url, USER, PASS);
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("select 1");
+            Thread.sleep(3000 * 6);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        int count = countTopoRefreshThreads();
+        Assertions.assertTrue(count >= 1);
+        Thread.sleep(20000);
+        count = countTopoRefreshThreads();
+        Assertions.assertTrue(count == 1);
+    }
+
+    @Test
     public void testCloseProxyConnectionWithWrongConnectionInfo() throws InterruptedException {
-        String url = URL_RO + "&tdsqlDirectProxyConnectMaxIdleTime=40&connectTimeout=3000";
+        String url = URL_RO + "&tdsqlDirectProxyConnectMaxIdleTime=40&tdsqlDirectInitDatasourceTimeout=3000";
         try (Connection conn = DriverManager.getConnection(url, USER, "wrong_pass");
              Statement stmt = conn.createStatement()) {
             stmt.execute("select 1");

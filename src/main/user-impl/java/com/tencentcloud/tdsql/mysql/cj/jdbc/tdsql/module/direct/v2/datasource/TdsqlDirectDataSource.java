@@ -103,11 +103,12 @@ public class TdsqlDirectDataSource {
                     throw new RuntimeException(this.lastException);
                 }
                 throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                        "init tdsql direct datasource failed! wait timeout: 1000ms");
+                        Messages.getString("TdsqlDirectCacheTopologyException.InitDirectDatasourceTimeout",
+                                new Object[]{this.dataSourceConfig.getDatasourceInitTimeout(this.connectionUrl)}));
             }
         } catch  (InterruptedException e) {
             throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                    "init tdsql direct datasource failed! interrupted");
+                    Messages.getString("TdsqlDirectCacheTopologyException.InitDirectDatasourceInterrupted"));
         }
 
         return this.getCacheServer().waitForFirstFinished();
@@ -155,13 +156,15 @@ public class TdsqlDirectDataSource {
             return false;
         }
 
-        if (this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() == 0 &
-                System.currentTimeMillis() - this.getConnectionManager().getCreateTime() > (this.dataSourceConfig.getDatasourceInitTimeout() * 5)) {
+        // 如果是初始化topo之前, lastEmptyLiveConnectionTimestamp为-1
+        if (this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() == -1 &
+                System.currentTimeMillis() - this.getConnectionManager().getCreateTime()
+                        > (this.dataSourceConfig.getDatasourceInitTimeout() * 5L)) {
             return true;
         }
 
         return (this.getConnectionManager().getLiveConnectionMap().size() == 0 &
-                this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() != 0 &
+                this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() > 0 &
                 System.currentTimeMillis() - this.getConnectionManager().getLastEmptyLiveConnectionTimestamp()
                         > (this.dataSourceConfig.getTdsqlDirectProxyConnectMaxIdleTime() * 1000));
     }

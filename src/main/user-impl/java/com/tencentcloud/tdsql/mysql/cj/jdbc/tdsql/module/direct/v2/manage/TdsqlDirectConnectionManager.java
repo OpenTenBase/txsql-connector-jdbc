@@ -15,6 +15,7 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlInvalidConnecti
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.TdsqlDirectDataSourceConfig;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectCreateConnectionException;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectHandleFailoverException;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectConnectionCounter;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.schedule.TdsqlDirectScheduleServer;
@@ -57,7 +58,7 @@ public class TdsqlDirectConnectionManager {
         return lastEmptyLiveConnectionTimestamp;
     }
 
-    private long lastEmptyLiveConnectionTimestamp = 0;
+    private long lastEmptyLiveConnectionTimestamp = -1;
 
     public long getCreateTime() {
         return createTime;
@@ -132,7 +133,7 @@ public class TdsqlDirectConnectionManager {
         // 所以这里不需要调用removeConnectionCount，也避免再次上锁
         // this.removeConnectionCount(directHostInfo);
         this.removeConnection(directHostInfo, null);
-        this.recycler.submit(new AsyncCloseTask(toCloseConnections, this.netTimeoutExecutor, this.dataSourceConfig.getTdsqlDirectCloseConnTimeoutMillis()));
+        this.recycler.submit(new AsyncCloseTask(directHostInfo.getDataSourceUuid(), toCloseConnections, this.netTimeoutExecutor, this.dataSourceConfig.getTdsqlDirectCloseConnTimeoutMillis()));
     }
 
     /**
@@ -468,13 +469,16 @@ public class TdsqlDirectConnectionManager {
     }
 
     private static class AsyncCloseTask extends AbstractTdsqlCaughtRunnable {
+
+        private String dataSourceUUID;
         private List<JdbcConnection> toCloseList;
 
         private Executor netTimeoutExecutor;
 
         private Integer closeConnTimeoutMillis;
 
-        private AsyncCloseTask(List<JdbcConnection> toCloseList, Executor netTimeoutExecutor, Integer closeConnTimeoutMillis) {
+        private AsyncCloseTask(String dataSourceUUID, List<JdbcConnection> toCloseList, Executor netTimeoutExecutor, Integer closeConnTimeoutMillis) {
+            this.dataSourceUUID = dataSourceUUID;
             this.toCloseList = toCloseList;
             this.netTimeoutExecutor = netTimeoutExecutor;
             this.closeConnTimeoutMillis = closeConnTimeoutMillis;
@@ -484,16 +488,18 @@ public class TdsqlDirectConnectionManager {
         public void caughtAndRun() {
             for (JdbcConnection jdbcConnection : toCloseList) {
                 try {
-                    logInfo("check close connection! host: " + jdbcConnection.getHostPortPair());
+                    logInfo(dataSourceUUID,Messages.getString("TdsqlDirectConnectionManagerMessage.CheckCloseConnection", new Object[]{jdbcConnection.getHostPortPair()}));
                     if (jdbcConnection != null && !jdbcConnection.isClosed()) {
-                        logInfo("start close connection! host: " + jdbcConnection.getHostPortPair());
+                        logInfo(dataSourceUUID, Messages.getString("TdsqlDirectConnectionManagerMessage.StartCloseConnection", new Object[]{jdbcConnection.getHostPortPair()}));
                         jdbcConnection.setNetworkTimeout(this.netTimeoutExecutor, closeConnTimeoutMillis);
                         jdbcConnection.close();
-                        logInfo("close connection successfully! host:" + jdbcConnection.getHostPortPair());
+                        logInfo(dataSourceUUID, Messages.getString("TdsqlDirectCOnnectionManagerMessage.SucceededCloseConnection", new Object[]{jdbcConnection.getHostPortPair()}));
                     }
                 } catch (SQLException e) {
                     // Eat this exception.
-                    logError("close connection failed! host:" + jdbcConnection.getHostPortPair());
+                    TdsqlExceptionFactory.logException(dataSourceUUID, TdsqlDirectHandleFailoverException.class,
+                            Messages.getString("TdsqlDirectConnectionmanagerException.FailedToCloseConnection", new Object[]{jdbcConnection.getHostPortPair()}),
+                            e);
                 }
             }
         }

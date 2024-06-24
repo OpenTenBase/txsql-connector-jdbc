@@ -62,6 +62,11 @@ public class TdsqlDirectBaseTest {
         return Integer.parseInt(ipPort[1]);
     }
 
+    protected int getPort(String ipPort) {
+        String[] ipPortArray = ipPort.split(":");
+        return Integer.parseInt(ipPortArray[1]);
+    }
+
     public TdsqlDirectBaseTest() {
         this.defaultProperties = new Properties();
         this.defaultProperties.put(PropertyKey.USER.getKeyName(), "qt4s");
