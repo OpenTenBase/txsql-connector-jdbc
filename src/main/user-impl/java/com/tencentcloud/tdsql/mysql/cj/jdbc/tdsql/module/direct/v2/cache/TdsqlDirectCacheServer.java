@@ -171,7 +171,7 @@ public class TdsqlDirectCacheServer {
                             this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException());
                 }
                 throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                        Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheTimeout", new Object[]{this.dataSourceConfig.getTdsqlConnectionTimeOut()}));
+                        Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheTimeout", new Object[]{this.dataSourceConfig.getDatasourceInitTimeout()}));
             }
         } catch (InterruptedException e) {
             throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,

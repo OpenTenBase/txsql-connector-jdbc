@@ -9,9 +9,9 @@ import java.sql.SQLException;
 
 public class ClientInfoEnableTest {
 
-    private String proxy2 = "175.27.165.52:15002";
+    private String proxy2 = "9.30.2.89:15003";
 
-    private String proxy3 = "119.45.153.189:15002";
+    private String proxy3 = "9.30.2.116:15003";
 
     private String proxy4 = "9.30.2.94:15016";
     public Connection getConn(String connUrl) {
@@ -101,7 +101,8 @@ public class ClientInfoEnableTest {
                 "&passwordCharacterEncoding=utf-8" +
                 "&characterEncoding=utf-8" +
                 "&connectionTimeZone=Asia/Shanghai" +
-                "&socketTimeout=10000";
+                "&socketTimeout=10000" +
+                "&connectTimeout=1000";
         execute(connUrl);
     }
 
@@ -116,7 +117,7 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testTdSqlDirectConnectionWithAllParams() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql:direct://" + proxy2 +
+        String connUrl = "jdbc:tdsql-mysql:direct://" + proxy2 + proxy3+
                 "/test?tdsqlSendClientInfoEnable=true" +
                 "&passwordCharacterEncoding=utf-8" +
                 "&characterEncoding=utf-8" +
