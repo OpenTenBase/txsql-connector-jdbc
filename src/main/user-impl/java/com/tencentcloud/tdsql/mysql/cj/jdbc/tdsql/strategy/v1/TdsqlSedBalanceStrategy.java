@@ -2,7 +2,7 @@ package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.strategy.v1;
 
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionModeEnum.DIRECT;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlConnectionModeEnum.LOAD_BALANCE;
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logDebug;
 
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlHostInfo;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.loadbalance.TdsqlLoadBalanceBlacklistHolder;
@@ -67,15 +67,15 @@ public class TdsqlSedBalanceStrategy implements TdsqlLoadBalanceStrategy {
                         }
                     }
                     TdsqlHostInfo choice = counterList.get(i).getKey();
-                    logInfo("SED algorithm choice: " + choice.getHostPortPair());
+                    logDebug("SED algorithm choice: " + choice.getHostPortPair());
                     if (LOAD_BALANCE.equals(choice.getConnectionMode())) {
-                        logInfo("Current counter: " + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter());
+                        logDebug("Current counter: " + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter());
                         TdsqlLoadBalanceBlacklistHolder blacklistHolder = TdsqlLoadBalanceBlacklistHolder.getInstance();
                         if (blacklistHolder.isBlacklistEnabled()) {
-                            logInfo("Current blacklist: " + blacklistHolder.printBlacklist());
+                            logDebug("Current blacklist: " + blacklistHolder.printBlacklist());
                         }
                     } else if (DIRECT.equals(choice.getConnectionMode())) {
-                        logInfo("Current counter: " + scheduleQueue);
+                        logDebug("Current counter: " + scheduleQueue);
                     }
                     return choice;
                 }

@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 
+import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_INIT_CONN_TIMEOUT_MILLS;
+
 /**
  * <p>TDSQL专属，直连模式数据源配置信息类</p>
  *
@@ -44,6 +46,7 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
     private Integer tdsqlDirectProxyBlacklistTimeoutSeconds;
     private Integer tdsqlDirectReconnectProxyIntervalTimeSeconds;
     private Integer tdsqlDirectProxyConnectMaxIdleTime;
+    private Integer tdsqlDirectSurvivorModeTime;
     private Integer tdsqlConnectionTimeOut;
 
     public Boolean getTdsqlSendClientInfoEnable() {
@@ -63,6 +66,31 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
     private TdsqlDirectScheduleServer scheduleServer;
     private TdsqlDirectConnectionManager connectionManager;
     private TdsqlDirectFailoverHandler failoverHandler;
+    private Integer tdsqlDirectInitConnTimeout;
+
+    public int getDatasourceInitTimeout() {
+        if (this.tdsqlDirectInitConnTimeout == null) {
+            return DEFAULT_TDSQL_DIRECT_INIT_CONN_TIMEOUT_MILLS;
+        }
+        return this.tdsqlDirectInitConnTimeout;
+    }
+
+    public int getDatasourceInitTimeout(ConnectionUrl connectionUrl) {
+        if (this.tdsqlDirectInitConnTimeout != null) {
+            return this.tdsqlDirectInitConnTimeout;
+        }
+        // 根据URL配置，初始化JdbcPropertySetImpl对象
+        JdbcPropertySetImpl jdbcPropertySet = new JdbcPropertySetImpl();
+        jdbcPropertySet.initializeProperties(connectionUrl.getConnectionArgumentsAsProperties());
+
+        Integer value = jdbcPropertySet.getIntegerProperty(PropertyKey.tdsqlDirectInitDatasourceTimeout).getValue();
+        if (value == null || value <= 0) {
+            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlInvalidConnectionPropertyException.class,
+                    Messages.getString("ConnectionProperties.badValueForTdsqlDirectInitConnTimeout"));
+        }
+        return value;
+    }
+
     /**
      * URL信息校验并赋值
      *
@@ -72,6 +100,14 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
         // 根据URL配置，初始化JdbcPropertySetImpl对象
         JdbcPropertySetImpl jdbcPropertySet = new JdbcPropertySetImpl();
         jdbcPropertySet.initializeProperties(connectionUrl.getConnectionArgumentsAsProperties());
+
+        // 0.获取建连初始化超时设置
+        Integer value = jdbcPropertySet.getIntegerProperty(PropertyKey.tdsqlDirectInitDatasourceTimeout).getValue();
+        if (value == null || value <= 0) {
+            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlInvalidConnectionPropertyException.class,
+                    Messages.getString("ConnectionProperties.badValueForTdsqlDirectInitConnTimeout"));
+        }
+        this.tdsqlDirectInitConnTimeout = value;
 
         // 1.开始判断读写分离模式
         String tdsqlDirectReadWriteMode = jdbcPropertySet.getStringProperty(PropertyKey.tdsqlDirectReadWriteMode)
@@ -219,11 +255,24 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
                             new Object[]{tdsqlDirectProxyConnectMaxIdleTime}));
         }
 
+        Integer tdsqlDirectSurvivorModeTime = jdbcPropertySet.getIntegerProperty(
+                PropertyKey.tdsqlDirectSurvivorModeTimeMills).getValue();
+        if (tdsqlDirectSurvivorModeTime == 0) {
+            tdsqlDirectSurvivorModeTime = tdsqlDirectTopoRefreshIntervalMillis * 10;
+        }
+        if (tdsqlDirectSurvivorModeTime < tdsqlDirectTopoRefreshIntervalMillis) {
+            throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlInvalidConnectionPropertyException.class,
+                    Messages.getString("ConnectionProperties.badValueForTdsqlDirectTdsqlDirectSurvivorModeTimeMills",
+                            new Object[]{tdsqlDirectSurvivorModeTime, tdsqlDirectTopoRefreshIntervalMillis}));
+        }
+
         Boolean tdsqlSendClientInfoEnable = jdbcPropertySet.getBooleanProperty(
                 PropertyKey.tdsqlSendClientInfoEnable).getValue();
         this.setTdsqlSendClientInfoEnable(tdsqlSendClientInfoEnable);
 
         this.setTdsqlDirectProxyConnectMaxIdleTime(tdsqlDirectProxyConnectMaxIdleTime);
+
+        this.setTdsqlDirectSurvivorModeTime(tdsqlDirectSurvivorModeTime);
 
         Integer connectionTimeout = jdbcPropertySet.getIntegerProperty(PropertyKey.connectTimeout).getValue();
         if (connectionTimeout == 0) {
@@ -231,11 +280,11 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
         }
         this.tdsqlConnectionTimeOut = connectionTimeout;
 
-        // 17.赋值URL原始参数信息，其中去除了直连模式特有的参数
+        // 18.赋值URL原始参数信息，其中去除了直连模式特有的参数
         this.setTdsqlDirectOriginalPropertiesWithoutDirectMode(
                 removeAllDirectModeProperties(connectionUrl.getMainHost().exposeAsProperties()));
 
-        // 18.赋值ConnectionUrl
+        // 19.赋值ConnectionUrl
         this.setConnectionUrl(connectionUrl);
     }
 
@@ -428,6 +477,15 @@ public class TdsqlDirectDataSourceConfig implements Serializable {
     public Integer getTdsqlConnectionTimeOut() {
         return tdsqlConnectionTimeOut;
     }
+
+    public Integer getTdsqlDirectSurvivorModeTime() {
+        return tdsqlDirectSurvivorModeTime;
+    }
+
+    public void setTdsqlDirectSurvivorModeTime(Integer tdsqlDirectSurvivorModeTime) {
+        this.tdsqlDirectSurvivorModeTime = tdsqlDirectSurvivorModeTime;
+    }
+
 
     @Override
     public boolean equals(Object o) {

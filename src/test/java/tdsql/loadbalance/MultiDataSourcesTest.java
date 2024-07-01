@@ -1,21 +1,14 @@
 package tdsql.loadbalance;
 
 import org.junit.jupiter.api.Test;
+import tdsql.loadbalance.base.BaseTest;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class MultiDataSourcesTest {
-
-    private String proxy1 = "9.30.0.250:15012";
-
-    private String proxy2 = "9.30.2.116:15012";
-
-    private String proxy3 = "9.30.2.89:15012";
-
-    private String proxy4 = "9.30.2.94:15012";
+public class MultiDataSourcesTest extends BaseTest {
 
     private String lbProperty1 = "?useLocalSessionStates=true"
             + "&useUnicode=true"
@@ -70,29 +63,29 @@ public class MultiDataSourcesTest {
 
     @Test
     public void testBuildMultiDatasources() throws SQLException {
-        String url1 = "jdbc:tdsql-mysql:loadbalance://" + proxy1 + "," + proxy2 + "," + proxy3 + "," + proxy4 + "/test" + lbProperty1;
-        Connection conn1 = getConn(url1, "qt4s", "g<m:7KNDF.L1<^1C");
-        String url2 = "jdbc:tdsql-mysql:loadbalance://" + proxy1 + "," + proxy2 + "," + proxy3 + "," + proxy4 + "/test" + lbProperty2;
-        Connection conn2 = getConn(url2, "qt4s", "g<m:7KNDF.L1<^1C");
+        String url1 = "jdbc:tdsql-mysql:loadbalance://" + PROXY_1 + "," + PROXY_2+ "," + PROXY_3 + "/test" + lbProperty1;
+        Connection conn1 = getConn(url1, USER, PASS);
+        String url2 = "jdbc:tdsql-mysql:loadbalance://" + PROXY_1 + "," + PROXY_2 + "," + PROXY_3 + "/test" + lbProperty2;
+        Connection conn2 = getConn(url2, USER, PASS);
         conn1.close();
         conn2.close();
     }
 
     @Test
     public void testBuildOtherDatasourceAfterOneClosed() throws SQLException {
-        String url1 = "jdbc:tdsql-mysql:loadbalance://" + proxy1 + "," + proxy2 + "," + proxy3 + "," + proxy4 + "/test" + lbProperty1;
+        String url1 = "jdbc:tdsql-mysql:loadbalance://" + PROXY_1 + "," + PROXY_2+ "," + PROXY_3 + "/test" + lbProperty1;
         execute(url1);
-        String url2 = "jdbc:tdsql-mysql:loadbalance://" + proxy1 + "," + proxy2 + "," + proxy3 + "," + proxy4 + "/test" + lbProperty2;
+        String url2 = "jdbc:tdsql-mysql:loadbalance://" + PROXY_1 + "," + PROXY_2+ "," + PROXY_3 + "/test" + lbProperty2;
         execute(url2);
     }
 
     @Test
     public void testTwoConnectionWithDifferentAccounts() throws SQLException {
-        String url1 = "jdbc:tdsql-mysql:loadbalance://" + proxy1 + "," + proxy2 + "," + proxy3 + "," + proxy4 + "/test" + lbProperty1;
+        String url1 = "jdbc:tdsql-mysql:loadbalance://" + PROXY_1 + "," + PROXY_2+ "," + PROXY_3 + "/test" + lbProperty1;
         System.out.println("Start build first connection:");
-        Connection conn1 = getConn(url1, "qt4s", "g<m:7KNDF.L1<^1C");
+        Connection conn1 = getConn(url1, USER, PASS);
         System.out.println("Start build Second connection:");
-        Connection conn2 = getConn(url1, "qt4s_ro", "g<m:7KNDF.L1<^1C");
+        Connection conn2 = getConn(url1, "test", PASS);
         conn1.createStatement().execute("select 1");
         conn2.createStatement().execute("select 1");
         conn1.close();

@@ -13,7 +13,6 @@ import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.topology.Tdsq
 
 import java.util.*;
 
-import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory.logInfo;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.TdsqlDirectConst.DEFAULT_TDSQL_DIRECT_MAX_SLAVE_DELAY_SECONDS;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.TdsqlDirectReadWriteModeEnum.RO;
 import static com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.cache.TdsqlDirectTopologyChangeEventEnum.SWITCH;
@@ -146,7 +145,9 @@ public class TdsqlDirectFailoverHandlerImpl implements TdsqlDirectFailoverHandle
         // 下线备库移除调度，并关闭所有存量连接
         for (TdsqlDirectSlaveTopologyInfo slaveTopologyInfo : slaveSet) {
             TdsqlDirectHostInfo directHostInfo = slaveTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig);
-            logInfo("host:" + directHostInfo.getHostPortPair() + ", close connection, as its has been offline!");
+            TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+                    Messages.getString("TdsqlDirectHandleFailoverMessage.OfflineSlaveHost",
+                    new Object[]{directHostInfo.getHostPortPair(), "it has been offline"}));
             this.dataSourceConfig.getScheduleServer().removeSlave(directHostInfo);
             this.dataSourceConfig.getConnectionManager().asyncCloseAllConnection(directHostInfo);
         }
@@ -159,6 +160,11 @@ public class TdsqlDirectFailoverHandlerImpl implements TdsqlDirectFailoverHandle
      */
     private void handleSlaveAttributeChange(
             Map<TdsqlDirectSlaveTopologyInfo, TdsqlDirectSlaveTopologyInfo> attributeChangedMap) {
+        if (attributeChangedMap.isEmpty()) {
+            TdsqlLoggerFactory.logWarn(this.dataSourceUuid,
+                    Messages.getString("TdsqlDirectHandleFailoverMessage.AttrChangeSlaveSetIsEmpty"));
+            return;
+        }
         // 过滤
         DoFilterMapResult doFilterMapResult = this.doSlaveFilterMap(attributeChangedMap);
         Map<TdsqlDirectSlaveTopologyInfo, TdsqlDirectSlaveTopologyInfo> validMap = doFilterMapResult.getValidMap();
@@ -172,16 +178,12 @@ public class TdsqlDirectFailoverHandlerImpl implements TdsqlDirectFailoverHandle
             for (TdsqlDirectSlaveTopologyInfo invalidTopologyInfo : invalidSet) {
                 TdsqlDirectHostInfo directHostInfo = invalidTopologyInfo.convertToDirectHostInfo(this.dataSourceConfig);
                 // 移除调度，关闭存量连接
-                logInfo("host:" + directHostInfo.getHostPortPair() + ", close connection, as its attributes has been invalid!");
+                TdsqlLoggerFactory.logInfo(this.dataSourceUuid,
+                        Messages.getString("TdsqlDirectHandleFailoverMessage.OfflineSlaveHost",
+                                new Object[]{directHostInfo.getHostPortPair(), "its attributes has been invalid!"}));
                 this.dataSourceConfig.getScheduleServer().removeSlave(directHostInfo);
                 this.dataSourceConfig.getConnectionManager().asyncCloseAllConnection(directHostInfo);
             }
-        }
-
-        if (validMap.isEmpty()) {
-            TdsqlLoggerFactory.logWarn(this.dataSourceUuid,
-                    Messages.getString("TdsqlDirectHandleFailoverMessage.AttrChangeSlaveSetIsEmpty"));
-            return;
         }
 
         // 属性变化备库更新调度

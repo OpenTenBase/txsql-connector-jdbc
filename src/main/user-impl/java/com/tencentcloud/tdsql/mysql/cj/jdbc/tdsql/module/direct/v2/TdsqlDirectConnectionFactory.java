@@ -1,7 +1,9 @@
 package com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2;
 
+import com.tencentcloud.tdsql.mysql.cj.Messages;
 import com.tencentcloud.tdsql.mysql.cj.conf.ConnectionUrl;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.JdbcConnection;
+import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.TdsqlLoggerFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.exception.TdsqlExceptionFactory;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.datasource.TdsqlDirectDataSource;
 import com.tencentcloud.tdsql.mysql.cj.jdbc.tdsql.module.direct.v2.exception.TdsqlDirectCacheTopologyException;
@@ -44,41 +46,49 @@ public class TdsqlDirectConnectionFactory {
         directModeCalled = true;
 
         String dataSourceUuid = TdsqlDataSourceUuidGenerator.generateUuid(connectionUrl);
-        TdsqlDirectDataSource directDataSource = new TdsqlDirectDataSource(dataSourceUuid);
+        TdsqlDirectDataSource directDataSource = new TdsqlDirectDataSource(dataSourceUuid, connectionUrl);
 
         int tryNum = 100;
         Lock readLock = null;
-        while (tryNum != 0) {
-            TdsqlDirectDataSource dataSource = directDataSourceMap.putIfAbsent(dataSourceUuid, directDataSource);
-            if (dataSource == null) {
-                readLock = directDataSource.getReadLock();
-                readLock.lock();
-                logInfo("create new datasource：" + connectionUrl.toString());
-                directDataSource.initialize(connectionUrl);
-                break;
-            } else {
-                readLock = dataSource.getReadLock();
-                readLock.lock();
-                if (dataSource.getActiveState()) {
-                    directDataSource = dataSource;
-                    break;
-                }
-
-                readLock.unlock();
-            }
-            tryNum--;
-        }
-        if (tryNum == 0) {
-            throw TdsqlExceptionFactory.logException(dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                    "init directDataSource failed!");
-        }
-
         try {
+            while (tryNum != 0) {
+                TdsqlDirectDataSource dataSource = directDataSourceMap.putIfAbsent(dataSourceUuid, directDataSource);
+                if (dataSource == null) {
+                    readLock = directDataSource.getReadLock();
+                    readLock.lock();
+                    TdsqlLoggerFactory.logInfo(dataSourceUuid, Messages.getString("TdsqlDirectCacheTopologyMessage.CreateNewDatasource", new Object[]{connectionUrl.safeToString()}));
+                    directDataSource.initialize();
+                    break;
+                } else {
+                    readLock = dataSource.getReadLock();
+                    readLock.lock();
+                    if (dataSource.getActiveState()) {
+                        directDataSource = dataSource;
+                        break;
+                    }
+
+                    readLock.unlock();
+                    readLock = null;
+                }
+                tryNum--;
+            }
+            if (tryNum == 0) {
+                throw TdsqlExceptionFactory.logException(dataSourceUuid, TdsqlDirectCacheTopologyException.class,
+                        Messages.getString("TdsqlDirectCacheTopologyException.InitDirectDatasourceFailed",
+                                new Object[]{"has tried 100 times to init direct datasource."}));
+            }
             if (directDataSource.waitForFirstFinished()) {
                 return directDataSource.getConnectionManager().createNewConnection();
             }
         } finally {
-            readLock.unlock();
+            if (readLock != null) {
+                // readLock可能还没加锁便报错，因此需要考虑unlock异常情况
+                try {
+                    readLock.unlock();
+                } catch (Throwable e) {
+                }
+            }
+
         }
         return null;
     }

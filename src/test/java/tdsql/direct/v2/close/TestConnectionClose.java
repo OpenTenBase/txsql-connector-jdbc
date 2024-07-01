@@ -2,8 +2,8 @@ package tdsql.direct.v2.close;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tdsql.direct.v2.base.TdsqlDirectBaseTest;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -12,78 +12,157 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class TestConnectionClose {
+public class TestConnectionClose extends TdsqlDirectBaseTest {
     protected static final String DRIVER_CLASS_NAME = "com.mysql.cj.jdbc.Driver";
+    static String PROXY_1 = "9.30.2.199:15080";
+    static String PROXY_2 = "9.30.2.87:15080";
 
     protected static final String URL_RW = "jdbc:tdsql-mysql:direct://"
-            + "9.30.2.116:15012,9.30.2.89:15016"
-            + "/test?useSSL=false&tdsqlReadWriteMode=rw";
+            + PROXY_1 + "," + PROXY_2
+            + "/mysql?useSSL=false&tdsqlReadWriteMode=rw";
     protected static final String URL_RO = "jdbc:tdsql-mysql:direct://"
-            + "9.30.2.116:15012,9.30.2.89:15016"
-            + "/test?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=12&tdsqlDirectProxyConnectMaxIdleTime=3601";
-    protected static final String USER_RW = "qt4s";
-    protected static final String PASS_RW = "g<m:7KNDF.L1<^1C";
-    protected static final String USER_RO = "qt4s_ro";
-    protected static final String PASS_RO = "g<m:7KNDF.L1<^1C";
+            + PROXY_1 + "," + PROXY_2
+            + "/mysql?useSSL=false&tdsqlReadWriteMode=ro&tdsqlMaxSlaveDelay=50";
+    protected static final String USER = "test1234";
+    protected static final String PASS = "test1234";
+    protected static final String USER_RO = "test1234";
+    protected static final String PASS_RO = "test1234";
 
     @BeforeAll
     public static void init() throws ClassNotFoundException {
         Class.forName(DRIVER_CLASS_NAME);
     }
+
+    @Test
+    public void testParamValueThreshold() {
+        String urlWithValueOverThreshold = URL_RW + "&tdsqlDirectProxyConnectMaxIdleTime=3601";
+        try (Connection conn = DriverManager.getConnection(urlWithValueOverThreshold, USER, PASS);
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("select 1");
+            Assertions.fail("Connection should not be created, as param value is greater than threshold");
+        } catch (RuntimeException e) {
+            // do Nothing
+        } catch (SQLException e) {
+            Assertions.fail("Exception is not right");
+        }
+
+        String urlWithValueUnderThreshold = URL_RW + "&tdsqlDirectProxyConnectMaxIdleTime=29";
+        try (Connection conn = DriverManager.getConnection(urlWithValueUnderThreshold, USER, PASS);
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("select 1");
+            Assertions.fail("Connection should not be created, as param value is lower than threshold");
+        } catch (RuntimeException e) {
+            // do Nothing
+        } catch (SQLException e) {
+            Assertions.fail("Exception is not right");
+        }
+    }
     @Test
     public void testCloseConnection() throws InterruptedException {
-        try (Connection conn = DriverManager.getConnection(URL_RO, USER_RW, PASS_RW);
+        String url = URL_RO + "&tdsqlDirectProxyConnectMaxIdleTime=40";
+        try (Connection conn = DriverManager.getConnection(url, USER, PASS);
              Statement stmt = conn.createStatement()) {
             stmt.execute("select 1");
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        Thread.sleep(63000);
-        int count = Integer.parseInt(executeCommand("netstat -an |grep 15016|grep  ESTABLISHED |wc -l").trim());
-        System.out.println("count:" + count);
+        Thread.sleep(50000);
+        int count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort(PROXY_1) + "|grep  ESTABLISHED |wc -l").trim());
+        Assertions.assertTrue(count == 0);
     }
 
     @Test
     public void testCloseAndRebuildConnection() throws InterruptedException {
-        try (Connection conn = DriverManager.getConnection(URL_RO, USER_RW, PASS_RW);
+        String url = URL_RO + "&tdsqlDirectProxyConnectMaxIdleTime=40";
+        try (Connection conn = DriverManager.getConnection(url, USER, PASS);
              Statement stmt = conn.createStatement()) {
             stmt.execute("select 1");
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        Thread.sleep(43000);
-        int count = Integer.parseInt(executeCommand("netstat -an |grep 15016|grep  ESTABLISHED |wc -l").trim());
+        Thread.sleep(50000);
+        int count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort(PROXY_1) + "|grep  ESTABLISHED |wc -l").trim());
         Assertions.assertEquals(0, count);
-        try (Connection conn = DriverManager.getConnection(URL_RO, USER_RW, PASS_RW);
+        try (Connection conn = DriverManager.getConnection(url, USER, PASS);
              Statement stmt = conn.createStatement()) {
             stmt.execute("select 1");
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        count = Integer.parseInt(executeCommand("netstat -an |grep 15016|grep  ESTABLISHED |wc -l").trim());
+        count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort(PROXY_1) + "|grep  ESTABLISHED |wc -l").trim());
         Assertions.assertTrue(count >=1);
     }
 
     @Test
     public void testCloseAndRebuildBeforeCloseProxyConnection() throws InterruptedException {
-        try (Connection conn = DriverManager.getConnection(URL_RO, USER_RW, PASS_RW);
+        String url = URL_RO + "&tdsqlDirectProxyConnectMaxIdleTime=40";
+        try (Connection conn = DriverManager.getConnection(url, USER, PASS);
              Statement stmt = conn.createStatement()) {
             stmt.execute("select 1");
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        Thread.sleep(23000);
-        int count = Integer.parseInt(executeCommand("netstat -an |grep 15016|grep  ESTABLISHED |wc -l").trim());
+        Thread.sleep(30000);
+        int count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort(PROXY_1) + "|grep  ESTABLISHED |wc -l").trim());
         Assertions.assertTrue(count >=1);
-        try (Connection conn = DriverManager.getConnection(URL_RO, USER_RW, PASS_RW);
+        try (Connection conn = DriverManager.getConnection(url, USER, PASS);
              Statement stmt = conn.createStatement()) {
             stmt.execute("select 1");
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        count = Integer.parseInt(executeCommand("netstat -an |grep 15016|grep  ESTABLISHED |wc -l").trim());
+        count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort(PROXY_1) + "|grep  ESTABLISHED |wc -l").trim());
         Assertions.assertTrue(count >=1);
-        Thread.sleep(25000);
+        Thread.sleep(50000);
+        count = Integer.parseInt(executeCommand("netstat -an |grep " + getPort(PROXY_1) + "|grep  ESTABLISHED |wc -l").trim());
+        Assertions.assertTrue(count == 0);
+    }
+
+    @Test
+    public void testCloseProxyConnectionWithRightConnectionInfo() throws InterruptedException {
+        String url = URL_RO + "&tdsqlDirectProxyConnectMaxIdleTime=40&tdsqlDirectInitDatasourceTimeout=3000";
+        try (Connection conn = DriverManager.getConnection(url, USER, PASS);
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("select 1");
+            Thread.sleep(3000 * 6);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        int count = countTopoRefreshThreads();
+        Assertions.assertTrue(count >= 1);
+        Thread.sleep(20000);
+        count = countTopoRefreshThreads();
+        Assertions.assertTrue(count == 1);
+    }
+
+    @Test
+    public void testCloseProxyConnectionWithWrongConnectionInfo() throws InterruptedException {
+        String url = URL_RO + "&tdsqlDirectProxyConnectMaxIdleTime=40&tdsqlDirectInitDatasourceTimeout=3000";
+        try (Connection conn = DriverManager.getConnection(url, USER, "wrong_pass");
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("select 1");
+        } catch (Throwable e) {
+            // do nothing
+        }
+        Thread.sleep(3000 * 6);
+        Assertions.assertEquals(0, countTopoRefreshThreads());
+    }
+
+    public static int countTopoRefreshThreads() {
+        int count = 0;
+        ThreadGroup threadGroup = Thread.currentThread().getThreadGroup();
+        //activeCount()返回当前正在活动的线程的数量
+        int total = Thread.activeCount();
+        Thread[] threads = new Thread[total];
+        //enumerate(threads)将当前线程组中的active线程全部复制到传入的线程数组threads中
+        // 并且返回数组中元素个数，即线程组中active线程数量
+        threadGroup.enumerate(threads);
+        for (Thread t:threads){
+            if (t.getName().startsWith("TopologyRefresh-")) {
+                count++;
+            }
+        }
+        return count;
     }
 
     public static String executeCommand(String command) {

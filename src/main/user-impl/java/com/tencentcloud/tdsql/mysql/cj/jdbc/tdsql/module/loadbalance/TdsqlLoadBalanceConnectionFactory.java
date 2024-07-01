@@ -63,7 +63,7 @@ public final class TdsqlLoadBalanceConnectionFactory {
     public JdbcConnection createConnection(ConnectionUrl connectionUrl) throws SQLException {
         // 设置专属负载均衡模式标识
         tdsqlLoadBalanceMode = true;
-        logDebug("Receive one of create load balance request. [" + connectionUrl + "]");
+        logDebug("Receive one of create load balance request. [" + connectionUrl.safeToString() + "]");
         Properties props = connectionUrl.getConnectionArgumentsAsProperties();
 
         List<HostInfo> hostsList = connectionUrl.getHostsList();
@@ -105,7 +105,7 @@ public final class TdsqlLoadBalanceConnectionFactory {
             // 这时，如果IP地址无法建立数据库连接，则该IP地址会被加入黑名单
             // 同时，该IP地址会在全局连接计数器中被移除，被移除的IP地址在之后的负载均衡算法策略中不会被调度
             List<CountDownLatch> latchList = TdsqlLoadBalanceHeartbeatMonitor.getInstance()
-                    .getFirstCheckFinished(tdsqlLoadBalanceInfo.getIpPortSet());
+                    .getFirstCheckFinished(tdsqlLoadBalanceInfo.getTdsqlHostInfoList());
             for (CountDownLatch latch : latchList) {
                 if (latch.getCount() != 0L) {
                     try {
@@ -132,11 +132,10 @@ public final class TdsqlLoadBalanceConnectionFactory {
                     }
                 }
             }
-            logInfo("All host in current datasource has finished first heartbeat checked!");
-            if (TdsqlLoadBalanceBlacklistHolder.getInstance().isBlacklistEnabled()) {
-                logInfo("Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
-                        .printBlacklist() + "]");
-            }
+        }
+        if (TdsqlLoadBalanceBlacklistHolder.getInstance().isBlacklistEnabled()) {
+            logInfo("Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
+                    .printBlacklist() + "]");
         }
 
         // 根据全局连接计数器，执行负载均衡算法策略，选择出一个需要建立数据库连接的IP地址
@@ -144,10 +143,10 @@ public final class TdsqlLoadBalanceConnectionFactory {
                 .getCounter(tdsqlLoadBalanceInfo.getDatasourceUuid());
         // 如果全局连接计数器是空的，则记录严重错误级别的日志，并提前抛出异常提醒用户
         if (counter == null || counter.isEmpty()) {
-            String errMessage = "Could not create connection to database server.";
+            String errMessage = "Could not create connection to database server."
+                    + "Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]"
+                    + "Current counter:" + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter();
             logFatal(errMessage);
-            logFatal("Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance()
-                    .printBlacklist() + "]");
             throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE,
                     null);
         }
@@ -161,7 +160,8 @@ public final class TdsqlLoadBalanceConnectionFactory {
         // 这种情况出现的概率较小，我们会记录严重错误级别的日志，并提前抛出异常提醒用户
         if (choice == null) {
             String errMessage = "Could not create connection to database server. "
-                    + "LoadBalanced Strategy not choice any hosts.";
+                    + "LoadBalanced Strategy not choice any hosts.Current blacklist [" + TdsqlLoadBalanceBlacklistHolder.getInstance().printBlacklist() + "]"
+                    + "Current counter:" + TdsqlLoadBalanceConnectionCounter.getInstance().printCounter();
             logFatal(errMessage);
             throw SQLError.createSQLException(errMessage, MysqlErrorNumbers.SQL_STATE_UNABLE_TO_CONNECT_TO_DATASOURCE,
                     null);
@@ -175,18 +175,11 @@ public final class TdsqlLoadBalanceConnectionFactory {
             return connection;
         } catch (SQLException e) {
             // 如果建立数据库连接失败，记录日志和堆栈、抛出异常
-            if (tdsqlLoadBalanceInfo.isTdsqlLoadBalanceHeartbeatMonitorEnable()) {
-                // 如果开启了心跳检测，则黑名单也就开启了，将该失败的IP地址加入黑名单
-                // 保证这个IP地址在心跳检测成功之前，不再被调度到
-                logError("Could not create connection to database server [" + choice.getHostPortPair()
-                        + "], try add to blacklist.", e);
-                TdsqlLoadBalanceBlacklistHolder.getInstance().addBlacklist(choice);
-            } else {
-                // 同时将重置该失败的IP地址的连接计数器
-                logError("Could not create connection to database server [" + choice.getHostPortPair()
-                        + "], remove its counter.", e);
-                TdsqlLoadBalanceConnectionCounter.getInstance().resetCounter(choice);
-            }
+            // 如果开启了心跳检测，则黑名单也就开启了，将该失败的IP地址加入黑名单
+            // 保证这个IP地址在心跳检测成功之前，不再被调度到
+            logError("Could not create connection to database server [" + choice.getHostPortPair()
+                    + "], try add to blacklist.", e);
+            TdsqlLoadBalanceBlacklistHolder.getInstance().addBlacklist(choice);
             throw e;
         }
     }
@@ -287,10 +280,6 @@ public final class TdsqlLoadBalanceConnectionFactory {
             }
             boolean tdsqlLoadBalanceHeartbeatMonitor = Boolean.parseBoolean(tdsqlLoadBalanceHeartbeatMonitorStr);
             tdsqlLoadBalanceInfo.setTdsqlLoadBalanceHeartbeatMonitorEnable(tdsqlLoadBalanceHeartbeatMonitor);
-            // 如果主动关闭了心跳检测，则不再启用黑名单
-            if (!tdsqlLoadBalanceHeartbeatMonitor) {
-                TdsqlLoadBalanceBlacklistHolder.getInstance().setBlacklistEnabled(false);
-            }
         } catch (Exception e) {
             String errMessage =
                     Messages.getString("ConnectionProperties.badValueForTdsqlLoadBalanceHeartbeatMonitorEnable",

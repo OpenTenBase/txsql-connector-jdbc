@@ -70,7 +70,7 @@ public class TdsqlDirectCacheServer {
         this.survivedChecker = new ScheduledThreadPoolExecutor(1, new TdsqlThreadFactoryBuilder().setDaemon(true)
                 .setNameFormat("SurvivedCheck-" + this.dataSourceUuid.substring(24, 32)).build());
         this.survivedChecker.scheduleWithFixedDelay(new TdsqlDirectSurvivedCheckTask(this), 0L,
-                this.dataSourceConfig.getTdsqlDirectTopoRefreshIntervalMillis(), TimeUnit.MILLISECONDS);
+                this.dataSourceConfig.getTdsqlDirectSurvivorModeTime(), TimeUnit.MILLISECONDS);
     }
 
     public void closeSurvivedChecker() {
@@ -161,17 +161,17 @@ public class TdsqlDirectCacheServer {
      */
     public boolean waitForFirstFinished() {
         try {
-            if (!this.finishedFirstCache.await(this.dataSourceConfig.getTdsqlConnectionTimeOut(), TimeUnit.MILLISECONDS)) {
+            if (!this.finishedFirstCache.await(this.dataSourceConfig.getDatasourceInitTimeout(), TimeUnit.MILLISECONDS)) {
                 if (this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException() != null) {
                     throw  TdsqlExceptionFactory.logException(this.dataSourceUuid,
                             TdsqlDirectCacheTopologyException.class,
                             Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheTimeoutCauseBy",
-                                    new Object[]{this.dataSourceConfig.getTdsqlConnectionTimeOut(),
+                                    new Object[]{this.dataSourceConfig.getDatasourceInitTimeout(),
                                             this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException().getMessage()}),
                             this.dataSourceConfig.getTopologyServer().getRefreshTopologyTask().getLastException());
                 }
                 throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                        Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheTimeout", new Object[]{this.dataSourceConfig.getTdsqlConnectionTimeOut()}));
+                        Messages.getString("TdsqlDirectCacheTopologyException.FirstCacheTimeout", new Object[]{this.dataSourceConfig.getDatasourceInitTimeout()}));
             }
         } catch (InterruptedException e) {
             throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
@@ -338,12 +338,12 @@ public class TdsqlDirectCacheServer {
                 }
 
                 // 配置的刷新拓扑间隔时间
-                Integer intervalMillis = this.cacheServer.dataSourceConfig.getTdsqlDirectTopoRefreshIntervalMillis();
+                Integer intervalMillis = this.cacheServer.dataSourceConfig.getTdsqlDirectSurvivorModeTime();
 
                 // 如果连续三次没有缓存，进入幸存模式
                 long currentTime = System.currentTimeMillis();
                 this.cacheServer.isSurvived =
-                        currentTime - this.cacheServer.latestComparedTimeMillis > intervalMillis * 3L;
+                        (currentTime - this.cacheServer.latestComparedTimeMillis) > intervalMillis;
 
                 if (this.cacheServer.isSurvived) {
                     TdsqlLoggerFactory.logWarn(this.cacheServer.dataSourceUuid,

@@ -35,22 +35,22 @@ public class TdsqlDirectDataSource {
     private Throwable lastException;
 
     private final ReentrantReadWriteLock lock;
+    private ConnectionUrl connectionUrl;
 
-    public TdsqlDirectDataSource(String dataSourceUuid) {
+    public TdsqlDirectDataSource(String dataSourceUuid, ConnectionUrl connectionUrl) {
         this.dataSourceUuid = dataSourceUuid;
         this.dataSourceConfig = new TdsqlDirectDataSourceConfig(dataSourceUuid);
         this.isInitialized = new AtomicBoolean(false);
         this.isActived = new AtomicBoolean(true);
         this.countDownLatch = new CountDownLatch(1);
         this.lock = new ReentrantReadWriteLock();
+        this.connectionUrl = connectionUrl;
     }
 
     /**
      * 初始化数据源
-     *
-     * @param connectionUrl {@link ConnectionUrl}
      */
-    public void initialize(ConnectionUrl connectionUrl) {
+    public void initialize() {
         if (this.isInitialized.compareAndSet(false, true)) {
             try {
                 // URL参数校验并赋值
@@ -97,17 +97,18 @@ public class TdsqlDirectDataSource {
 
     public boolean waitForFirstFinished() {
         try {
-            if (!this.countDownLatch.await(1000, TimeUnit.MILLISECONDS)) {
+            if (!this.countDownLatch.await(this.dataSourceConfig.getDatasourceInitTimeout(this.connectionUrl), TimeUnit.MILLISECONDS)) {
                 if (this.lastException != null) {
                     logError(this.lastException);
                     throw new RuntimeException(this.lastException);
                 }
                 throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                        "init tdsql direct datasource failed! wait timeout: 1000ms");
+                        Messages.getString("TdsqlDirectCacheTopologyException.InitDirectDatasourceTimeout",
+                                new Object[]{this.dataSourceConfig.getDatasourceInitTimeout(this.connectionUrl)}));
             }
         } catch  (InterruptedException e) {
             throw TdsqlExceptionFactory.logException(this.dataSourceUuid, TdsqlDirectCacheTopologyException.class,
-                    "init tdsql direct datasource failed! interrupted");
+                    Messages.getString("TdsqlDirectCacheTopologyException.InitDirectDatasourceInterrupted"));
         }
 
         return this.getCacheServer().waitForFirstFinished();
@@ -154,8 +155,16 @@ public class TdsqlDirectDataSource {
         if (this.getConnectionManager() == null) {
             return false;
         }
+
+        // 如果是初始化topo之前, lastEmptyLiveConnectionTimestamp为-1
+        if (this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() == -1 &
+                System.currentTimeMillis() - this.getConnectionManager().getCreateTime()
+                        > (this.dataSourceConfig.getDatasourceInitTimeout() * 5L)) {
+            return true;
+        }
+
         return (this.getConnectionManager().getLiveConnectionMap().size() == 0 &
-                this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() != 0 &
+                this.getConnectionManager().getLastEmptyLiveConnectionTimestamp() > 0 &
                 System.currentTimeMillis() - this.getConnectionManager().getLastEmptyLiveConnectionTimestamp()
                         > (this.dataSourceConfig.getTdsqlDirectProxyConnectMaxIdleTime() * 1000));
     }

@@ -13,17 +13,18 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import tdsql.loadbalance.base.BaseTest;
 
-public class MultiLbAndDirectTest {
+public class MultiLbAndDirectTest extends BaseTest {
 
     private static final String DRIVER_NAME = "com.tencentcloud.tdsql.mysql.cj.jdbc.Driver";
     private static final String DB_URL1 = "jdbc:tdsql-mysql:direct:" +
-            "//9.30.0.250:15012,9.30.2.116:15012/test" +
+            "//" + PROXY_1 + "," + PROXY_2 + "/test" +
             "?logger=Slf4JLogger" +
             "&tdsqlDirectReadWriteMode=ro" +
             "&autoReconnect=true";
     private static final String DB_URL2 = "jdbc:tdsql-mysql:loadbalance:" +
-            "//9.30.0.250:15012,9.30.2.116:15012/test" +
+            "//" + PROXY_1 + "," + PROXY_2 + "/test" +
             "?tdsqlLoadBalanceStrategy=sed" +
             "&logger=Slf4JLogger" +
             "&tdsqlLoadBalanceWeightFactor=2,1" +
@@ -33,8 +34,6 @@ public class MultiLbAndDirectTest {
             "&tdsqlLoadBalanceHeartbeatMaxErrorRetries=1" +
             "&autoReconnect=true";
 
-    private static final String USERNAME = "qt4s";
-    private static final String PASSWORD = "g<m:7KNDF.L1<^1C";
     private static final DruidDataSource ds1 = new DruidDataSource();
     private static final DruidDataSource ds2 = new DruidDataSource();
     private ThreadPoolExecutor executorService;
@@ -53,8 +52,8 @@ public class MultiLbAndDirectTest {
         } else {
             ds.setUrl(DB_URL2);
         }
-        ds.setUsername(USERNAME);
-        ds.setPassword(PASSWORD);
+        ds.setUsername(USER);
+        ds.setPassword(PASS);
         ds.setDriverClassName(DRIVER_NAME);
         ds.setInitialSize(10);
         ds.setMaxActive(10);
@@ -104,7 +103,7 @@ public class MultiLbAndDirectTest {
                 TimeUnit.MILLISECONDS.sleep(100);
                 executorService.execute(new QueryTask());
                 long endTime=System.currentTimeMillis(); //获取结束时间
-                if (endTime - startTime > (1000 * 60 * 5)) {
+                if (endTime - startTime > (1000 * 60 * 2)) {
                     break;
                 }
             }

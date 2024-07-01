@@ -9,9 +9,9 @@ import java.sql.SQLException;
 
 public class ClientInfoEnableTest {
 
-    private String proxy2 = "9.30.2.116:15016";
+    private String proxy2 = "9.30.2.89:15003";
 
-    private String proxy3 = "9.30.2.89:15016";
+    private String proxy3 = "9.30.2.116:15003";
 
     private String proxy4 = "9.30.2.94:15016";
     public Connection getConn(String connUrl) {
@@ -21,7 +21,7 @@ public class ClientInfoEnableTest {
 
             String proxyUrl = connUrl;
             try {
-                conn = DriverManager.getConnection(proxyUrl, "qt4s", "g<m:7KNDF.L1<^1C");
+                conn = DriverManager.getConnection(proxyUrl, "tdwtest", "Abcd_1234_.");
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -69,7 +69,7 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testSingleConnectionWithAllParams() throws SQLException {
-        String connUrl = "jdbc:mysql://" + proxy2 + "/test?tdsqlSendClientInfoEnable=true" +
+        String connUrl = "jdbc:mysql://" + proxy2 + "/sbtest?tdsqlSendClientInfoEnable=true" +
                 "&passwordCharacterEncoding=utf-8" +
                 "&characterEncoding=utf-8" +
                 "&connectionTimeZone=Asia/Shanghai" +
@@ -79,7 +79,7 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testTdSqlLBConnectionWithoutOtherParams() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql:loadbalance://" +  proxy2 + "," + proxy3 + "," + proxy4 +
+        String connUrl = "jdbc:tdsql-mysql:loadbalance://" +  proxy2 + "," + proxy3 +
                 "/test?tdsqlSendClientInfoEnable=true" +
                 "&tdsqlLoadBalanceStrategy=sed" +
                 "&tdsqlLoadBalanceWeightFactor=1,1,1,1" +
@@ -91,7 +91,7 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testTdSqlLBConnectionWithAllParams() throws SQLException {
-        String connUrl = "jdbc:mysql:loadbalance://" + proxy2 + "," + proxy3 + "," + proxy4 +
+        String connUrl = "jdbc:mysql:loadbalance://" + proxy2 + "," + proxy3 +
                 "/test?tdsqlSendClientInfoEnable=true" +
                 "&tdsqlLoadBalanceStrategy=lc" +
                 "&tdsqlLoadBalanceWeightFactor=1,1,1,1" +
@@ -101,7 +101,8 @@ public class ClientInfoEnableTest {
                 "&passwordCharacterEncoding=utf-8" +
                 "&characterEncoding=utf-8" +
                 "&connectionTimeZone=Asia/Shanghai" +
-                "&socketTimeout=10000";
+                "&socketTimeout=10000" +
+                "&connectTimeout=1000";
         execute(connUrl);
     }
 
@@ -116,7 +117,7 @@ public class ClientInfoEnableTest {
 
     @Test
     public void testTdSqlDirectConnectionWithAllParams() throws SQLException {
-        String connUrl = "jdbc:tdsql-mysql:direct://" + proxy2 +
+        String connUrl = "jdbc:tdsql-mysql:direct://" + proxy2 + proxy3+
                 "/test?tdsqlSendClientInfoEnable=true" +
                 "&passwordCharacterEncoding=utf-8" +
                 "&characterEncoding=utf-8" +
