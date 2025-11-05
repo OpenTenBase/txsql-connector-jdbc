@@ -61,13 +61,13 @@
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-      <version>3.21.9</version>
+      <version>3.25.5</version>
     </dependency>
 
     <dependency>
       <groupId>com.oracle.oci.sdk</groupId>
       <artifactId>oci-java-sdk-common</artifactId>
-      <version>2.47.0</version>
+      <version>3.48.0</version>
       <optional>true</optional>
     </dependency>
   </dependencies>
