@@ -1,0 +1,4 @@
+[submodule "libs/test"]
+	path = libs/test
+	url = https://git.woa.com/TDSQL-Driver/TDSQL-MySQL-Driver/unit-test-denpendencies.git
+	branch = no-junit
