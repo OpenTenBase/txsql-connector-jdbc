@@ -2,7 +2,7 @@
 
 ## 简介
 
-txsql-connector-jdbc 是腾讯云更新和维护的数据库驱动程序,基于Java8平台用纯Java语言实现了。该驱动实现了JDBC4.2规范,特别针对TDSQL数据库的使用语法和功能特性进行了深度开发和适配。
+txsql-connector-jdbc 是腾讯云数据库团队更新和维护的数据库驱动程序，现已捐赠给OpenTenBase社区。txsql-connector-jdbc基于Java8平台用纯Java语言实现，该驱动实现了JDBC4.2规范,特别针对TDSQL数据库的使用语法和功能特性进行了深度开发和适配。
 
 ## 核心特性
 
@@ -37,15 +37,3 @@ txsql-connector-jdbc 是腾讯云更新和维护的数据库驱动程序,基于J
 同时保留TDSQL专属引入方式:
 - 驱动类名: `com.tencentcloud.tdsql.mysql.cj.jdbc.Driver`
 - URL前缀: `jdbc:tdsql-mysql://`
-
-## 许可信息
-
-许可信息请参见 LICENSE 文件。
-
-本发行版可能包含第三方开发的材料。有关这些材料的许可和归属声明,请参阅 LICENSE 文件。
-
-## 技术支持
-
-更多关于txsql-connector-jdbc的信息,请访问腾讯云官方文档。
-
-txsql-connector-jdbc 由腾讯云 TDSQL 团队提供技术支持。
