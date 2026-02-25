@@ -2,7 +2,7 @@
 
 ## 简介
 
-txsql-connector-jdbc 是腾讯云独立更新和维护的商业化数据库驱动程序,基于Java8平台用纯Java语言实现了MySQL Protocol。该驱动实现了JDBC4.2规范,支持MySQL 5.6、5.7和8.0,并特别针对TDSQL数据库的使用语法和功能特性进行了深度开发和适配。
+txsql-connector-jdbc 是腾讯云更新和维护的数据库驱动程序,基于Java8平台用纯Java语言实现了。该驱动实现了JDBC4.2规范,特别针对TDSQL数据库的使用语法和功能特性进行了深度开发和适配。
 
 ## 核心特性
 
